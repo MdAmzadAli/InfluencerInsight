@@ -58,13 +58,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         holidays = await storage.getUpcomingHolidays(10);
       }
 
+      // Scrape competitor data if competitors are provided and generation type is competitor
+      let scrapedData: any[] = [];
       const competitors = user.competitors ? user.competitors.split(',').map(c => c.trim()) : [];
+      
+      if (generationType === 'competitor' && competitors.length > 0) {
+        try {
+          const { instagramScraper } = await import('./instagram-scraper');
+          const competitorUsernames = competitors.map(c => c.replace('@', '').trim());
+          
+          console.log('Scraping Instagram profiles:', competitorUsernames);
+          scrapedData = await instagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
+          console.log('Successfully scraped data for', scrapedData.length, 'profiles');
+        } catch (error) {
+          console.error('Instagram scraping failed:', error);
+          // Continue without scraped data - the AI will still generate content based on competitor names
+        }
+      }
 
       const generatedContent = await generateInstagramContent({
         niche: user.niche,
         generationType,
         context,
         competitors,
+        scrapedData,
         holidays: holidays?.map(h => ({
           name: h.name,
           date: h.date.toISOString(),

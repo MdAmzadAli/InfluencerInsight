@@ -6,6 +6,7 @@ import {
   jsonb,
   index,
   serial,
+  integer,
   boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -52,7 +53,7 @@ export const contentIdeas = pgTable("content_ideas", {
 export const scheduledPosts = pgTable("scheduled_posts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id),
-  contentIdeaId: serial("content_idea_id").references(() => contentIdeas.id),
+  contentIdeaId: integer("content_idea_id").references(() => contentIdeas.id),
   headline: text("headline").notNull(),
   caption: text("caption").notNull(),
   hashtags: text("hashtags").notNull(),
@@ -91,6 +92,9 @@ export const insertContentIdeaSchema = createInsertSchema(contentIdeas).omit({
 export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).omit({
   id: true,
   createdAt: true,
+}).extend({
+  scheduledDate: z.string().transform((str) => new Date(str)),
+  contentIdeaId: z.number().optional().nullable(),
 });
 
 export const updateUserSchema = createInsertSchema(users).pick({

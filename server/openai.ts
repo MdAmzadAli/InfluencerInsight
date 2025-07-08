@@ -11,6 +11,7 @@ export interface ContentGenerationRequest {
   context?: string;
   competitors?: string[];
   holidays?: Array<{ name: string; date: string; description: string; }>;
+  scrapedData?: any[];
 }
 
 export interface GeneratedContent {
@@ -131,11 +132,26 @@ Create content that ties the niche to these cultural moments and festivals. Make
         break;
 
       case 'competitor':
-        userPrompt = `Generate 3 Instagram content ideas for the "${request.niche}" niche based on competitor analysis. 
+        let competitorAnalysis = `Competitors mentioned: ${request.competitors?.join(', ') || 'No specific competitors'}`;
         
-Competitors mentioned: ${request.competitors?.join(', ') || 'No specific competitors'}
+        if (request.scrapedData && request.scrapedData.length > 0) {
+          competitorAnalysis += '\n\nScraped competitor data:\n';
+          request.scrapedData.forEach((profile: any) => {
+            competitorAnalysis += `\n@${profile.username} (${profile.followers} followers):\n`;
+            profile.posts.slice(0, 5).forEach((post: any, index: number) => {
+              competitorAnalysis += `  ${index + 1}. ${post.caption} (${post.likes} likes, ${post.comments} comments)\n`;
+              if (post.hashtags.length > 0) {
+                competitorAnalysis += `     Hashtags: ${post.hashtags.join(' ')}\n`;
+              }
+            });
+          });
+        }
 
-Create unique, engaging content that stands out from typical posts in this niche. Focus on gaps in the market and trending topics that competitors might be missing.`;
+        userPrompt = `Generate 3 Instagram content ideas for the "${request.niche}" niche based on competitor analysis.
+
+${competitorAnalysis}
+
+Create unique, engaging content that stands out from typical posts in this niche. Focus on gaps in the market and trending topics that competitors might be missing. Use insights from the actual competitor data to create better content.`;
         break;
 
       case 'trending':

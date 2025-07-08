@@ -107,9 +107,15 @@ export class DatabaseStorage implements IStorage {
 
   // Scheduled Posts operations
   async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
+    // Handle null contentIdeaId
+    const postData = {
+      ...post,
+      contentIdeaId: post.contentIdeaId || undefined
+    };
+    
     const [scheduledPost] = await db
       .insert(scheduledPosts)
-      .values(post)
+      .values(postData)
       .returning();
     return scheduledPost;
   }
