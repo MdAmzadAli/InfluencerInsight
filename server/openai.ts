@@ -137,13 +137,20 @@ Create content that ties the niche to these cultural moments and festivals. Make
         if (request.scrapedData && request.scrapedData.length > 0) {
           competitorAnalysis += '\n\nScraped competitor data:\n';
           request.scrapedData.forEach((profile: any) => {
-            competitorAnalysis += `\n@${profile.username} (${profile.followers} followers):\n`;
+            competitorAnalysis += `\n@${profile.username} (${profile.followers.toLocaleString()} followers, ${profile.following} following):\n`;
+            competitorAnalysis += `Recent posts analysis:\n`;
             profile.posts.slice(0, 5).forEach((post: any, index: number) => {
-              competitorAnalysis += `  ${index + 1}. ${post.caption} (${post.likes} likes, ${post.comments} comments)\n`;
+              competitorAnalysis += `  ${index + 1}. Caption: "${post.caption.substring(0, 100)}${post.caption.length > 100 ? '...' : ''}"\n`;
+              competitorAnalysis += `     Engagement: ${post.likes} likes, ${post.comments} comments\n`;
               if (post.hashtags.length > 0) {
-                competitorAnalysis += `     Hashtags: ${post.hashtags.join(' ')}\n`;
+                competitorAnalysis += `     Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
               }
             });
+            
+            // Calculate average engagement
+            const avgLikes = Math.round(profile.posts.reduce((sum: number, post: any) => sum + post.likes, 0) / profile.posts.length);
+            const avgComments = Math.round(profile.posts.reduce((sum: number, post: any) => sum + post.comments, 0) / profile.posts.length);
+            competitorAnalysis += `     Average engagement: ${avgLikes} likes, ${avgComments} comments per post\n`;
           });
         }
 
