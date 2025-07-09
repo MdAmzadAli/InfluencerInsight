@@ -1,8 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { authenticateFirebaseToken, AuthenticatedRequest } from "./auth";
+import { checkDatabaseHealth } from "./custom-db";
 import { generateInstagramContent, optimizeHashtags } from "./openai";
+import { instagramScraper } from "./instagram-scraper";
 import { 
   insertContentIdeaSchema, 
   insertScheduledPostSchema,
@@ -10,17 +12,29 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Check custom database health
+  await checkDatabaseHealth();
 
   // Seed holidays on startup
   await storage.seedHolidays();
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Auth routes with Firebase
+  app.get('/api/auth/user', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const userId = req.user.uid;
+      let user = await storage.getUser(userId);
+      
+      // Create user if doesn't exist
+      if (!user) {
+        user = await storage.upsertUser({
+          id: userId,
+          email: req.user.email,
+          firstName: req.user.name?.split(' ')[0] || null,
+          lastName: req.user.name?.split(' ').slice(1).join(' ') || null,
+          profileImageUrl: req.user.picture || null,
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -28,10 +42,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User profile routes
-  app.patch('/api/user/niche', isAuthenticated, async (req: any, res) => {
+  // Update user competitors
+  app.put('/api/user/competitors', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.uid;
+      const { competitors } = req.body;
+      
+      if (typeof competitors !== 'string') {
+        return res.status(400).json({ message: "Competitors must be a string" });
+      }
+
+      const updatedUser = await storage.updateUserNiche(userId, null, competitors);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating competitors:", error);
+      res.status(500).json({ message: "Failed to update competitors" });
+    }
+  });
+
+  // Get top competitor posts
+  app.get('/api/competitors/top-posts', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user.uid;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.competitors) {
+        return res.json({ posts: [], competitorProfiles: [] });
+      }
+
+      const competitors = user.competitors.split(',').filter(Boolean);
+      
+      if (competitors.length === 0) {
+        return res.json({ posts: [], competitorProfiles: [] });
+      }
+
+      const result = await instagramScraper.getTopPostsFromCompetitors(competitors, 10);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching competitor posts:", error);
+      res.status(500).json({ message: "Failed to fetch competitor posts" });
+    }
+  });
+
+  // User profile routes
+  app.patch('/api/user/niche', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user.uid;
       const { niche, competitors } = updateUserSchema.parse(req.body);
       
       const user = await storage.updateUserNiche(userId, niche || '', competitors || undefined);
@@ -43,9 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Content generation routes
-  app.post('/api/content/generate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/content/generate', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.uid;
       const { generationType, context } = req.body;
       
       const user = await storage.getUser(userId);
@@ -64,7 +120,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (generationType === 'competitor' && competitors.length > 0) {
         try {
-          const { instagramScraper } = await import('./instagram-scraper');
           const competitorUsernames = competitors.map(c => c.replace('@', '').trim());
           
           console.log('Scraping Instagram profiles:', competitorUsernames);
@@ -112,9 +167,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Content ideas routes
-  app.get('/api/content/ideas', isAuthenticated, async (req: any, res) => {
+  app.get('/api/content/ideas', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.uid;
       const ideas = await storage.getUserContentIdeas(userId);
       res.json(ideas);
     } catch (error) {
@@ -123,9 +178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/content/ideas/saved', isAuthenticated, async (req: any, res) => {
+  app.get('/api/content/ideas/saved', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.uid;
       const savedIdeas = await storage.getSavedContentIdeas(userId);
       res.json(savedIdeas);
     } catch (error) {
@@ -134,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/content/ideas/:id/save', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/content/ideas/:id/save', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
       const ideaId = parseInt(req.params.id);
       const { isSaved } = req.body;
@@ -148,9 +203,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Scheduled posts routes
-  app.post('/api/posts/schedule', isAuthenticated, async (req: any, res) => {
+  app.post('/api/posts/schedule', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.uid;
       const postData = insertScheduledPostSchema.parse({
         ...req.body,
         userId
@@ -164,9 +219,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/posts/scheduled', isAuthenticated, async (req: any, res) => {
+  app.get('/api/posts/scheduled', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.uid;
       const scheduledPosts = await storage.getUserScheduledPosts(userId);
       res.json(scheduledPosts);
     } catch (error) {
@@ -175,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/posts/scheduled/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/posts/scheduled/:id', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
       const postId = parseInt(req.params.id);
       const updates = req.body;
@@ -188,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/posts/scheduled/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/posts/scheduled/:id', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
       const postId = parseInt(req.params.id);
       await storage.deleteScheduledPost(postId);
@@ -200,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Hashtag optimization route
-  app.post('/api/content/optimize-hashtags', isAuthenticated, async (req: any, res) => {
+  app.post('/api/content/optimize-hashtags', authenticateFirebaseToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { niche, caption } = req.body;
       const optimizedHashtags = await optimizeHashtags(niche, caption);

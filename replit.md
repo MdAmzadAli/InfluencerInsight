@@ -88,11 +88,30 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **Authentication**: Replit domains and OIDC configuration
 - **Database**: Automatic schema pushing with Drizzle migrations
 
+## Recent Changes
+
+### July 09, 2025 - Major Feature Implementation
+- **✅ Competitors Management**: Added left sidebar section for managing up to 5 competitors with add/delete functionality
+- **✅ Firebase Authentication**: Replaced Replit Auth with Google Firebase authentication for broader compatibility
+- **✅ Custom PostgreSQL Database**: Migrated from Replit database to custom Neon PostgreSQL setup with enhanced connection pooling
+- **✅ Enhanced Instagram Scraper**: Improved competitor analysis to extract top 10 posts from all competitors combined, showing captions, hashtags, engagement metrics, and post previews
+- **✅ Competitor Posts View**: New dashboard section displaying detailed competitor post analysis with copy-to-clipboard functionality
+- **🔧 Authentication Flow**: Implemented Firebase redirect handling and token-based API authentication
+- **🔧 Database Migration**: Updated all storage operations to use custom database connection with better error handling
+
+### Technical Architecture Updates
+- **Authentication**: Firebase client-side auth with server-side token verification
+- **Database**: Custom Neon PostgreSQL connection with WebSocket support
+- **API Security**: Bearer token authentication for all protected endpoints
+- **Instagram Analysis**: Combines posts from all competitors, ranks by engagement, provides detailed insights
+- **UI/UX**: Enhanced left sidebar with competitors management and competitor posts preview
+
 ## Changelog
 
 ```
 Changelog:
 - July 08, 2025. Initial setup
+- July 09, 2025. Major feature implementation - competitors management, Firebase auth, custom database, enhanced Instagram scraper
 ```
 
 ## User Preferences

@@ -220,6 +220,40 @@ export class InstagramScraper {
     return profiles;
   }
 
+  // Extract top posts from all competitors combined
+  async getTopPostsFromCompetitors(usernames: string[], totalPosts: number = 10): Promise<{
+    posts: (InstagramPost & { username: string; profileUrl: string })[];
+    competitorProfiles: ScrapedProfile[];
+  }> {
+    console.log(`Extracting top ${totalPosts} posts from competitors: ${usernames.join(', ')}`);
+    
+    const profiles = await this.scrapeMultipleProfiles(usernames, 20); // Get more posts to find top ones
+    const allPosts: (InstagramPost & { username: string; profileUrl: string })[] = [];
+    
+    // Combine all posts from all competitors
+    profiles.forEach(profile => {
+      profile.posts.forEach(post => {
+        allPosts.push({
+          ...post,
+          username: profile.username,
+          profileUrl: `https://www.instagram.com/${profile.username}/`
+        });
+      });
+    });
+    
+    // Sort by engagement (likes + comments) and get top posts
+    const topPosts = allPosts
+      .sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments))
+      .slice(0, totalPosts);
+    
+    console.log(`Found ${allPosts.length} total posts, returning top ${topPosts.length}`);
+    
+    return {
+      posts: topPosts,
+      competitorProfiles: profiles
+    };
+  }
+
   // Method for getting basic profile info with fallback
   async getBasicProfileInfo(username: string): Promise<Partial<ScrapedProfile>> {
     try {

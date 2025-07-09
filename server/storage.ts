@@ -12,7 +12,7 @@ import {
   type IndianHoliday,
   type InsertIndianHoliday,
 } from "@shared/schema";
-import { db } from "./db";
+import { customDb as db } from "./custom-db";
 import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -52,7 +52,10 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          profileImageUrl: userData.profileImageUrl,
           updatedAt: new Date(),
         },
       })

@@ -2,31 +2,47 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { handleRedirect } from "@/lib/firebase";
+import { useQuery } from "@tanstack/react-query";
 import GenerateIdeas from "@/components/generate-ideas";
 import CreatePost from "@/components/create-post";
 import SavedIdeas from "@/components/saved-ideas";
 import PostScheduling from "@/components/post-scheduling";
+import CompetitorsManagement from "@/components/competitors-management";
+import CompetitorPostsView from "@/components/competitor-posts-view";
 
-type Section = 'generateIdeas' | 'createPost' | 'savedIdeas' | 'scheduling';
+type Section = 'generateIdeas' | 'createPost' | 'savedIdeas' | 'scheduling' | 'competitorPosts';
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<Section>('generateIdeas');
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, firebaseUser } = useAuth();
   const { toast } = useToast();
 
+  // Handle Firebase redirect result
   useEffect(() => {
-    if (!isLoading && !user) {
+    handleRedirect().then((result) => {
+      if (result?.user) {
+        console.log('Successfully logged in with Firebase');
+      }
+    }).catch((error) => {
+      console.error('Firebase redirect error:', error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && !firebaseUser) {
       toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
+        title: "Please sign in",
+        description: "Redirecting to login...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        const { login } = import("@/lib/firebase");
+        login.then(fn => fn());
       }, 500);
       return;
     }
-  }, [user, isLoading, toast]);
+  }, [firebaseUser, isLoading, toast]);
 
   if (isLoading) {
     return (
@@ -39,12 +55,43 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
+  if (!firebaseUser) {
     return null;
   }
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const CompetitorPostsComponent = () => {
+    const { data: competitorData, isLoading: postsLoading } = useQuery({
+      queryKey: ["/api/competitors/top-posts"],
+      enabled: !!user?.competitors,
+    });
+
+    return (
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Top Competitor Posts
+            </h1>
+            <p className="text-gray-600">
+              Analyze your competitors' best-performing content to inspire your strategy
+            </p>
+          </div>
+          <CompetitorPostsView 
+            posts={competitorData?.posts || []} 
+            isLoading={postsLoading}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { logout } = await import("@/lib/firebase");
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const sectionConfig = [
@@ -71,6 +118,12 @@ export default function Dashboard() {
       icon: 'fas fa-calendar-alt',
       label: 'Post Scheduling',
       color: 'text-blue-600'
+    },
+    {
+      id: 'competitorPosts' as const,
+      icon: 'fas fa-chart-bar',
+      label: 'Competitor Posts',
+      color: 'text-orange-600'
     }
   ];
 
@@ -131,6 +184,11 @@ export default function Dashboard() {
             </nav>
           </div>
           
+          {/* Competitors Management */}
+          <div className="p-6 border-t border-gray-200">
+            <CompetitorsManagement />
+          </div>
+          
           {/* User's niche info */}
           <div className="mt-auto p-6 border-t border-gray-200">
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
@@ -154,6 +212,7 @@ export default function Dashboard() {
           {activeSection === 'createPost' && <CreatePost />}
           {activeSection === 'savedIdeas' && <SavedIdeas />}
           {activeSection === 'scheduling' && <PostScheduling />}
+          {activeSection === 'competitorPosts' && <CompetitorPostsComponent />}
         </div>
       </div>
     </div>
