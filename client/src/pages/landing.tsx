@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { login } from "@/lib/firebase";
 
 export default function Landing() {
   const handleLogin = () => {
-    login();
+    window.location.href = '/api/login';
   };
 
   return (

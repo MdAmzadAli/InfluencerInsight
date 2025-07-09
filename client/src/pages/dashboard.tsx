@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { handleRedirect } from "@/lib/firebase";
 import { useQuery } from "@tanstack/react-query";
 import GenerateIdeas from "@/components/generate-ideas";
 import CreatePost from "@/components/create-post";
@@ -18,31 +16,19 @@ export default function Dashboard() {
   const { user, isLoading, firebaseUser } = useAuth();
   const { toast } = useToast();
 
-  // Handle Firebase redirect result
   useEffect(() => {
-    handleRedirect().then((result) => {
-      if (result?.user) {
-        console.log('Successfully logged in with Firebase');
-      }
-    }).catch((error) => {
-      console.error('Firebase redirect error:', error);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading && !firebaseUser) {
+    if (!isLoading && !user) {
       toast({
         title: "Please sign in",
         description: "Redirecting to login...",
         variant: "destructive",
       });
       setTimeout(() => {
-        const { login } = import("@/lib/firebase");
-        login.then(fn => fn());
+        window.location.href = '/api/login';
       }, 500);
       return;
     }
-  }, [firebaseUser, isLoading, toast]);
+  }, [user, isLoading, toast]);
 
   if (isLoading) {
     return (
@@ -55,7 +41,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!firebaseUser) {
+  if (!user) {
     return null;
   }
 
@@ -87,8 +73,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     try {
-      const { logout } = await import("@/lib/firebase");
-      await logout();
+      window.location.href = '/api/logout';
     } catch (error) {
       console.error("Logout error:", error);
     }
