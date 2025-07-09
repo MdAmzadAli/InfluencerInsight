@@ -142,7 +142,8 @@ export class InstagramScraper {
   }
 
   private generateMockProfileData(username: string, postLimit: number): ScrapedProfile {
-    // Generate realistic mock data for demonstration
+    // This should only be used when real scraping fails due to rate limits
+    // In production, consider using Instagram Basic Display API or third-party services
     const followerCount = Math.floor(Math.random() * 50000) + 1000;
     const posts: InstagramPost[] = [];
 

@@ -91,10 +91,9 @@ function generateMockContent(request: ContentGenerationRequest): GeneratedConten
 }
 
 export async function generateInstagramContent(request: ContentGenerationRequest): Promise<GeneratedContent[]> {
-  // If no API key is available, return mock data for testing
+  // Require API key for real functionality
   if (!openai) {
-    console.log("OpenAI API key not found, returning mock data for testing");
-    return generateMockContent(request);
+    throw new Error('OpenAI API key is required for content generation');
   }
 
   try {
@@ -196,10 +195,9 @@ Create content that has high viral potential and aligns with current Instagram a
 }
 
 export async function optimizeHashtags(niche: string, caption: string): Promise<string> {
-  // If no API key is available, return mock hashtags for testing
+  // Require API key for real functionality
   if (!openai) {
-    console.log("OpenAI API key not found, returning mock hashtags for testing");
-    return "#content #creator #instagram #viral #trending #engagement #reach #followers #likes #comments #share #explore #fyp #foryou #socialmedia #marketing #strategy #growth #success #influence #authentic #genuine #creative #inspiration #motivation #lifestyle #daily #tips #advice #community #audience #brand #personal #quality #value #educational #entertaining #relatable #fun #amazing #awesome #best #new #latest #today #2025 #indian #india";
+    throw new Error('OpenAI API key is required for hashtag optimization');
   }
 
   try {

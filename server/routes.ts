@@ -4,7 +4,9 @@ import { storage } from "./storage";
 import { authenticateUser, AuthenticatedRequest } from "./auth";
 import { checkDatabaseHealth } from "./db";
 import { generateInstagramContent, optimizeHashtags } from "./openai";
+import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyzeCompetitorContent } from "./gemini";
 import { instagramScraper } from "./instagram-scraper";
+import { notificationService } from "./notification-service";
 import session from "express-session";
 import { z } from "zod";
 
@@ -55,6 +57,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (storage) {
     await storage.seedHolidays();
   }
+
+  // Start notification service
+  notificationService.startNotificationScheduler();
 
   // Simple auth routes
   app.get('/api/login', (req, res) => {
@@ -189,18 +194,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const generatedContent = await generateInstagramContent({
-        niche: user.niche,
-        generationType,
-        context,
-        competitors,
-        scrapedData,
-        holidays: holidays?.map(h => ({
-          name: h.name,
-          date: h.date.toISOString(),
-          description: h.description || ''
-        }))
-      });
+      // Use Gemini as primary AI service, fallback to OpenAI if needed
+      let generatedContent;
+      try {
+        generatedContent = await generateInstagramContentWithGemini({
+          niche: user.niche,
+          generationType,
+          context,
+          competitors,
+          scrapedData,
+          holidays: holidays?.map(h => ({
+            name: h.name,
+            date: h.date.toISOString(),
+            description: h.description || ''
+          }))
+        });
+      } catch (error) {
+        console.error('Gemini generation failed, trying OpenAI:', error);
+        generatedContent = await generateInstagramContent({
+          niche: user.niche,
+          generationType,
+          context,
+          competitors,
+          scrapedData,
+          holidays: holidays?.map(h => ({
+            name: h.name,
+            date: h.date.toISOString(),
+            description: h.description || ''
+          }))
+        });
+      }
 
       // Save generated ideas to database
       const savedIdeas = [];
@@ -270,6 +293,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const scheduledPost = await storage.createScheduledPost(postData);
+      
+      // Schedule notification for this post
+      notificationService.schedulePostNotification(scheduledPost.id, scheduledPost.scheduledDate);
+      
       res.json(scheduledPost);
     } catch (error) {
       console.error("Error scheduling post:", error);
@@ -316,7 +343,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/content/optimize-hashtags', authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
       const { niche, caption } = req.body;
-      const optimizedHashtags = await optimizeHashtags(niche, caption);
+      
+      // Use Gemini as primary service, fallback to OpenAI
+      let optimizedHashtags;
+      try {
+        optimizedHashtags = await optimizeHashtagsWithGemini(niche, caption);
+      } catch (error) {
+        console.error('Gemini hashtag optimization failed, trying OpenAI:', error);
+        optimizedHashtags = await optimizeHashtags(niche, caption);
+      }
+      
       res.json({ hashtags: optimizedHashtags });
     } catch (error) {
       console.error("Error optimizing hashtags:", error);
