@@ -46,9 +46,11 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
               prompt += `  Post ${postIndex + 1}: "${post.caption.substring(0, 150)}${post.caption.length > 150 ? '...' : ''}"\n`;
               prompt += `    Engagement: ${post.likes} likes, ${post.comments} comments\n`;
               prompt += `    Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
+              prompt += `    Post URL: ${post.postUrl}\n`;
             });
           });
           prompt += `\nCreate content that outperforms these competitors by identifying gaps and improving on their successful patterns. `;
+          prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
         } else {
           prompt += `Note: Competitor data could not be scraped. Generate content based on general ${request.niche} best practices. `;
         }
@@ -79,30 +81,33 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
             prompt += `  ${index + 1}. @${post.username}: "${post.caption.substring(0, 100)}${post.caption.length > 100 ? '...' : ''}"\n`;
             prompt += `     Performance: ${post.likes} likes, ${post.comments} comments (${post.engagementRate.toFixed(2)}% engagement)\n`;
             prompt += `     Key hashtags: ${post.hashtags.slice(0, 8).join(' ')}\n`;
+            prompt += `     Post URL: ${post.postUrl}\n`;
           });
           prompt += `\nUse these trending patterns to create viral content that follows successful formats. `;
+          prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
         }
         break;
     }
 
     prompt += `
-For each post, provide:
-1. A compelling headline (max 60 characters)
-2. An engaging caption (100-200 words) with storytelling, value, and call-to-action
-3. 20-30 relevant hashtags including trending, niche-specific, and community hashtags
-4. 3 content ideas/variations for the post
+
+IMPORTANT FORMATTING REQUIREMENTS:
+- Headlines: Maximum 10 words, catchy and attention-grabbing
+- Captions: Exactly 20-40 words, engaging and action-oriented
+- Hashtags: Exactly 5-10 relevant hashtags, no more, no less
+- Ideas: Maximum 50 words explaining the content strategy and concept
 
 Return the response as a JSON array with exactly this structure:
 [
   {
-    "headline": "Compelling headline here",
-    "caption": "Engaging caption with value and CTA here...",
-    "hashtags": "#trending #${request.niche} #viral #content #engagement",
-    "ideas": "1. Idea variation one\n2. Idea variation two\n3. Idea variation three"
+    "headline": "Short catchy headline (max 10 words)",
+    "caption": "Engaging 20-40 word caption with clear value proposition",
+    "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5",
+    "ideas": "Brief explanation of content strategy and why it works (max 50 words). If inspired by a specific post, include: Inspired by: [post URL]"
   }
 ]
 
-Make sure each post is unique, engaging, and optimized for maximum reach and engagement.`;
+Make each post unique, viral-worthy, and perfectly formatted according to the requirements.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-pro",
@@ -150,11 +155,12 @@ export async function optimizeHashtagsWithGemini(niche: string, caption: string)
   }
 
   try {
-    const prompt = `As an Instagram hashtag expert, analyze this caption and generate 25-30 optimized hashtags for the ${niche} niche.
+    const prompt = `As an Instagram hashtag expert, analyze this caption and generate exactly 8-10 optimized hashtags for the ${niche} niche.
 
 Caption: "${caption}"
 
 Rules:
+- Generate exactly 8-10 hashtags total
 - Mix of trending, niche-specific, and community hashtags
 - Include variations of hashtag popularity (high, medium, low competition)
 - No banned or shadowbanned hashtags

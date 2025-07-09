@@ -306,20 +306,20 @@ export default function GenerateIdeas() {
                         </button>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION</label>
-                          <p className="text-sm text-gray-700">{idea.caption}</p>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION (20-40 words)</label>
+                          <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
                         </div>
                         
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS</label>
-                          <p className="text-xs text-blue-600 break-all">{idea.hashtags}</p>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS (5-10)</label>
+                          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
                         </div>
                         
                         <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">CONTENT IDEAS</label>
-                          <p className="text-xs text-gray-600 whitespace-pre-line">{idea.ideas}</p>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">STRATEGY & SOURCE</label>
+                          <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{idea.ideas}</p>
                         </div>
                       </div>
                       

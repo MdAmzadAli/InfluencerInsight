@@ -90,13 +90,20 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
-### July 09, 2025 - AI Integration & Real Data Implementation
+### July 09, 2025 - AI Integration & Content Format Optimization
 - **✅ Gemini AI Integration**: Added Google Gemini as primary AI service for content generation with OpenAI as fallback
 - **✅ Removed All Mock Data**: Eliminated all placeholder/mock data throughout the application - now requires real API keys
 - **✅ Real-time Notifications**: Implemented post scheduling notifications with node-cron for automated reminders
 - **✅ Enhanced Content Generation**: Improved AI prompts for better Instagram content with competitor analysis integration
 - **✅ Database Connection**: Fixed PostgreSQL connection issues and ensured proper database health checks
 - **✅ Hashtag Optimization**: Added Gemini-powered hashtag optimization with fallback to OpenAI
+- **✅ Content Format Optimization**: Refined content generation to specific requirements:
+  - Captions: 20-40 words exactly
+  - Hashtags: 5-10 relevant hashtags per post
+  - Ideas: Max 50 words with strategy explanation
+- **✅ Instagram Source Attribution**: Added post URL sources for competitor and trending analysis
+- **✅ Frontend State Persistence**: Generated ideas accumulate and persist across page navigation
+- **✅ Double @ Symbol Fix**: Resolved competitor username formatting issues
 - **🔧 Error Handling**: Added comprehensive error handling for AI services and database operations
 - **🔧 API Key Requirements**: Made API keys mandatory for all AI-powered features
 
