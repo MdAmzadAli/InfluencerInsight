@@ -2,15 +2,39 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { authenticateUser, AuthenticatedRequest } from "./auth";
-import { checkDatabaseHealth } from "./custom-db";
+import { checkDatabaseHealth } from "./db";
 import { generateInstagramContent, optimizeHashtags } from "./openai";
 import { instagramScraper } from "./instagram-scraper";
-import { 
-  insertContentIdeaSchema, 
-  insertScheduledPostSchema,
-  updateUserSchema 
-} from "@shared/schema";
 import session from "express-session";
+import { z } from "zod";
+
+// Validation schemas
+const insertContentIdeaSchema = z.object({
+  userId: z.string(),
+  headline: z.string(),
+  caption: z.string(),
+  hashtags: z.string(),
+  ideas: z.string(),
+  generationType: z.string(),
+  isSaved: z.boolean().optional(),
+});
+
+const insertScheduledPostSchema = z.object({
+  userId: z.string(),
+  contentIdeaId: z.number().optional().nullable(),
+  headline: z.string(),
+  caption: z.string(),
+  hashtags: z.string(),
+  ideas: z.string().optional().nullable(),
+  scheduledDate: z.string().transform((str) => new Date(str)),
+  isCustom: z.boolean().optional(),
+  status: z.string().optional(),
+});
+
+const updateUserSchema = z.object({
+  niche: z.string().optional(),
+  competitors: z.string().optional(),
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware

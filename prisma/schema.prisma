@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json
+  expire DateTime
+
+  @@index([expire], name: "IDX_session_expire")
+  @@map("sessions")
+}
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+model User {
+  id              String    @id @db.VarChar
+  email           String?   @unique @db.VarChar
+  firstName       String?   @map("first_name") @db.VarChar
+  lastName        String?   @map("last_name") @db.VarChar
+  profileImageUrl String?   @map("profile_image_url") @db.VarChar
+  niche           String?
+  competitors     String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  contentIdeas   ContentIdea[]
+  scheduledPosts ScheduledPost[]
+
+  @@map("users")
+}
+
+model ContentIdea {
+  id             Int      @id @default(autoincrement())
+  userId         String   @map("user_id") @db.VarChar
+  headline       String
+  caption        String
+  hashtags       String
+  ideas          String
+  generationType String   @map("generation_type") @db.VarChar(20)
+  isSaved        Boolean  @default(false) @map("is_saved")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user           User            @relation(fields: [userId], references: [id])
+  scheduledPosts ScheduledPost[]
+
+  @@map("content_ideas")
+}
+
+model ScheduledPost {
+  id            Int       @id @default(autoincrement())
+  userId        String    @map("user_id") @db.VarChar
+  contentIdeaId Int?      @map("content_idea_id")
+  headline      String
+  caption       String
+  hashtags      String
+  ideas         String?
+  scheduledDate DateTime  @map("scheduled_date")
+  isCustom      Boolean   @default(false) @map("is_custom")
+  status        String    @default("scheduled") @db.VarChar(20)
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id])
+  contentIdea ContentIdea? @relation(fields: [contentIdeaId], references: [id])
+
+  @@map("scheduled_posts")
+}
+
+model IndianHoliday {
+  id          Int      @id @default(autoincrement())
+  name        String
+  date        DateTime
+  description String?
+  category    String?  @db.VarChar(50)
+
+  @@map("indian_holidays")
+}

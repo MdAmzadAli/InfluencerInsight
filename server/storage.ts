@@ -1,23 +1,51 @@
-import {
-  users,
-  contentIdeas,
-  scheduledPosts,
-  indianHolidays,
-  type User,
-  type UpsertUser,
-  type ContentIdea,
-  type InsertContentIdea,
-  type ScheduledPost,
-  type InsertScheduledPost,
-  type IndianHoliday,
-  type InsertIndianHoliday,
-} from "@shared/schema";
-import { customDb as db } from "./custom-db";
-import { eq, and, desc } from "drizzle-orm";
+import { prisma } from "./db";
+import type { 
+  User, 
+  ContentIdea, 
+  ScheduledPost, 
+  IndianHoliday 
+} from "@prisma/client";
+
+export interface UpsertUser {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+}
+
+export interface InsertContentIdea {
+  userId: string;
+  headline: string;
+  caption: string;
+  hashtags: string;
+  ideas: string;
+  generationType: string;
+  isSaved?: boolean;
+}
+
+export interface InsertScheduledPost {
+  userId: string;
+  contentIdeaId?: number | null;
+  headline: string;
+  caption: string;
+  hashtags: string;
+  ideas?: string | null;
+  scheduledDate: Date;
+  isCustom?: boolean;
+  status?: string;
+}
+
+export interface InsertIndianHoliday {
+  name: string;
+  date: Date;
+  description?: string | null;
+  category?: string | null;
+}
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth
-  getUser(id: string): Promise<User | undefined>;
+  getUser(id: string): Promise<User | null>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
   
@@ -40,160 +68,159 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
-    if (!db) {
+  async getUser(id: string): Promise<User | null> {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    
+    return await prisma.user.findUnique({
+      where: { id }
+    });
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+    
+    return await prisma.user.upsert({
+      where: { id: userData.id },
+      update: {
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profileImageUrl: userData.profileImageUrl,
+        updatedAt: new Date(),
+      },
+      create: userData,
+    });
   }
 
   async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    const [user] = await db
-      .update(users)
-      .set({ 
+    
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { 
         niche, 
         competitors,
         updatedAt: new Date() 
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    return user;
+      }
+    });
   }
 
   // Content Ideas operations
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    const [contentIdea] = await db
-      .insert(contentIdeas)
-      .values(idea)
-      .returning();
-    return contentIdea;
+    
+    return await prisma.contentIdea.create({
+      data: idea
+    });
   }
 
   async getUserContentIdeas(userId: string): Promise<ContentIdea[]> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    return await db
-      .select()
-      .from(contentIdeas)
-      .where(eq(contentIdeas.userId, userId))
-      .orderBy(desc(contentIdeas.createdAt));
+    
+    return await prisma.contentIdea.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
   }
 
   async getSavedContentIdeas(userId: string): Promise<ContentIdea[]> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    return await db
-      .select()
-      .from(contentIdeas)
-      .where(and(eq(contentIdeas.userId, userId), eq(contentIdeas.isSaved, true)))
-      .orderBy(desc(contentIdeas.createdAt));
+    
+    return await prisma.contentIdea.findMany({
+      where: { 
+        userId,
+        isSaved: true 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
   }
 
   async updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    await db
-      .update(contentIdeas)
-      .set({ isSaved })
-      .where(eq(contentIdeas.id, ideaId));
+    
+    await prisma.contentIdea.update({
+      where: { id: ideaId },
+      data: { isSaved }
+    });
   }
 
   // Scheduled Posts operations
   async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    // Handle null contentIdeaId
-    const postData = {
-      ...post,
-      contentIdeaId: post.contentIdeaId || undefined
-    };
     
-    const [scheduledPost] = await db
-      .insert(scheduledPosts)
-      .values(postData)
-      .returning();
-    return scheduledPost;
+    return await prisma.scheduledPost.create({
+      data: post
+    });
   }
 
   async getUserScheduledPosts(userId: string): Promise<ScheduledPost[]> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    return await db
-      .select()
-      .from(scheduledPosts)
-      .where(eq(scheduledPosts.userId, userId))
-      .orderBy(desc(scheduledPosts.scheduledDate));
+    
+    return await prisma.scheduledPost.findMany({
+      where: { userId },
+      orderBy: { scheduledDate: 'desc' }
+    });
   }
 
   async updateScheduledPost(postId: number, updates: Partial<InsertScheduledPost>): Promise<ScheduledPost> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    const [post] = await db
-      .update(scheduledPosts)
-      .set(updates)
-      .where(eq(scheduledPosts.id, postId))
-      .returning();
-    return post;
+    
+    return await prisma.scheduledPost.update({
+      where: { id: postId },
+      data: updates
+    });
   }
 
   async deleteScheduledPost(postId: number): Promise<void> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
-    await db
-      .delete(scheduledPosts)
-      .where(eq(scheduledPosts.id, postId));
+    
+    await prisma.scheduledPost.delete({
+      where: { id: postId }
+    });
   }
 
   // Indian Holidays operations
   async getUpcomingHolidays(limit = 10): Promise<IndianHoliday[]> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
     }
+    
     const now = new Date();
-    return await db
-      .select()
-      .from(indianHolidays)
-      .where(eq(indianHolidays.date, now)) // This should be gte but keeping simple for now
-      .limit(limit);
+    return await prisma.indianHoliday.findMany({
+      where: {
+        date: {
+          gte: now
+        }
+      },
+      orderBy: { date: 'asc' },
+      take: limit
+    });
   }
 
   async seedHolidays(): Promise<void> {
-    if (!db) {
+    if (!process.env.DATABASE_URL) {
       console.warn('Database not initialized - skipping holiday seeding');
       return;
     }
@@ -261,7 +288,11 @@ export class DatabaseStorage implements IStorage {
       }
     ];
 
-    await db.insert(indianHolidays).values(holidays).onConflictDoNothing();
+    // Use createMany with skipDuplicates to avoid conflicts
+    await prisma.indianHoliday.createMany({
+      data: holidays,
+      skipDuplicates: true
+    });
   }
 }
 
