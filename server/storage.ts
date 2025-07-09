@@ -41,11 +41,17 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -64,6 +70,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     const [user] = await db
       .update(users)
       .set({ 
@@ -78,6 +87,9 @@ export class DatabaseStorage implements IStorage {
 
   // Content Ideas operations
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     const [contentIdea] = await db
       .insert(contentIdeas)
       .values(idea)
@@ -86,6 +98,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserContentIdeas(userId: string): Promise<ContentIdea[]> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     return await db
       .select()
       .from(contentIdeas)
@@ -94,6 +109,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSavedContentIdeas(userId: string): Promise<ContentIdea[]> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     return await db
       .select()
       .from(contentIdeas)
@@ -102,6 +120,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     await db
       .update(contentIdeas)
       .set({ isSaved })
@@ -110,6 +131,9 @@ export class DatabaseStorage implements IStorage {
 
   // Scheduled Posts operations
   async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     // Handle null contentIdeaId
     const postData = {
       ...post,
@@ -124,6 +148,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserScheduledPosts(userId: string): Promise<ScheduledPost[]> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     return await db
       .select()
       .from(scheduledPosts)
@@ -132,6 +159,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateScheduledPost(postId: number, updates: Partial<InsertScheduledPost>): Promise<ScheduledPost> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     const [post] = await db
       .update(scheduledPosts)
       .set(updates)
@@ -141,6 +171,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteScheduledPost(postId: number): Promise<void> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     await db
       .delete(scheduledPosts)
       .where(eq(scheduledPosts.id, postId));
@@ -148,6 +181,9 @@ export class DatabaseStorage implements IStorage {
 
   // Indian Holidays operations
   async getUpcomingHolidays(limit = 10): Promise<IndianHoliday[]> {
+    if (!db) {
+      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
+    }
     const now = new Date();
     return await db
       .select()
