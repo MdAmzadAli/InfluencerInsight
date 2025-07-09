@@ -36,17 +36,52 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         break;
 
       case 'competitor':
-        prompt += `Analyze these competitor posts and generate 3 similar but unique viral Instagram posts for ${request.niche}. `;
+        prompt += `Analyze competitor posts and generate 3 unique viral Instagram posts for ${request.niche}. `;
         if (request.scrapedData && request.scrapedData.length > 0) {
-          prompt += `Competitor insights: ${JSON.stringify(request.scrapedData.slice(0, 5))}. `;
+          prompt += `\n\nREAL COMPETITOR ANALYSIS DATA:\n`;
+          request.scrapedData.forEach((profile: any, index: number) => {
+            prompt += `\nCompetitor ${index + 1}: @${profile.username} (${profile.followers.toLocaleString()} followers)\n`;
+            prompt += `Recent posts analysis:\n`;
+            profile.posts.slice(0, 5).forEach((post: any, postIndex: number) => {
+              prompt += `  Post ${postIndex + 1}: "${post.caption.substring(0, 150)}${post.caption.length > 150 ? '...' : ''}"\n`;
+              prompt += `    Engagement: ${post.likes} likes, ${post.comments} comments\n`;
+              prompt += `    Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
+            });
+          });
+          prompt += `\nCreate content that outperforms these competitors by identifying gaps and improving on their successful patterns. `;
+        } else {
+          prompt += `Note: Competitor data could not be scraped. Generate content based on general ${request.niche} best practices. `;
         }
         if (request.competitors && request.competitors.length > 0) {
-          prompt += `Competitors to analyze: ${request.competitors.join(', ')}. `;
+          prompt += `Target competitors: ${request.competitors.join(', ')}. `;
         }
         break;
 
       case 'trending':
         prompt += `Generate 3 viral Instagram posts for ${request.niche} based on current trending topics and viral formats. `;
+        if (request.scrapedData && request.scrapedData.length > 0) {
+          prompt += `\n\nTRENDING ANALYSIS FROM COMPETITORS:\n`;
+          const allPosts = request.scrapedData.flatMap((profile: any) => 
+            profile.posts.map((post: any) => ({
+              ...post,
+              username: profile.username,
+              engagementRate: (post.likes + post.comments) / Math.max(profile.followers, 1) * 100
+            }))
+          );
+          
+          // Sort by engagement rate and take top 5
+          const topPosts = allPosts
+            .sort((a, b) => b.engagementRate - a.engagementRate)
+            .slice(0, 5);
+            
+          prompt += `Top performing posts for trend analysis:\n`;
+          topPosts.forEach((post: any, index: number) => {
+            prompt += `  ${index + 1}. @${post.username}: "${post.caption.substring(0, 100)}${post.caption.length > 100 ? '...' : ''}"\n`;
+            prompt += `     Performance: ${post.likes} likes, ${post.comments} comments (${post.engagementRate.toFixed(2)}% engagement)\n`;
+            prompt += `     Key hashtags: ${post.hashtags.slice(0, 8).join(' ')}\n`;
+          });
+          prompt += `\nUse these trending patterns to create viral content that follows successful formats. `;
+        }
         break;
     }
 

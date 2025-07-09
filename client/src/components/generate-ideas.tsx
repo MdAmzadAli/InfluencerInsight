@@ -24,6 +24,7 @@ export default function GenerateIdeas() {
   const [competitors, setCompetitors] = useState("");
   const [showOptions, setShowOptions] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<ContentIdea[]>([]);
+  const [clearIdeas, setClearIdeas] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   
@@ -73,7 +74,7 @@ export default function GenerateIdeas() {
       return response.json();
     },
     onSuccess: (data: ContentIdea[]) => {
-      setGeneratedIdeas(data);
+      setGeneratedIdeas(prev => [...prev, ...data]);
       toast({
         title: "Success",
         description: "Content ideas generated successfully!",
@@ -268,15 +269,25 @@ export default function GenerateIdeas() {
           {generatedIdeas.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-900">Generated Ideas</h3>
-                <Button
-                  variant="outline"
-                  onClick={() => handleGenerateIdeas('trending')}
-                  className="flex items-center space-x-2"
-                >
-                  <i className="fas fa-sync-alt"></i>
-                  <span>Regenerate</span>
-                </Button>
+                <h3 className="text-2xl font-bold text-gray-900">Generated Ideas ({generatedIdeas.length})</h3>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setGeneratedIdeas([])}
+                    className="flex items-center space-x-2"
+                  >
+                    <i className="fas fa-trash"></i>
+                    <span>Clear All</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleGenerateIdeas('trending')}
+                    className="flex items-center space-x-2"
+                  >
+                    <i className="fas fa-sync-alt"></i>
+                    <span>Generate More</span>
+                  </Button>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

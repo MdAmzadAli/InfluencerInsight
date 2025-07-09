@@ -58,7 +58,7 @@ export default function CompetitorsManagement() {
       return;
     }
 
-    const username = newCompetitor.trim().replace('@', '');
+    const username = newCompetitor.trim().replace(/^@+/, '');
     
     if (competitors.includes(username)) {
       toast({

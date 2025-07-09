@@ -6,6 +6,7 @@ import { checkDatabaseHealth } from "./db";
 import { generateInstagramContent, optimizeHashtags } from "./openai";
 import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyzeCompetitorContent } from "./gemini";
 import { instagramScraper } from "./instagram-scraper";
+import { advancedInstagramScraper } from "./instagram-api";
 import { notificationService } from "./notification-service";
 import session from "express-session";
 import { z } from "zod";
@@ -139,7 +140,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ posts: [], competitorProfiles: [] });
       }
 
-      const result = await instagramScraper.getTopPostsFromCompetitors(competitors, 10);
+      // Try advanced scraper first, fallback to basic scraper
+      let result;
+      try {
+        result = await advancedInstagramScraper.getTopPostsFromCompetitors(competitors, 10);
+        if (result.posts.length === 0) {
+          throw new Error('No posts found with advanced scraper');
+        }
+      } catch (error) {
+        console.log('Advanced scraper failed, using basic scraper:', error);
+        result = await instagramScraper.getTopPostsFromCompetitors(competitors, 10);
+      }
       res.json(result);
     } catch (error) {
       console.error("Error fetching competitor posts:", error);
@@ -181,16 +192,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let scrapedData: any[] = [];
       const competitors = user.competitors ? user.competitors.split(',').map(c => c.trim()) : [];
       
-      if (generationType === 'competitor' && competitors.length > 0) {
+      if ((generationType === 'competitor' || generationType === 'trending') && competitors.length > 0) {
         try {
-          const competitorUsernames = competitors.map(c => c.replace('@', '').trim());
+          const competitorUsernames = competitors.map(c => c.replace(/^@+/, '').trim());
           
-          console.log('Scraping Instagram profiles:', competitorUsernames);
-          scrapedData = await instagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
-          console.log('Successfully scraped data for', scrapedData.length, 'profiles');
+          console.log('Scraping Instagram profiles for AI analysis:', competitorUsernames);
+          
+          // Try advanced scraper first
+          try {
+            scrapedData = await advancedInstagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
+            if (scrapedData.length === 0) {
+              throw new Error('No data from advanced scraper');
+            }
+            console.log('Successfully scraped data for', scrapedData.length, 'profiles using advanced scraper');
+          } catch (advancedError) {
+            console.log('Advanced scraper failed, using basic scraper:', advancedError);
+            scrapedData = await instagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
+            console.log('Successfully scraped data for', scrapedData.length, 'profiles using basic scraper');
+          }
         } catch (error) {
-          console.error('Instagram scraping failed:', error);
-          // Continue without scraped data - the AI will still generate content based on competitor names
+          console.error('All Instagram scraping methods failed:', error);
+          // Don't continue with empty data - inform the AI about the failure
+          scrapedData = [];
         }
       }
 
