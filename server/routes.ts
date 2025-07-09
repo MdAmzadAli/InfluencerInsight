@@ -7,6 +7,7 @@ import { generateInstagramContent, optimizeHashtags } from "./openai";
 import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyzeCompetitorContent } from "./gemini";
 import { instagramScraper } from "./instagram-scraper";
 import { advancedInstagramScraper } from "./instagram-api";
+import { realInstagramScraper } from "./instagram-real-scraper";
 import { notificationService } from "./notification-service";
 import session from "express-session";
 import { z } from "zod";
@@ -140,17 +141,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ posts: [], competitorProfiles: [] });
       }
 
-      // Try advanced scraper first, fallback to basic scraper
-      let result;
+      // Use real Instagram scraper - no fallback to mock data
       try {
-        result = await advancedInstagramScraper.getTopPostsFromCompetitors(competitors, 10);
-        if (result.posts.length === 0) {
-          throw new Error('No posts found with advanced scraper');
-        }
+        const result = await realInstagramScraper.getTopPostsFromCompetitors(competitors, 10);
+        res.json(result);
       } catch (error) {
-        console.log('Advanced scraper failed, using basic scraper:', error);
-        result = await instagramScraper.getTopPostsFromCompetitors(competitors, 10);
+        console.error('Real Instagram scraping failed:', error);
+        res.status(500).json({ 
+          message: "Failed to scrape real Instagram data. Please ensure competitor usernames are correct and try again.",
+          error: "REAL_SCRAPING_FAILED"
+        });
       }
+      return;
       res.json(result);
     } catch (error) {
       console.error("Error fetching competitor posts:", error);
@@ -198,22 +200,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log('Scraping Instagram profiles for AI analysis:', competitorUsernames);
           
-          // Try advanced scraper first
-          try {
-            scrapedData = await advancedInstagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
-            if (scrapedData.length === 0) {
-              throw new Error('No data from advanced scraper');
-            }
-            console.log('Successfully scraped data for', scrapedData.length, 'profiles using advanced scraper');
-          } catch (advancedError) {
-            console.log('Advanced scraper failed, using basic scraper:', advancedError);
-            scrapedData = await instagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
-            console.log('Successfully scraped data for', scrapedData.length, 'profiles using basic scraper');
-          }
+          // Use real Instagram scraper for authentic data
+          scrapedData = await realInstagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
+          console.log('Successfully scraped real data for', scrapedData.length, 'profiles');
         } catch (error) {
           console.error('All Instagram scraping methods failed:', error);
-          // Don't continue with empty data - inform the AI about the failure
-          scrapedData = [];
+          // Return error to user - scraping is mandatory for this feature
+          return res.status(400).json({ 
+            message: "Instagram scraping failed. Real data is required for competitor and trending analysis. Please try again or check if the competitor usernames are correct.",
+            error: "SCRAPING_FAILED"
+          });
         }
       }
 

@@ -127,11 +127,13 @@ export class AdvancedInstagramScraper {
 
   async scrapeWithFetch(username: string, postLimit: number): Promise<ScrapedProfile> {
     try {
-      // Try multiple Instagram endpoints
+      // Try multiple Instagram endpoints with different approaches
       const endpoints = [
+        `https://www.instagram.com/${username}/?__a=1`,
         `https://www.instagram.com/${username}/`,
         `https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`,
-        `https://i.instagram.com/api/v1/users/web_profile_info/?username=${username}`
+        `https://i.instagram.com/api/v1/users/web_profile_info/?username=${username}`,
+        `https://www.instagram.com/${username}/channel/?__a=1`
       ];
 
       for (const endpoint of endpoints) {
@@ -272,27 +274,16 @@ export class AdvancedInstagramScraper {
     console.log(`Attempting to scrape Instagram profile: ${username}`);
     
     try {
-      // Try Puppeteer first for more reliable results
-      try {
-        const profile = await this.scrapeWithPuppeteer(username, postLimit);
-        if (profile && profile.posts.length > 0) {
-          console.log(`Successfully scraped ${profile.posts.length} posts for @${username} using Puppeteer`);
-          return profile;
-        }
-      } catch (error) {
-        console.log(`Puppeteer failed for ${username}, trying fetch method:`, error);
-      }
-
-      // Fallback to fetch method
+      // Skip Puppeteer for now due to system dependency issues, focus on fetch method with enhanced endpoints
       const profile = await this.scrapeWithFetch(username, postLimit);
       if (profile && profile.posts.length > 0) {
-        console.log(`Successfully scraped ${profile.posts.length} posts for @${username} using fetch`);
+        console.log(`Successfully scraped ${profile.posts.length} real posts for @${username}`);
         return profile;
       }
 
-      throw new Error('No posts found with any scraping method');
+      throw new Error('No posts found with scraping methods');
     } catch (error) {
-      console.error(`All scraping methods failed for ${username}:`, error);
+      console.error(`Real scraping failed for ${username}:`, error);
       throw error;
     }
   }

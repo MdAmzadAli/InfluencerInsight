@@ -80,7 +80,7 @@ export default function GenerateIdeas() {
         description: "Content ideas generated successfully!",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -92,9 +92,20 @@ export default function GenerateIdeas() {
         }, 500);
         return;
       }
+      
+      // Handle scraping failures specifically
+      if (error.message?.includes("Instagram scraping failed") || error.message?.includes("SCRAPING_FAILED")) {
+        toast({
+          title: "Instagram Scraping Failed",
+          description: "Could not get real Instagram data. Please check competitor usernames and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to generate content. Please try again.",
+        description: error.message || "Failed to generate content. Please try again.",
         variant: "destructive",
       });
     },

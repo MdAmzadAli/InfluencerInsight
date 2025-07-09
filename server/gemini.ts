@@ -95,7 +95,7 @@ IMPORTANT FORMATTING REQUIREMENTS:
 - Headlines: Maximum 10 words, catchy and attention-grabbing
 - Captions: Exactly 20-40 words, engaging and action-oriented
 - Hashtags: Exactly 5-10 relevant hashtags, no more, no less
-- Ideas: Maximum 50 words explaining the content strategy and concept
+- Ideas: Exactly 40-50 words explaining what to do, how to execute, and why this strategy works
 
 Return the response as a JSON array with exactly this structure:
 [
@@ -103,7 +103,7 @@ Return the response as a JSON array with exactly this structure:
     "headline": "Short catchy headline (max 10 words)",
     "caption": "Engaging 20-40 word caption with clear value proposition",
     "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5",
-    "ideas": "Brief explanation of content strategy and why it works (max 50 words). If inspired by a specific post, include: Inspired by: [post URL]"
+    "ideas": "Detailed content strategy: what to do, how to execute, and why it works (40-50 words). If inspired by a specific post, include: Inspired by: [post URL]"
   }
 ]
 
