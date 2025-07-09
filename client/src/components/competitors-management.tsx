@@ -21,13 +21,7 @@ export default function CompetitorsManagement() {
 
   const updateCompetitorsMutation = useMutation({
     mutationFn: async (competitors: string[]) => {
-      return apiRequest('/api/user/competitors', {
-        method: 'PUT',
-        body: JSON.stringify({ competitors: competitors.join(',') }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return apiRequest('PUT', '/api/user/competitors', { competitors: competitors.join(',') });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
