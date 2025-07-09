@@ -157,6 +157,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async seedHolidays(): Promise<void> {
+    if (!db) {
+      console.warn('Database not initialized - skipping holiday seeding');
+      return;
+    }
+    
     const holidays: InsertIndianHoliday[] = [
       {
         name: "Diwali",
