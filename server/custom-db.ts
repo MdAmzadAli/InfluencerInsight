@@ -10,17 +10,24 @@ const createCustomPool = () => {
   const connectionString = process.env.DATABASE_URL;
   
   if (!connectionString) {
-    throw new Error("DATABASE_URL must be set");
+    console.warn("DATABASE_URL is not set. Database functionality will be disabled.");
+    return null;
   }
 
   return new Pool({ connectionString });
 };
 
-export const customPool = createCustomPool();
-export const customDb = drizzle({ client: customPool, schema });
+const pool = createCustomPool();
+export const customPool = pool;
+export const customDb = pool ? drizzle({ client: pool, schema }) : null;
 
 // Database health check
 export const checkDatabaseHealth = async () => {
+  if (!customPool) {
+    console.log('Database pool not initialized - DATABASE_URL not set');
+    return false;
+  }
+  
   try {
     const client = await customPool.connect();
     const result = await client.query('SELECT NOW()');
