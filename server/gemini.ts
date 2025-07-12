@@ -343,7 +343,6 @@ export async function generateSinglePostContent(request: SinglePostRequest): Pro
     throw new Error('GEMINI_API_KEY environment variable is required');
   }
 
-  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
   const post = request.post;
   
   let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. 
@@ -396,8 +395,11 @@ Important:
 
   try {
     console.log(`🤖 Gemini: Generating content for post from @${post.ownerUsername}`);
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    const responseText = result.text?.trim() || '';
     
     console.log(`📝 Gemini response received (${responseText.length} characters)`);
     
