@@ -60,8 +60,8 @@ export function useContentState() {
       
       return {
         ...prev,
-        generatedIdeas: [...prev.generatedIdeas, ...ideas],
-        generationSessions: [...prev.generationSessions, newSession],
+        generatedIdeas: [...ideas, ...prev.generatedIdeas], // New ideas first
+        generationSessions: [newSession, ...prev.generationSessions], // New sessions first
         isGenerating: false
       };
     });
@@ -94,6 +94,16 @@ export function useContentState() {
   };
 
   const separateIdeasAndLinks = (ideas: string) => {
+    // Look for "Source:" pattern which is how we format Instagram links
+    const sourceMatch = ideas.match(/Source:\s*(https?:\/\/[^\s]+)/i);
+    
+    if (sourceMatch) {
+      const link = sourceMatch[1];
+      const strategy = ideas.replace(/Source:\s*https?:\/\/[^\s]+/i, '').trim();
+      return { strategy, link };
+    }
+    
+    // Fallback for old format
     const lines = ideas.split('\n');
     const linkLine = lines.find(line => line.toLowerCase().includes('inspired by:'));
     const strategy = lines.filter(line => !line.toLowerCase().includes('inspired by:')).join('\n').trim();

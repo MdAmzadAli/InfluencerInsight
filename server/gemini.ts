@@ -384,12 +384,12 @@ Return ONLY a valid JSON object with exactly this structure:
   "headline": "Catchy headline (max 10 words)",
   "caption": "Instagram caption (exactly 20-40 words, engaging and actionable)",
   "hashtags": "5-10 relevant hashtags separated by spaces",
-  "ideas": "Detailed execution strategy (40-50 words explaining why this will work and how to execute it) | ${post.url}"
+  "ideas": "Detailed execution strategy (40-50 words explaining why this will work and how to execute it). Source: ${post.url}"
 }
 
 Important: 
 - Caption must be exactly 20-40 words
-- Ideas must include strategy + original post URL at the end
+- Ideas must include strategy + original post URL with 'Source:' prefix at the end
 - Make it specific to ${request.niche}
 - Focus on viral potential`;
 
