@@ -28,9 +28,9 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
   }
 
   try {
-    // Use Apify data if available and requested
+    // Always use Apify as primary data source
     let apifyData: ApifyTrendingPost[] = [];
-    if (request.useApifyData && apifyScraper) {
+    if (apifyScraper) {
       try {
         console.log('Fetching real Instagram data from Apify...');
         if (request.generationType === 'trending') {
@@ -43,7 +43,10 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         console.log(`Fetched ${apifyData.length} posts from Apify`);
       } catch (error) {
         console.error('Failed to fetch Apify data:', error);
+        throw new Error(`Failed to fetch Instagram data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+    } else {
+      throw new Error('Apify API not configured. Please provide APIFY_API_TOKEN.');
     }
 
     let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. `;
@@ -59,7 +62,7 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
       case 'competitor':
         prompt += `Analyze competitor posts and generate 3 unique viral Instagram posts for ${request.niche}. `;
         
-        // Use Apify data if available
+        // Use Apify data
         if (apifyData && apifyData.length > 0) {
           prompt += `\n\nREAL COMPETITOR ANALYSIS DATA (from Apify):\n`;
           const sortedPosts = apifyData.sort((a, b) => (b.likesCount + b.commentsCount) - (a.likesCount + a.commentsCount));
@@ -70,6 +73,7 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
             prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
             prompt += `  Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
             prompt += `  Post URL: ${post.url}\n`;
+            prompt += `  Post Type: ${post.type || 'Image'}\n`;
             prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
             
             // Add image analysis if available
@@ -84,24 +88,10 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
           }
           prompt += `\nCreate content that outperforms these competitors by identifying gaps and improving on their successful patterns. `;
           prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
-        } else if (request.scrapedData && request.scrapedData.length > 0) {
-          // Fallback to existing scraped data
-          prompt += `\n\nREAL COMPETITOR ANALYSIS DATA:\n`;
-          request.scrapedData.forEach((profile: any, index: number) => {
-            prompt += `\nCompetitor ${index + 1}: @${profile.username} (${profile.followers.toLocaleString()} followers)\n`;
-            prompt += `Recent posts analysis:\n`;
-            profile.posts.slice(0, 5).forEach((post: any, postIndex: number) => {
-              prompt += `  Post ${postIndex + 1}: "${post.caption.substring(0, 150)}${post.caption.length > 150 ? '...' : ''}"\n`;
-              prompt += `    Engagement: ${post.likes} likes, ${post.comments} comments\n`;
-              prompt += `    Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
-              prompt += `    Post URL: ${post.postUrl}\n`;
-            });
-          });
-          prompt += `\nCreate content that outperforms these competitors by identifying gaps and improving on their successful patterns. `;
-          prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
         } else {
-          prompt += `Note: Competitor data could not be scraped. Generate content based on general ${request.niche} best practices. `;
+          throw new Error('No competitor data available from Apify. Please check your competitors list.');
         }
+        
         if (request.competitors && request.competitors.length > 0) {
           prompt += `Target competitors: ${request.competitors.join(', ')}. `;
         }
@@ -110,7 +100,7 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
       case 'trending':
         prompt += `Generate 3 viral Instagram posts for ${request.niche} based on current trending topics and viral formats. `;
         
-        // Use Apify data if available
+        // Use Apify data
         if (apifyData && apifyData.length > 0) {
           prompt += `\n\nREAL TRENDING INSTAGRAM DATA (from Apify):\n`;
           const topPosts = apifyData.slice(0, 8);
@@ -121,6 +111,7 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
             prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
             prompt += `  Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
             prompt += `  Post URL: ${post.url}\n`;
+            prompt += `  Post Type: ${post.type || 'Image'}\n`;
             prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
             
             // Add image analysis if available
@@ -135,31 +126,8 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
           }
           prompt += `\nUse these real trending patterns to create viral content that follows successful formats. `;
           prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
-        } else if (request.scrapedData && request.scrapedData.length > 0) {
-          // Fallback to existing scraped data
-          prompt += `\n\nTRENDING ANALYSIS FROM COMPETITORS:\n`;
-          const allPosts = request.scrapedData.flatMap((profile: any) => 
-            profile.posts.map((post: any) => ({
-              ...post,
-              username: profile.username,
-              engagementRate: (post.likes + post.comments) / Math.max(profile.followers, 1) * 100
-            }))
-          );
-          
-          // Sort by engagement rate and take top 5
-          const topPosts = allPosts
-            .sort((a, b) => b.engagementRate - a.engagementRate)
-            .slice(0, 5);
-            
-          prompt += `Top performing posts for trend analysis:\n`;
-          topPosts.forEach((post: any, index: number) => {
-            prompt += `  ${index + 1}. @${post.username}: "${post.caption.substring(0, 100)}${post.caption.length > 100 ? '...' : ''}"\n`;
-            prompt += `     Performance: ${post.likes} likes, ${post.comments} comments (${post.engagementRate.toFixed(2)}% engagement)\n`;
-            prompt += `     Key hashtags: ${post.hashtags.slice(0, 8).join(' ')}\n`;
-            prompt += `     Post URL: ${post.postUrl}\n`;
-          });
-          prompt += `\nUse these trending patterns to create viral content that follows successful formats. `;
-          prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
+        } else {
+          throw new Error('No trending data available from Apify. Please check your niche.');
         }
         break;
     }
@@ -169,7 +137,7 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
 IMPORTANT FORMATTING REQUIREMENTS:
 - Headlines: Maximum 10 words, catchy and attention-grabbing
 - Captions: Exactly 20-40 words, engaging and action-oriented
-- Hashtags: Exactly 5-10 relevant hashtags, no more, no less
+- Hashtags: Exactly 5-10 relevant hashtags. 80-85% should be from the original posts' hashtags, 15-20% can be similar/related ones
 - Ideas: Exactly 40-50 words explaining what to do, how to execute, and why this strategy works
 
 Return the response as a JSON array with exactly this structure:

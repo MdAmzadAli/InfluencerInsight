@@ -223,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           context,
           competitors,
           scrapedData,
-          useApifyData: true, // Enable Apify data integration
+          // Apify data integration is now enabled by default
           holidays: holidays?.map(h => ({
             name: h.name,
             date: h.date.toISOString(),

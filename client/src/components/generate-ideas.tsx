@@ -9,8 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink } from 'lucide-react';
 import ScheduleModal from "./schedule-modal";
-import type { ContentIdea } from "@shared/schema";
+import { useContentState, ContentIdea } from "@/hooks/useContentState";
+import type { ContentIdea as SharedContentIdea } from "@shared/schema";
 
 interface GeneratedContent {
   headline: string;
@@ -23,7 +27,6 @@ export default function GenerateIdeas() {
   const [niche, setNiche] = useState("");
   const [competitors, setCompetitors] = useState("");
   const [showOptions, setShowOptions] = useState(false);
-  const [generatedIdeas, setGeneratedIdeas] = useState<ContentIdea[]>([]);
   const [clearIdeas, setClearIdeas] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -31,6 +34,7 @@ export default function GenerateIdeas() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { state, addGeneratedIdeas, setGenerating, saveIdea, clearGeneratedIdeas, separateIdeasAndLinks } = useContentState();
 
   const updateNicheMutation = useMutation({
     mutationFn: async (data: { niche: string; competitors?: string }) => {
@@ -67,6 +71,7 @@ export default function GenerateIdeas() {
 
   const generateContentMutation = useMutation({
     mutationFn: async (generationType: 'date' | 'competitor' | 'trending') => {
+      setGenerating(true, generationType);
       const response = await apiRequest("POST", "/api/content/generate", {
         generationType,
         context: generationType
@@ -74,13 +79,18 @@ export default function GenerateIdeas() {
       return response.json();
     },
     onSuccess: (data: ContentIdea[]) => {
-      setGeneratedIdeas(prev => [...prev, ...data]);
+      if (clearIdeas) {
+        clearGeneratedIdeas();
+        setClearIdeas(false);
+      }
+      addGeneratedIdeas(data);
       toast({
         title: "Success",
-        description: "Content ideas generated successfully!",
+        description: `Generated ${data.length} content ideas using real Instagram data!`,
       });
     },
     onError: (error: any) => {
+      setGenerating(false);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -93,11 +103,14 @@ export default function GenerateIdeas() {
         return;
       }
       
-      // Handle scraping failures specifically
-      if (error.message?.includes("Instagram scraping failed") || error.message?.includes("SCRAPING_FAILED")) {
+      // Handle Apify/Instagram data failures specifically
+      if (error.message?.includes("Failed to fetch Instagram data") || 
+          error.message?.includes("Apify API not configured") ||
+          error.message?.includes("No competitor data available") ||
+          error.message?.includes("No trending data available")) {
         toast({
-          title: "Instagram Scraping Failed",
-          description: "Could not get real Instagram data. Please check competitor usernames and try again.",
+          title: "Instagram Data Required",
+          description: "Real Instagram data is required for content generation. Please check your settings and try again.",
           variant: "destructive",
         });
         return;
@@ -270,21 +283,21 @@ export default function GenerateIdeas() {
             </Card>
           </div>
 
-          {generateContentMutation.isPending && (
+          {(generateContentMutation.isPending || state.isGenerating) && (
             <div className="text-center py-8">
               <div className="w-8 h-8 instagram-gradient rounded-lg animate-pulse mx-auto mb-4"></div>
-              <p className="text-gray-600">Generating amazing content ideas for you...</p>
+              <p className="text-gray-600">Generating content ideas using real Instagram data...</p>
             </div>
           )}
 
-          {generatedIdeas.length > 0 && (
+          {state.generatedIdeas.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-900">Generated Ideas ({generatedIdeas.length})</h3>
+                <h3 className="text-2xl font-bold text-gray-900">Generated Ideas ({state.generatedIdeas.length})</h3>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => setGeneratedIdeas([])}
+                    onClick={() => clearGeneratedIdeas()}
                     className="flex items-center space-x-2"
                   >
                     <i className="fas fa-trash"></i>
@@ -302,37 +315,59 @@ export default function GenerateIdeas() {
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {generatedIdeas.map((idea) => (
-                  <Card key={idea.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h4 className="text-lg font-semibold text-gray-900 flex-1">
-                          {idea.headline}
-                        </h4>
-                        <button 
-                          onClick={() => handleSaveIdea(idea)}
-                          className={`ml-2 ${idea.isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
-                        >
-                          <i className="fas fa-bookmark"></i>
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION (20-40 words)</label>
-                          <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
+                {state.generatedIdeas.map((idea) => {
+                  const { strategy, link } = separateIdeasAndLinks(idea.ideas);
+                  return (
+                    <Card key={idea.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {idea.headline}
+                            </h4>
+                            <Badge variant="outline" className="text-xs mt-1">
+                              {idea.generationType}
+                            </Badge>
+                          </div>
+                          <button 
+                            onClick={() => handleSaveIdea(idea)}
+                            className={`ml-2 ${idea.isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
+                          >
+                            <i className="fas fa-bookmark"></i>
+                          </button>
                         </div>
                         
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS (5-10)</label>
-                          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION (20-40 words)</label>
+                            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS (5-10)</label>
+                            <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">STRATEGY</label>
+                            <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{strategy}</p>
+                          </div>
+                          
+                          {link && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">INSPIRATION SOURCE</label>
+                              <a 
+                                href={link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded flex items-center gap-1"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                View Original Instagram Post
+                              </a>
+                            </div>
+                          )}
                         </div>
-                        
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">STRATEGY & SOURCE</label>
-                          <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{idea.ideas}</p>
-                        </div>
-                      </div>
                       
                       <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-100">
                         <Button 
@@ -350,7 +385,8 @@ export default function GenerateIdeas() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                );
+                })}
               </div>
             </div>
           )}
