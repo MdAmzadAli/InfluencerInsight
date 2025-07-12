@@ -584,21 +584,21 @@ export default function GenerateIdeas() {
                     
                     // Add ideas grid for this session
                     components.push(
-                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                         {sessionIdeas.map((idea) => {
                           const { strategy, link } = separateIdeasAndLinks(idea.ideas);
                           return (
-                            <Card key={idea.id} className="hover:shadow-lg transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="flex items-start justify-between mb-3">
+                            <Card key={idea.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
+                              <CardContent className="p-3">
+                                <div className="flex items-start justify-between mb-2">
                                   <div className="flex-1">
                                     <div className="flex items-center justify-between">
-                                      <h4 className="text-base font-semibold text-gray-900 leading-tight">
+                                      <h4 className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2">
                                         {idea.headline || 'Untitled Idea'}
                                       </h4>
                                       <button 
                                         onClick={() => copyToClipboard(idea.headline || 'Untitled Idea', 'Headline')}
-                                        className="ml-2 text-gray-400 hover:text-gray-600"
+                                        className="ml-2 text-gray-400 hover:text-gray-600 flex-shrink-0"
                                       >
                                         <Copy className="h-3 w-3" />
                                       </button>
@@ -626,7 +626,7 @@ export default function GenerateIdeas() {
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
-                                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
+                                    <p className="text-xs text-gray-700 bg-gray-50 p-2 rounded line-clamp-3">{idea.caption}</p>
                                   </div>
                                   
                                   <div>
@@ -639,7 +639,7 @@ export default function GenerateIdeas() {
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
-                                    <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
+                                    <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all line-clamp-2">{idea.hashtags}</p>
                                   </div>
                                   
                                   <div>
@@ -652,7 +652,7 @@ export default function GenerateIdeas() {
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
-                                    <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{strategy}</p>
+                                    <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line line-clamp-2">{strategy}</p>
                                   </div>
                                   
                                   {link && (
@@ -665,7 +665,7 @@ export default function GenerateIdeas() {
                                         className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded flex items-center gap-1"
                                       >
                                         <ExternalLink className="h-3 w-3" />
-                                        View Original Instagram Post
+                                        View Post
                                       </a>
                                     </div>
                                   )}
@@ -674,13 +674,13 @@ export default function GenerateIdeas() {
                                 <div className="flex space-x-1 mt-3 pt-3 border-t border-gray-100">
                                   <Button 
                                     onClick={() => handleScheduleIdea(idea)}
-                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs py-2"
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs py-1"
                                   >
                                     Schedule
                                   </Button>
                                   <Button 
                                     variant="outline"
-                                    className="flex-1 text-xs py-2"
+                                    className="flex-1 text-xs py-1"
                                     onClick={() => handleRefineIdea(idea)}
                                   >
                                     Refine

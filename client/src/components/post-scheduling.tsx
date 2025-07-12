@@ -3,7 +3,23 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Calendar, 
+  Clock, 
+  CheckCircle, 
+  Circle, 
+  PlayCircle, 
+  Eye,
+  Trash2,
+  ArrowRight,
+  Users,
+  MessageSquare,
+  Heart
+} from "lucide-react";
+import { format } from "date-fns";
 import type { ScheduledPost } from "@shared/schema";
 
 export default function PostScheduling() {

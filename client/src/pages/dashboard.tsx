@@ -5,11 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import GenerateIdeas from "@/components/generate-ideas";
 import CreatePost from "@/components/create-post";
 import SavedIdeas from "@/components/saved-ideas";
-import PostScheduling from "@/components/post-scheduling";
+import PostSchedulingBoard from "@/components/post-scheduling-board";
 import CompetitorsManagement from "@/components/competitors-management";
 import CompetitorPostsView from "@/components/competitor-posts-view";
+import UserSettings from "@/components/user-settings";
 
-type Section = 'generateIdeas' | 'createPost' | 'savedIdeas' | 'scheduling' | 'competitorPosts';
+type Section = 'generateIdeas' | 'createPost' | 'savedIdeas' | 'scheduling' | 'competitorPosts' | 'competitors' | 'settings';
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<Section>('generateIdeas');
@@ -109,6 +110,18 @@ export default function Dashboard() {
       icon: 'fas fa-chart-bar',
       label: 'Competitor Posts',
       color: 'text-orange-600'
+    },
+    {
+      id: 'competitors' as const,
+      icon: 'fas fa-users',
+      label: 'Manage Competitors',
+      color: 'text-indigo-600'
+    },
+    {
+      id: 'settings' as const,
+      icon: 'fas fa-cog',
+      label: 'Settings',
+      color: 'text-gray-600'
     }
   ];
 
@@ -138,8 +151,10 @@ export default function Dashboard() {
           {activeSection === 'generateIdeas' && <GenerateIdeas />}
           {activeSection === 'createPost' && <CreatePost />}
           {activeSection === 'savedIdeas' && <SavedIdeas />}
-          {activeSection === 'scheduling' && <PostScheduling />}
+          {activeSection === 'scheduling' && <PostSchedulingBoard />}
           {activeSection === 'competitorPosts' && <CompetitorPostsComponent />}
+          {activeSection === 'competitors' && <CompetitorsManagement />}
+          {activeSection === 'settings' && <UserSettings />}
         </div>
       </div>
     </div>

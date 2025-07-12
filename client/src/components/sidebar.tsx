@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Sparkles,
   TrendingUp,
-  BookOpen
+  BookOpen,
+  Lightbulb
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,6 +102,34 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
               ) : (
                 <p className="text-sm text-muted-foreground">No competitors added</p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Refine Ideas Section */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center">
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Refine Ideas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-xs"
+                onClick={() => {
+                  // This will be handled by the parent component
+                  const event = new CustomEvent('showRefineIdeas');
+                  window.dispatchEvent(event);
+                }}
+              >
+                <Lightbulb className="h-3 w-3 mr-1" />
+                Open Refine Panel
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Refine and improve your generated ideas with AI assistance
+              </p>
             </CardContent>
           </Card>
 

@@ -9,7 +9,7 @@ import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
-import PostScheduling from "@/components/post-scheduling";
+import PostSchedulingBoard from "@/components/post-scheduling-board";
 import CompetitorPostsView from "@/components/competitor-posts-view";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -80,7 +80,7 @@ function Router() {
         <main className="flex-1 p-6">
           <Switch>
             <Route path="/" component={Dashboard} />
-            <Route path="/schedule" component={PostScheduling} />
+            <Route path="/schedule" component={PostSchedulingBoard} />
             <Route path="/competitors">
               <CompetitorPostsView posts={posts} isLoading={loadingPosts} />
             </Route>
