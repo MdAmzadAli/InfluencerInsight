@@ -194,6 +194,96 @@ Create content that has high viral potential and aligns with current Instagram a
   }
 }
 
+// OpenAI streaming content refinement
+export async function* refineContentStreamWithOpenAI(idea: any, message: string, chatHistory: any[]): AsyncGenerator<string, void, unknown> {
+  if (!openai) {
+    throw new Error('OpenAI API key not available');
+  }
+
+  try {
+    const systemPrompt = buildInstagramExpertPrompt(idea, chatHistory, message);
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "system", content: systemPrompt }],
+      stream: true,
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
+
+    for await (const chunk of response) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        yield content;
+      }
+    }
+  } catch (error) {
+    console.error('Error streaming content refinement with OpenAI:', error);
+    yield "I'm experiencing technical difficulties. Please try your request again.";
+  }
+}
+
+// Non-streaming OpenAI refinement
+export async function refineContentWithOpenAI(idea: any, message: string, chatHistory: any[]): Promise<string> {
+  if (!openai) {
+    throw new Error('OpenAI API key not available');
+  }
+
+  try {
+    const systemPrompt = buildInstagramExpertPrompt(idea, chatHistory, message);
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "system", content: systemPrompt }],
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
+
+    return response.choices[0]?.message?.content || "I'm having trouble processing your request. Please try again.";
+  } catch (error) {
+    console.error('Error refining content with OpenAI:', error);
+    throw new Error('Failed to refine content. Please try again.');
+  }
+}
+
+// Build expert Instagram content prompt
+function buildInstagramExpertPrompt(idea: any, chatHistory: any[], message: string): string {
+  return `You are an Instagram growth expert and viral content specialist with deep knowledge of:
+- Psychology of viral content and engagement hooks
+- Latest Instagram algorithm trends and best practices  
+- Content formats that drive maximum reach and engagement
+- Hashtag strategies for different niches and audience sizes
+- Storytelling techniques that convert views to followers
+- Visual content optimization and trending aesthetics
+- Community building and audience retention strategies
+
+CURRENT CONTENT CONTEXT:
+Original Idea:
+• Headline: ${idea.headline}
+• Caption: ${idea.caption} 
+• Hashtags: ${idea.hashtags}
+• Strategy: ${idea.ideas}
+• Type: ${idea.generationType}
+• Niche: ${idea.niche || 'General'}
+
+CONVERSATION HISTORY:
+${chatHistory.length > 0 ? chatHistory.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n') : 'This is the start of our conversation.'}
+
+CURRENT REQUEST: ${message}
+
+INSTRUCTIONS:
+Provide expert, actionable advice that:
+✓ Uses proven Instagram growth strategies
+✓ Incorporates current trends and algorithm insights
+✓ Gives specific, implementable suggestions
+✓ Explains WHY each recommendation works
+✓ Considers the user's niche and audience
+✓ Suggests creative angles and hooks
+✓ Optimizes for maximum viral potential
+
+Be conversational, encouraging, and highly knowledgeable. Give 2-3 specific, actionable recommendations with reasoning.`;
+}
+
 export async function optimizeHashtags(niche: string, caption: string): Promise<string> {
   // Require API key for real functionality
   if (!openai) {

@@ -6,8 +6,13 @@ import {
   generateInstagramContentWithGemini, 
   optimizeHashtagsWithGemini, 
   analyzeCompetitorContent,
-  refineContentWithGemini
+  refineContentWithGemini,
+  refineContentStreamWithGemini
 } from "./gemini";
+import { 
+  refineContentWithOpenAI,
+  refineContentStreamWithOpenAI
+} from "./openai";
 import { apifyScraper } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
@@ -467,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Refine content with AI
+  // Refine content with AI (non-streaming fallback)
   app.post('/api/content/refine', authenticateToken, async (req, res) => {
     try {
       const { idea, message, chatHistory } = req.body;
@@ -476,11 +481,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Idea and message are required" });
       }
 
-      const refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
-      res.json({ content: refinedContent });
+      let refinedContent;
+      
+      // Try OpenAI first, fallback to Gemini
+      try {
+        if (process.env.OPENAI_API_KEY) {
+          refinedContent = await refineContentWithOpenAI(idea, message, chatHistory || []);
+        } else {
+          refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
+        }
+      } catch (openaiError) {
+        console.log("OpenAI failed, falling back to Gemini:", openaiError);
+        refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
+      }
+
+      res.json({ response: refinedContent });
     } catch (error) {
       console.error("Error refining content:", error);
       res.status(500).json({ error: "Failed to refine content" });
+    }
+  });
+
+  // Streaming refine content with AI
+  app.post('/api/content/refine-stream', authenticateToken, async (req, res) => {
+    try {
+      const { idea, message, chatHistory } = req.body;
+      
+      if (!idea || !message) {
+        return res.status(400).json({ error: "Idea and message are required" });
+      }
+
+      // Set up SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      let streamFunction;
+      
+      // Try OpenAI first, fallback to Gemini
+      try {
+        if (process.env.OPENAI_API_KEY) {
+          streamFunction = refineContentStreamWithOpenAI(idea, message, chatHistory || []);
+        } else {
+          streamFunction = refineContentStreamWithGemini(idea, message, chatHistory || []);
+        }
+      } catch (openaiError) {
+        console.log("OpenAI failed, falling back to Gemini for streaming:", openaiError);
+        streamFunction = refineContentStreamWithGemini(idea, message, chatHistory || []);
+      }
+
+      try {
+        for await (const chunk of streamFunction) {
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+        }
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      } catch (streamError) {
+        console.error("Streaming error:", streamError);
+        res.write(`data: ${JSON.stringify({ error: "Streaming failed" })}\n\n`);
+      }
+      
+      res.end();
+    } catch (error) {
+      console.error("Error in streaming refine:", error);
+      res.status(500).json({ error: "Failed to start streaming refinement" });
     }
   });
 

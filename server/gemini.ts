@@ -473,35 +473,11 @@ export async function refineContentWithGemini(idea: any, message: string, chatHi
   }
 
   try {
-    const systemPrompt = `You are an Instagram content specialist helping users refine their content ideas.
-
-Original Content:
-- Headline: ${idea.headline}
-- Caption: ${idea.caption}
-- Hashtags: ${idea.hashtags}
-- Strategy: ${idea.ideas}
-- Generation Type: ${idea.generationType}
-
-Previous chat history:
-${chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-
-User's current request: ${message}
-
-Provide helpful, actionable suggestions to improve the content. Be specific and creative. Consider:
-- Different angles or perspectives
-- Engagement optimization techniques
-- Content structure improvements
-- Hashtag strategy refinements
-- Call-to-action suggestions
-- Visual content ideas
-- Trending topics integration
-- Audience targeting improvements
-
-Keep your response conversational and helpful, around 100-200 words.`;
+    const contextPrompt = buildInstagramExpertPrompt(idea, chatHistory, message);
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-pro",
-      contents: systemPrompt,
+      contents: contextPrompt,
     });
 
     return response.text || "I'm having trouble processing your request. Please try again with a different question.";
@@ -509,4 +485,67 @@ Keep your response conversational and helpful, around 100-200 words.`;
     console.error('Error refining content with Gemini:', error);
     throw new Error('Failed to refine content. Please try again.');
   }
+}
+
+// Enhanced streaming version for real-time responses
+export async function* refineContentStreamWithGemini(idea: any, message: string, chatHistory: any[]): AsyncGenerator<string, void, unknown> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
+  try {
+    const contextPrompt = buildInstagramExpertPrompt(idea, chatHistory, message);
+
+    const response = await ai.models.generateContentStream({
+      model: "gemini-2.5-pro", 
+      contents: contextPrompt,
+    });
+
+    for await (const chunk of response.stream) {
+      if (chunk.text) {
+        yield chunk.text;
+      }
+    }
+  } catch (error) {
+    console.error('Error streaming content refinement with Gemini:', error);
+    yield "I'm experiencing technical difficulties. Please try your request again.";
+  }
+}
+
+// Build expert Instagram content prompt
+function buildInstagramExpertPrompt(idea: any, chatHistory: any[], message: string): string {
+  return `You are an Instagram growth expert and viral content specialist with deep knowledge of:
+- Psychology of viral content and engagement hooks
+- Latest Instagram algorithm trends and best practices  
+- Content formats that drive maximum reach and engagement
+- Hashtag strategies for different niches and audience sizes
+- Storytelling techniques that convert views to followers
+- Visual content optimization and trending aesthetics
+- Community building and audience retention strategies
+
+CURRENT CONTENT CONTEXT:
+Original Idea:
+• Headline: ${idea.headline}
+• Caption: ${idea.caption} 
+• Hashtags: ${idea.hashtags}
+• Strategy: ${idea.ideas}
+• Type: ${idea.generationType}
+• Niche: ${idea.niche || 'General'}
+
+CONVERSATION HISTORY:
+${chatHistory.length > 0 ? chatHistory.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n') : 'This is the start of our conversation.'}
+
+CURRENT REQUEST: ${message}
+
+INSTRUCTIONS:
+Provide expert, actionable advice that:
+✓ Uses proven Instagram growth strategies
+✓ Incorporates current trends and algorithm insights
+✓ Gives specific, implementable suggestions
+✓ Explains WHY each recommendation works
+✓ Considers the user's niche and audience
+✓ Suggests creative angles and hooks
+✓ Optimizes for maximum viral potential
+
+Be conversational, encouraging, and highly knowledgeable. Give 2-3 specific, actionable recommendations with reasoning.`;
 }
