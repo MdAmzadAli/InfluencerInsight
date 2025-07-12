@@ -8,6 +8,7 @@ import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyze
 import { instagramScraper } from "./instagram-scraper";
 import { advancedInstagramScraper } from "./instagram-api";
 import { realInstagramScraper } from "./instagram-real-scraper";
+import { apifyScraper } from "./apify-scraper";
 import { notificationService } from "./notification-service";
 import session from "express-session";
 import { z } from "zod";
@@ -213,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Use Gemini as primary AI service, fallback to OpenAI if needed
+      // Use Gemini as primary AI service with Apify data integration
       let generatedContent;
       try {
         generatedContent = await generateInstagramContentWithGemini({
@@ -222,6 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           context,
           competitors,
           scrapedData,
+          useApifyData: true, // Enable Apify data integration
           holidays: holidays?.map(h => ({
             name: h.name,
             date: h.date.toISOString(),
@@ -376,6 +378,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error optimizing hashtags:", error);
       res.status(500).json({ message: "Failed to optimize hashtags" });
+    }
+  });
+
+  // Apify integration testing route
+  app.post('/api/apify/test-trending', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { niche } = req.body;
+      
+      if (!niche) {
+        return res.status(400).json({ message: "Niche is required" });
+      }
+
+      if (!apifyScraper) {
+        return res.status(400).json({ 
+          message: "Apify API not configured. Please provide APIFY_API_TOKEN environment variable.",
+          error: "APIFY_NOT_CONFIGURED"
+        });
+      }
+
+      const trendingPosts = await apifyScraper.searchTrendingPosts(niche, 5);
+      const formattedPosts = apifyScraper.formatPostsForAI(trendingPosts);
+
+      res.json({ 
+        posts: formattedPosts,
+        totalPosts: trendingPosts.length,
+        message: "Successfully fetched trending posts from Apify"
+      });
+    } catch (error) {
+      console.error("Error testing Apify integration:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch trending posts from Apify",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

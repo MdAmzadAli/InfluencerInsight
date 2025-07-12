@@ -90,6 +90,16 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
+### July 12, 2025 - Apify Integration & Enhanced Image Analysis
+- **✅ Apify Instagram Scraper Integration**: Added real-time Instagram data fetching using Apify API
+- **✅ Enhanced Image Analysis**: Gemini AI now analyzes Instagram images for better content context
+- **✅ Real Instagram Data Pipeline**: Integrated trending posts and competitor analysis with authentic data
+- **✅ Multimodal Content Generation**: AI now considers visual elements when generating content
+- **✅ API Integration Testing**: Added testing endpoint for Apify integration verification
+- **✅ Environment Configuration**: Added APIFY_API_TOKEN support for production deployment
+- **✅ Database Migration**: Successfully migrated from Agent to Replit environment
+- **✅ PostgreSQL Setup**: Configured and initialized database with proper schema
+
 ### July 09, 2025 - AI Integration & Content Format Optimization
 - **✅ Gemini AI Integration**: Added Google Gemini as primary AI service for content generation with OpenAI as fallback
 - **✅ Removed All Mock Data**: Eliminated all placeholder/mock data throughout the application - now requires real API keys

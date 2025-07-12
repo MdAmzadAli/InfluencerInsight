@@ -1,4 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
+import axios from "axios";
+import { apifyScraper, type ApifyTrendingPost } from "./apify-scraper.js";
 
 // Initialize Gemini AI with API key
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -10,6 +12,7 @@ export interface ContentGenerationRequest {
   competitors?: string[];
   holidays?: Array<{ name: string; date: string; description: string; }>;
   scrapedData?: any[];
+  useApifyData?: boolean;
 }
 
 export interface GeneratedContent {
@@ -25,6 +28,24 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
   }
 
   try {
+    // Use Apify data if available and requested
+    let apifyData: ApifyTrendingPost[] = [];
+    if (request.useApifyData && apifyScraper) {
+      try {
+        console.log('Fetching real Instagram data from Apify...');
+        if (request.generationType === 'trending') {
+          apifyData = await apifyScraper.searchTrendingPosts(request.niche, 10);
+        } else if (request.generationType === 'competitor' && request.competitors) {
+          // Search multiple competitors
+          const hashtags = request.competitors.map(comp => comp.replace('@', ''));
+          apifyData = await apifyScraper.searchMultipleHashtags(hashtags, 8);
+        }
+        console.log(`Fetched ${apifyData.length} posts from Apify`);
+      } catch (error) {
+        console.error('Failed to fetch Apify data:', error);
+      }
+    }
+
     let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. `;
 
     switch (request.generationType) {
@@ -37,7 +58,34 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
 
       case 'competitor':
         prompt += `Analyze competitor posts and generate 3 unique viral Instagram posts for ${request.niche}. `;
-        if (request.scrapedData && request.scrapedData.length > 0) {
+        
+        // Use Apify data if available
+        if (apifyData && apifyData.length > 0) {
+          prompt += `\n\nREAL COMPETITOR ANALYSIS DATA (from Apify):\n`;
+          const sortedPosts = apifyData.sort((a, b) => (b.likesCount + b.commentsCount) - (a.likesCount + a.commentsCount));
+          
+          for (const post of sortedPosts.slice(0, 6)) {
+            prompt += `\nCompetitor: @${post.ownerUsername} (${post.ownerFullName})\n`;
+            prompt += `  Caption: "${post.caption.substring(0, 200)}${post.caption.length > 200 ? '...' : ''}"\n`;
+            prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
+            prompt += `  Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
+            prompt += `  Post URL: ${post.url}\n`;
+            prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
+            
+            // Add image analysis if available
+            if (post.displayUrl) {
+              try {
+                const imageAnalysis = await analyzeImageFromUrl(post.displayUrl);
+                prompt += `  Image Analysis: ${imageAnalysis}\n`;
+              } catch (error) {
+                console.error('Failed to analyze image:', error);
+              }
+            }
+          }
+          prompt += `\nCreate content that outperforms these competitors by identifying gaps and improving on their successful patterns. `;
+          prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
+        } else if (request.scrapedData && request.scrapedData.length > 0) {
+          // Fallback to existing scraped data
           prompt += `\n\nREAL COMPETITOR ANALYSIS DATA:\n`;
           request.scrapedData.forEach((profile: any, index: number) => {
             prompt += `\nCompetitor ${index + 1}: @${profile.username} (${profile.followers.toLocaleString()} followers)\n`;
@@ -61,7 +109,34 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
 
       case 'trending':
         prompt += `Generate 3 viral Instagram posts for ${request.niche} based on current trending topics and viral formats. `;
-        if (request.scrapedData && request.scrapedData.length > 0) {
+        
+        // Use Apify data if available
+        if (apifyData && apifyData.length > 0) {
+          prompt += `\n\nREAL TRENDING INSTAGRAM DATA (from Apify):\n`;
+          const topPosts = apifyData.slice(0, 8);
+          
+          for (const post of topPosts) {
+            prompt += `\nPost by @${post.ownerUsername} (${post.ownerFullName}):\n`;
+            prompt += `  Caption: "${post.caption.substring(0, 200)}${post.caption.length > 200 ? '...' : ''}"\n`;
+            prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
+            prompt += `  Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
+            prompt += `  Post URL: ${post.url}\n`;
+            prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
+            
+            // Add image analysis if available
+            if (post.displayUrl) {
+              try {
+                const imageAnalysis = await analyzeImageFromUrl(post.displayUrl);
+                prompt += `  Image Analysis: ${imageAnalysis}\n`;
+              } catch (error) {
+                console.error('Failed to analyze image:', error);
+              }
+            }
+          }
+          prompt += `\nUse these real trending patterns to create viral content that follows successful formats. `;
+          prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
+        } else if (request.scrapedData && request.scrapedData.length > 0) {
+          // Fallback to existing scraped data
           prompt += `\n\nTRENDING ANALYSIS FROM COMPETITORS:\n`;
           const allPosts = request.scrapedData.flatMap((profile: any) => 
             profile.posts.map((post: any) => ({
@@ -184,6 +259,49 @@ Return only the hashtags string, nothing else.`;
   } catch (error) {
     console.error('Gemini hashtag optimization error:', error);
     throw new Error(`Failed to optimize hashtags with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Image analysis function using Gemini's multimodal capabilities
+export async function analyzeImageFromUrl(imageUrl: string): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
+  try {
+    // Download image as base64
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 10000,
+    });
+    
+    const base64Image = Buffer.from(response.data).toString('base64');
+    
+    const contents = [
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: response.headers['content-type'] || 'image/jpeg',
+        },
+      },
+      `Analyze this Instagram image and describe:
+1. Visual elements (colors, composition, subjects)
+2. Style and aesthetic (modern, minimalist, vibrant, etc.)
+3. Content type (product, lifestyle, behind-scenes, etc.)
+4. Emotional tone and mood
+5. What makes it engaging for social media
+Keep analysis concise but specific.`,
+    ];
+
+    const aiResponse = await ai.models.generateContent({
+      model: "gemini-2.5-pro",
+      contents: contents,
+    });
+
+    return aiResponse.text || "Unable to analyze image";
+  } catch (error) {
+    console.error('Image analysis error:', error);
+    return "Image analysis unavailable";
   }
 }
 
