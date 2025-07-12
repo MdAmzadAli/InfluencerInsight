@@ -22,6 +22,14 @@ export interface GeneratedContent {
   ideas: string;
 }
 
+export interface SinglePostRequest {
+  niche: string;
+  generationType: 'date' | 'competitor' | 'trending';
+  context?: string;
+  post: any;
+  holidays?: Array<{ name: string; date: string; description: string; }>;
+}
+
 export async function generateInstagramContentWithGemini(request: ContentGenerationRequest): Promise<GeneratedContent[]> {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY environment variable is required');
@@ -327,6 +335,86 @@ Keep analysis concise but specific.`,
   } catch (error) {
     console.error('Image analysis error:', error);
     return "Image analysis unavailable";
+  }
+}
+
+export async function generateSinglePostContent(request: SinglePostRequest): Promise<GeneratedContent> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const post = request.post;
+  
+  let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. 
+
+Analyze this single Instagram post and create 1 unique viral content idea based on it:
+
+ORIGINAL POST DATA:
+- Creator: @${post.ownerUsername} (${post.ownerFullName})
+- Caption: "${post.caption}"
+- Hashtags: ${post.hashtags ? post.hashtags.join(' ') : 'none'}
+- Performance: ${post.likesCount} likes, ${post.commentsCount} comments
+- Post URL: ${post.url}
+
+`;
+
+  if (request.generationType === 'date' && request.holidays) {
+    prompt += `\nUse these upcoming holidays for inspiration: ${request.holidays.map(h => `${h.name} (${h.date})`).join(', ')}\n`;
+  }
+
+  // Add image analysis if available
+  if (post.displayUrl && post.type === 'Image') {
+    try {
+      const imageAnalysis = await analyzeImageFromUrl(post.displayUrl);
+      prompt += `\nIMAGE ANALYSIS: ${imageAnalysis}\n`;
+    } catch (error) {
+      console.warn('Failed to analyze image:', error);
+    }
+  }
+
+  prompt += `
+Create 1 Instagram post that:
+1. Is inspired by the original post but completely unique for ${request.niche}
+2. Uses similar engagement tactics but with your own twist
+3. Incorporates trending elements from the original
+4. Has maximum viral potential
+
+Return ONLY a valid JSON object with exactly this structure:
+{
+  "headline": "Catchy headline (max 10 words)",
+  "caption": "Instagram caption (exactly 20-40 words, engaging and actionable)",
+  "hashtags": "5-10 relevant hashtags separated by spaces",
+  "ideas": "Detailed execution strategy (40-50 words explaining why this will work and how to execute it) | ${post.url}"
+}
+
+Important: 
+- Caption must be exactly 20-40 words
+- Ideas must include strategy + original post URL at the end
+- Make it specific to ${request.niche}
+- Focus on viral potential`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().trim();
+    
+    // Extract JSON from response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in response');
+    }
+    
+    const generatedContent = JSON.parse(jsonMatch[0]);
+    
+    // Validate the structure
+    if (!generatedContent.headline || !generatedContent.caption || !generatedContent.hashtags || !generatedContent.ideas) {
+      throw new Error('Generated content missing required fields');
+    }
+    
+    return generatedContent;
+  } catch (error) {
+    console.error('Error generating single post content:', error);
+    throw new Error(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

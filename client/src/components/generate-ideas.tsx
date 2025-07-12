@@ -69,7 +69,148 @@ export default function GenerateIdeas() {
     },
   });
 
+  const [streamingStatus, setStreamingStatus] = useState<{
+    isStreaming: boolean;
+    currentStep: string;
+    progress: { current: number; total: number } | null;
+  }>({
+    isStreaming: false,
+    currentStep: '',
+    progress: null
+  });
+
+  const generateContentWithStream = async (generationType: 'date' | 'competitor' | 'trending') => {
+    setGenerating(true, generationType);
+    setStreamingStatus({
+      isStreaming: true,
+      currentStep: 'Starting content generation...',
+      progress: null
+    });
+
+    try {
+      const response = await fetch('/api/content/generate/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ generationType }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No reader available');
+      }
+
+      const newIdeas: ContentIdea[] = [];
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              switch (data.type) {
+                case 'status':
+                  setStreamingStatus(prev => ({
+                    ...prev,
+                    currentStep: data.message
+                  }));
+                  break;
+                  
+                case 'progress':
+                  setStreamingStatus(prev => ({
+                    ...prev,
+                    currentStep: data.message,
+                    progress: { current: data.current, total: data.total }
+                  }));
+                  break;
+                  
+                case 'content':
+                  // Add the new idea immediately to the UI
+                  const newIdea = {
+                    ...data.data,
+                    id: data.data.id.toString(),
+                    generationType: data.data.generationType,
+                    isSaved: false
+                  };
+                  newIdeas.push(newIdea);
+                  addGeneratedIdeas([newIdea], generationType);
+                  break;
+                  
+                case 'complete':
+                  setStreamingStatus(prev => ({
+                    ...prev,
+                    currentStep: data.message,
+                    progress: null
+                  }));
+                  break;
+                  
+                case 'error':
+                  throw new Error(data.message);
+              }
+            } catch (err) {
+              console.warn('Failed to parse SSE data:', err);
+            }
+          }
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: `Generated ${newIdeas.length} content ideas in real-time!`,
+      });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate content",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false, generationType);
+      setStreamingStatus({
+        isStreaming: false,
+        currentStep: '',
+        progress: null
+      });
+    }
+  };
+
   const generateContentMutation = useMutation({
+    mutationFn: async (generationType: 'date' | 'competitor' | 'trending') => {
+      return generateContentWithStream(generationType);
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      // Error handling is now done in the streaming function
+    },
+  });
+
+  // Legacy mutation for fallback
+  const generateContentLegacyMutation = useMutation({
     mutationFn: async (generationType: 'date' | 'competitor' | 'trending') => {
       setGenerating(true, generationType);
       const response = await apiRequest("POST", "/api/content/generate", {
@@ -283,7 +424,37 @@ export default function GenerateIdeas() {
             </Card>
           </div>
 
-          {(generateContentMutation.isPending || state.isGenerating) && (
+          {/* Real-time Streaming Progress */}
+          {streamingStatus.isStreaming && (
+            <Card className="mb-6 bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm font-medium text-blue-900">Real-time Generation</span>
+                  </div>
+                  {streamingStatus.progress && (
+                    <Badge variant="outline" className="text-blue-700 bg-blue-100">
+                      {streamingStatus.progress.current}/{streamingStatus.progress.total}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-blue-700 mb-2">{streamingStatus.currentStep}</p>
+                {streamingStatus.progress && (
+                  <div className="w-full bg-blue-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${(streamingStatus.progress.current / streamingStatus.progress.total) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {(generateContentMutation.isPending || state.isGenerating) && !streamingStatus.isStreaming && (
             <div className="text-center py-8">
               <div className="w-8 h-8 instagram-gradient rounded-lg animate-pulse mx-auto mb-4"></div>
               <p className="text-gray-600">Generating content ideas using real Instagram data...</p>

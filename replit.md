@@ -90,6 +90,16 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
+### July 12, 2025 - Real-time Streaming Content Generation
+- **✅ Real-time Streaming API**: Added Server-Sent Events (SSE) for real-time content generation updates
+- **✅ Post-by-Post Processing**: Each Instagram post is now processed individually and results streamed to frontend
+- **✅ Live Progress Tracking**: Real-time progress bar showing current post being analyzed (e.g., "3/10 posts")
+- **✅ Immediate Result Display**: Generated content appears in UI instantly as each post is processed
+- **✅ Enhanced User Experience**: Users see live status updates and progress instead of waiting for bulk processing
+- **✅ Single Post Content Generation**: New Gemini function to generate content from individual Instagram posts
+- **✅ Streaming Progress UI**: Blue progress card with spinner, step descriptions, and completion percentage
+- **✅ API Key Configuration**: Successfully configured APIFY_API_TOKEN and GEMINI_API_KEY environment variables
+
 ### July 12, 2025 - Enhanced Content Generation & UI Improvements
 - **✅ Dynamic Content Generation**: Modified Gemini to generate as many ideas as input posts from Apify scraper
 - **✅ Selective Image Analysis**: Image analysis now only processes posts with type="Image" for better performance

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { authenticateUser, AuthenticatedRequest } from "./auth";
 import { checkDatabaseHealth } from "./db";
 import { generateInstagramContent, optimizeHashtags } from "./openai";
-import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyzeCompetitorContent } from "./gemini";
+import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyzeCompetitorContent, generateSinglePostContent } from "./gemini";
 import { instagramScraper } from "./instagram-scraper";
 import { advancedInstagramScraper } from "./instagram-api";
 import { realInstagramScraper } from "./instagram-real-scraper";
@@ -175,7 +175,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Content generation routes
+  // Real-time content generation with streaming
+  app.post('/api/content/generate/stream', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user.uid;
+      const { generationType, context } = req.body;
+      
+      const user = await storage.getUser(userId);
+      if (!user?.niche) {
+        return res.status(400).json({ message: "User niche not set" });
+      }
+
+      // Set up Server-Sent Events
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      const sendEvent = (data: any) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
+      try {
+        // Send initial status
+        sendEvent({ type: 'status', message: 'Starting content generation...' });
+
+        let holidays;
+        if (generationType === 'date') {
+          holidays = await storage.getUpcomingHolidays(10);
+        }
+
+        // Get Instagram posts from Apify
+        const competitors = user.competitors ? user.competitors.split(',').map(c => c.trim()) : [];
+        let apifyPosts: any[] = [];
+        
+        if (apifyScraper) {
+          sendEvent({ type: 'status', message: 'Fetching Instagram data...' });
+          
+          try {
+            if (generationType === 'trending') {
+              apifyPosts = await apifyScraper.searchTrendingPosts(user.niche, 10);
+            } else if (generationType === 'competitor' && competitors.length > 0) {
+              const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
+              apifyPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
+            }
+            
+            sendEvent({ 
+              type: 'status', 
+              message: `Found ${apifyPosts.length} posts to analyze` 
+            });
+          } catch (error) {
+            sendEvent({ 
+              type: 'error', 
+              message: 'Failed to fetch Instagram data: ' + (error instanceof Error ? error.message : 'Unknown error')
+            });
+            res.end();
+            return;
+          }
+        } else {
+          sendEvent({ type: 'error', message: 'Instagram scraper not configured' });
+          res.end();
+          return;
+        }
+
+        // Process each post individually and stream results
+        const generatedIdeas = [];
+        for (let i = 0; i < apifyPosts.length; i++) {
+          const post = apifyPosts[i];
+          
+          sendEvent({ 
+            type: 'progress', 
+            current: i + 1, 
+            total: apifyPosts.length,
+            message: `Analyzing post ${i + 1}/${apifyPosts.length} from @${post.ownerUsername}...`
+          });
+
+          try {
+            // Generate content for single post
+            const singlePostContent = await generateSinglePostContent({
+              niche: user.niche,
+              generationType,
+              context,
+              post,
+              holidays
+            });
+
+            // Save to database
+            const savedIdea = await storage.createContentIdea({
+              userId,
+              headline: singlePostContent.headline,
+              caption: singlePostContent.caption,
+              hashtags: singlePostContent.hashtags,
+              ideas: singlePostContent.ideas,
+              generationType,
+              isSaved: false
+            });
+
+            generatedIdeas.push(savedIdea);
+
+            // Send individual result immediately
+            sendEvent({ 
+              type: 'content', 
+              data: savedIdea,
+              progress: {
+                current: i + 1,
+                total: apifyPosts.length
+              }
+            });
+
+            // Small delay to prevent overwhelming the client
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+          } catch (error) {
+            sendEvent({ 
+              type: 'error', 
+              message: `Failed to generate content for post ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            });
+          }
+        }
+
+        // Send completion event
+        sendEvent({ 
+          type: 'complete', 
+          message: `Generated ${generatedIdeas.length} content ideas`,
+          totalGenerated: generatedIdeas.length
+        });
+
+      } catch (error) {
+        sendEvent({ 
+          type: 'error', 
+          message: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
+      }
+
+      res.end();
+    } catch (error) {
+      console.error("Error in streaming content generation:", error);
+      res.status(500).json({ message: "Failed to generate content" });
+    }
+  });
+
+  // Content generation routes (legacy - keeping for backward compatibility)
   app.post('/api/content/generate', authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user.uid;
@@ -191,29 +334,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         holidays = await storage.getUpcomingHolidays(10);
       }
 
-      // Scrape competitor data if competitors are provided and generation type is competitor
-      let scrapedData: any[] = [];
-      const competitors = user.competitors ? user.competitors.split(',').map(c => c.trim()) : [];
-      
-      if ((generationType === 'competitor' || generationType === 'trending') && competitors.length > 0) {
-        try {
-          const competitorUsernames = competitors.map(c => c.replace(/^@+/, '').trim());
-          
-          console.log('Scraping Instagram profiles for AI analysis:', competitorUsernames);
-          
-          // Use real Instagram scraper for authentic data
-          scrapedData = await realInstagramScraper.scrapeMultipleProfiles(competitorUsernames, 10);
-          console.log('Successfully scraped real data for', scrapedData.length, 'profiles');
-        } catch (error) {
-          console.error('All Instagram scraping methods failed:', error);
-          // Return error to user - scraping is mandatory for this feature
-          return res.status(400).json({ 
-            message: "Instagram scraping failed. Real data is required for competitor and trending analysis. Please try again or check if the competitor usernames are correct.",
-            error: "SCRAPING_FAILED"
-          });
-        }
-      }
-
       // Use Gemini as primary AI service with Apify data integration
       let generatedContent;
       try {
@@ -221,8 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           niche: user.niche,
           generationType,
           context,
-          competitors,
-          scrapedData,
+          competitors: user.competitors ? user.competitors.split(',').map(c => c.trim()) : [],
           // Apify data integration is now enabled by default
           holidays: holidays?.map(h => ({
             name: h.name,
