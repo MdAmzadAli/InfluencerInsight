@@ -9,10 +9,6 @@ import {
   refineContentWithGemini,
   refineContentStreamWithGemini
 } from "./gemini";
-import { 
-  refineContentWithOpenAI,
-  refineContentStreamWithOpenAI
-} from "./openai";
 import { apifyScraper } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
@@ -192,10 +188,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Streaming content generation endpoint
   app.post('/api/content/generate/stream', authenticateToken, async (req, res) => {
     try {
-      const { niche, generationType, context, competitors } = req.body;
+      const { generationType } = req.body;
       
-      if (!niche || !generationType) {
-        return res.status(400).json({ error: "Niche and generation type are required" });
+      // Get user details and use their niche
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const niche = user.niche || "general";
+      let competitors = [];
+      
+      // Parse competitors if available
+      if (user.competitors) {
+        try {
+          competitors = JSON.parse(user.competitors);
+        } catch (e) {
+          console.error('Error parsing competitors:', e);
+        }
+      }
+      
+      if (!generationType) {
+        return res.status(400).json({ error: "Generation type is required" });
       }
 
       // Set up Server-Sent Events
@@ -241,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const content = await generateInstagramContentWithGemini({
             niche,
             generationType,
-            context,
+            context: "Generated from streaming API",
             competitors,
             scrapedData: [post], // Generate content for individual post
             useApifyData: true
@@ -481,20 +495,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Idea and message are required" });
       }
 
-      let refinedContent;
-      
-      // Try OpenAI first, fallback to Gemini
-      try {
-        if (process.env.OPENAI_API_KEY) {
-          refinedContent = await refineContentWithOpenAI(idea, message, chatHistory || []);
-        } else {
-          refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
-        }
-      } catch (openaiError) {
-        console.log("OpenAI failed, falling back to Gemini:", openaiError);
-        refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
-      }
-
+      // Use only Gemini
+      const refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
       res.json({ response: refinedContent });
     } catch (error) {
       console.error("Error refining content:", error);
@@ -520,19 +522,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      let streamFunction;
-      
-      // Try OpenAI first, fallback to Gemini
-      try {
-        if (process.env.OPENAI_API_KEY) {
-          streamFunction = refineContentStreamWithOpenAI(idea, message, chatHistory || []);
-        } else {
-          streamFunction = refineContentStreamWithGemini(idea, message, chatHistory || []);
-        }
-      } catch (openaiError) {
-        console.log("OpenAI failed, falling back to Gemini for streaming:", openaiError);
-        streamFunction = refineContentStreamWithGemini(idea, message, chatHistory || []);
-      }
+      // Use only Gemini for streaming
+      const streamFunction = refineContentStreamWithGemini(idea, message, chatHistory || []);
 
       try {
         for await (const chunk of streamFunction) {

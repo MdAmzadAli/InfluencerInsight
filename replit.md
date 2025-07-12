@@ -29,7 +29,7 @@ A full-stack web application that generates viral Instagram content using AI. Th
 ## Key Components
 
 ### AI Content Generation
-- **Service**: OpenAI GPT-4o integration for content generation
+- **Service**: Google Gemini API for content generation
 - **Generation Types**:
   - Date-based content (holidays and trending topics)
   - Competitor analysis content
@@ -84,7 +84,7 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **Serving**: Express serves both API routes and static frontend files
 
 ### Environment Configuration
-- **Required Variables**: `DATABASE_URL`, `OPENAI_API_KEY`, `SESSION_SECRET`, `REPL_ID`
+- **Required Variables**: `DATABASE_URL`, `GEMINI_API_KEY`, `APIFY_API_TOKEN`, `SESSION_SECRET`, `REPL_ID`
 - **Authentication**: Replit domains and OIDC configuration
 - **Database**: Automatic schema pushing with Drizzle migrations
 
@@ -108,12 +108,13 @@ A full-stack web application that generates viral Instagram content using AI. Th
 ### July 12, 2025 - Advanced Streaming Content Refinement System
 - **✅ Expert Chatbot Implementation**: Built powerful AI-powered Instagram content expert chatbot
 - **✅ Real-time Streaming Responses**: Implemented Server-Sent Events (SSE) for instant AI responses
-- **✅ OpenAI/Gemini Fallback System**: Automatic fallback from OpenAI to Gemini when API keys unavailable
+- **✅ Gemini-Only Integration**: Removed all OpenAI dependencies, using only Google Gemini API throughout
 - **✅ Enhanced UI Design**: Modern chat interface with user/bot avatars and real-time streaming display
 - **✅ Context-Aware Conversations**: AI remembers conversation history and original content context
 - **✅ Instagram Growth Expertise**: AI specialized in viral content strategies, engagement optimization, and trending tactics
 - **✅ Fast Response Times**: Optimized streaming for near-instant response delivery
 - **✅ Professional Chat Interface**: Split-panel design with original content reference and expert consultation
+- **✅ Authentication Fixes**: Fixed JWT token type conversion and user authentication flow
 
 ### July 12, 2025 - Real-time Streaming Content Generation
 - **✅ Real-time Streaming API**: Added Server-Sent Events (SSE) for real-time content generation updates
