@@ -178,13 +178,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real-time content generation with streaming
   app.post('/api/content/generate/stream', authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
+      console.log('🚀 Starting streaming content generation...');
       const userId = req.user.uid;
       const { generationType, context } = req.body;
       
+      console.log(`📋 Request details - User: ${userId}, Type: ${generationType}, Context: ${context}`);
+      
       const user = await storage.getUser(userId);
       if (!user?.niche) {
+        console.log('❌ User niche not set');
         return res.status(400).json({ message: "User niche not set" });
       }
+      
+      console.log(`👤 User found - Niche: ${user.niche}, Competitors: ${user.competitors}`);
 
       // Set up Server-Sent Events
       res.writeHead(200, {
@@ -211,6 +217,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get Instagram posts from Apify
         const competitors = user.competitors ? user.competitors.split(',').map(c => c.trim()) : [];
         let apifyPosts: any[] = [];
+        
+        console.log(`📊 Apify scraper available: ${!!apifyScraper}`);
+        console.log(`🎯 Competitors: ${competitors}`);
         
         if (apifyScraper) {
           sendEvent({ type: 'status', message: 'Fetching Instagram data...' });
@@ -242,6 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return;
           }
         } else {
+          console.log('❌ Instagram scraper not configured');
           sendEvent({ type: 'error', message: 'Instagram scraper not configured' });
           res.end();
           return;
@@ -327,7 +337,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.end();
     } catch (error) {
-      console.error("Error in streaming content generation:", error);
+      console.error("❌ Error in streaming content generation:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       res.status(500).json({ message: "Failed to generate content" });
     }
   });
