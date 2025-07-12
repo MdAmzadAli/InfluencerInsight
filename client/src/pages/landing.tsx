@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+
   const handleLogin = () => {
-    window.location.href = '/api/login';
+    setLocation('/login');
+  };
+
+  const handleSignup = () => {
+    setLocation('/signup');
   };
 
   return (
@@ -21,8 +28,11 @@ export default function Landing() {
               <button className="text-gray-600 hover:text-gray-900 font-medium">Features</button>
               <button className="text-gray-600 hover:text-gray-900 font-medium">Pricing</button>
               <button className="text-gray-600 hover:text-gray-900 font-medium">About</button>
-              <Button onClick={handleLogin} className="bg-gray-900 text-white hover:bg-gray-800">
+              <Button onClick={handleLogin} variant="ghost" className="text-gray-600 hover:text-gray-900">
                 Login
+              </Button>
+              <Button onClick={handleSignup} className="bg-gray-900 text-white hover:bg-gray-800">
+                Sign Up
               </Button>
             </div>
           </div>
@@ -51,16 +61,17 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
-                onClick={handleLogin} 
+                onClick={handleSignup} 
                 className="instagram-gradient text-white px-8 py-4 text-lg font-semibold hover:opacity-90"
               >
                 Start Creating Free
               </Button>
               <Button 
+                onClick={handleLogin}
                 variant="secondary" 
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 text-lg font-semibold hover:bg-white/20 border border-white/20"
               >
-                Watch Demo
+                Login
               </Button>
             </div>
           </div>

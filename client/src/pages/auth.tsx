@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Instagram, Sparkles } from 'lucide-react';
+import { Loader2, Instagram, Sparkles, ArrowLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function Auth() {
   const { login, register, loginError, registerError, isLoggingIn, isRegistering } = useAuth();
+  const [location, setLocation] = useLocation();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [registerData, setRegisterData] = useState({ 
     email: '', 
@@ -18,6 +20,13 @@ export default function Auth() {
     lastName: '', 
     niche: '' 
   });
+
+  const isSignupPage = location === '/signup';
+  const defaultTab = isSignupPage ? 'register' : 'login';
+
+  const handleBackToHome = () => {
+    setLocation('/');
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +42,16 @@ export default function Auth() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-orange-900/20 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center items-center mb-4">
+            <Button
+              onClick={handleBackToHome}
+              variant="ghost"
+              size="sm"
+              className="absolute left-4 top-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
             <div className="relative">
               <Instagram className="h-12 w-12 text-pink-600" />
               <Sparkles className="h-6 w-6 text-yellow-500 absolute -top-1 -right-1" />
@@ -47,7 +65,7 @@ export default function Auth() {
           </p>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Sign Up</TabsTrigger>
