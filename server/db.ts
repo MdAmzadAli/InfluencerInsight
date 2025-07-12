@@ -1,29 +1,21 @@
-import { PrismaClient } from '@prisma/client';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../shared/schema';
 
-declare global {
-  var prisma: PrismaClient | undefined;
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set');
 }
 
-export const prisma = globalThis.prisma || new PrismaClient();
+const client = postgres(process.env.DATABASE_URL);
+export const db = drizzle(client, { schema });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
-}
-
-// Database health check
-export const checkDatabaseHealth = async () => {
-  if (!process.env.DATABASE_URL) {
-    console.log('Database URL not set - DATABASE_URL not configured');
-    return false;
-  }
-  
+export async function checkDatabaseHealth() {
   try {
-    await prisma.$connect();
-    const result = await prisma.$queryRaw`SELECT NOW()`;
+    const result = await db.execute('SELECT NOW()');
     console.log('Database connected successfully at:', result);
     return true;
   } catch (error) {
     console.error('Database connection failed:', error);
     return false;
   }
-};
+}

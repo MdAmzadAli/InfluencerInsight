@@ -1,31 +1,35 @@
-import { prisma } from "./db";
-import type { 
-  User, 
-  ContentIdea, 
-  ScheduledPost, 
-  IndianHoliday 
-} from "@prisma/client";
+import { db } from './db';
+import { users, contentIdeas, scheduledPosts, indianHolidays } from '../shared/schema';
+import { eq, desc, gte, sql } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
+import type { User, ContentIdea, ScheduledPost, IndianHoliday } from '../shared/schema';
 
-export interface UpsertUser {
-  id: string;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  profileImageUrl?: string | null;
+export interface RegisterUser {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  niche?: string;
+}
+
+export interface LoginUser {
+  email: string;
+  password: string;
 }
 
 export interface InsertContentIdea {
-  userId: string;
+  userId: number;
   headline: string;
   caption: string;
   hashtags: string;
   ideas: string;
   generationType: string;
   isSaved?: boolean;
+  sourceUrl?: string;
 }
 
 export interface InsertScheduledPost {
-  userId: string;
+  userId: number;
   contentIdeaId?: number | null;
   headline: string;
   caption: string;
@@ -38,26 +42,28 @@ export interface InsertScheduledPost {
 
 export interface InsertIndianHoliday {
   name: string;
-  date: Date;
+  date: string;
   description?: string | null;
   category?: string | null;
 }
 
 export interface IStorage {
-  // User operations - mandatory for Replit Auth
-  getUser(id: string): Promise<User | null>;
-  upsertUser(user: UpsertUser): Promise<User>;
-  updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
+  // User operations
+  registerUser(user: RegisterUser): Promise<User>;
+  loginUser(credentials: LoginUser): Promise<User | null>;
+  getUser(id: number): Promise<User | null>;
+  getUserByEmail(email: string): Promise<User | null>;
+  updateUserNiche(userId: number, niche: string, competitors?: string): Promise<User>;
   
   // Content Ideas operations
   createContentIdea(idea: InsertContentIdea): Promise<ContentIdea>;
-  getUserContentIdeas(userId: string): Promise<ContentIdea[]>;
-  getSavedContentIdeas(userId: string): Promise<ContentIdea[]>;
+  getUserContentIdeas(userId: number): Promise<ContentIdea[]>;
+  getSavedContentIdeas(userId: number): Promise<ContentIdea[]>;
   updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void>;
   
   // Scheduled Posts operations
   createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost>;
-  getUserScheduledPosts(userId: string): Promise<ScheduledPost[]>;
+  getUserScheduledPosts(userId: number): Promise<ScheduledPost[]>;
   updateScheduledPost(postId: number, updates: Partial<InsertScheduledPost>): Promise<ScheduledPost>;
   deleteScheduledPost(postId: number): Promise<void>;
   
@@ -68,231 +74,183 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | null> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
+  async registerUser(userData: RegisterUser): Promise<User> {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
     
-    return await prisma.user.findUnique({
-      where: { id }
-    });
+    const [user] = await db.insert(users).values({
+      email: userData.email,
+      password: hashedPassword,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      niche: userData.niche,
+    }).returning();
+    
+    return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
+  async loginUser(credentials: LoginUser): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.email, credentials.email));
     
-    return await prisma.user.upsert({
-      where: { id: userData.id },
-      update: {
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        profileImageUrl: userData.profileImageUrl,
-        updatedAt: new Date(),
-      },
-      create: userData,
-    });
+    if (!user) return null;
+    
+    const isValidPassword = await bcrypt.compare(credentials.password, user.password);
+    if (!isValidPassword) return null;
+    
+    return user;
   }
 
-  async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    return await prisma.user.update({
-      where: { id: userId },
-      data: { 
+  async getUser(id: number): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || null;
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || null;
+  }
+
+  async updateUserNiche(userId: number, niche: string, competitors?: string): Promise<User> {
+    const [user] = await db.update(users)
+      .set({ 
         niche, 
         competitors,
         updatedAt: new Date() 
-      }
-    });
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return user;
   }
 
   // Content Ideas operations
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    return await prisma.contentIdea.create({
-      data: idea
-    });
+    const [contentIdea] = await db.insert(contentIdeas).values(idea).returning();
+    return contentIdea;
   }
 
-  async getUserContentIdeas(userId: string): Promise<ContentIdea[]> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    return await prisma.contentIdea.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' }
-    });
+  async getUserContentIdeas(userId: number): Promise<ContentIdea[]> {
+    return await db.select().from(contentIdeas)
+      .where(eq(contentIdeas.userId, userId))
+      .orderBy(desc(contentIdeas.createdAt));
   }
 
-  async getSavedContentIdeas(userId: string): Promise<ContentIdea[]> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    return await prisma.contentIdea.findMany({
-      where: { 
-        userId,
-        isSaved: true 
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+  async getSavedContentIdeas(userId: number): Promise<ContentIdea[]> {
+    return await db.select().from(contentIdeas)
+      .where(sql`${contentIdeas.userId} = ${userId} AND ${contentIdeas.isSaved} = true`)
+      .orderBy(desc(contentIdeas.createdAt));
   }
 
   async updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    await prisma.contentIdea.update({
-      where: { id: ideaId },
-      data: { isSaved }
-    });
+    await db.update(contentIdeas)
+      .set({ isSaved })
+      .where(eq(contentIdeas.id, ideaId));
   }
 
   // Scheduled Posts operations
   async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    return await prisma.scheduledPost.create({
-      data: post
-    });
+    const [scheduledPost] = await db.insert(scheduledPosts).values(post).returning();
+    return scheduledPost;
   }
 
-  async getUserScheduledPosts(userId: string): Promise<ScheduledPost[]> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    return await prisma.scheduledPost.findMany({
-      where: { userId },
-      orderBy: { scheduledDate: 'desc' }
-    });
+  async getUserScheduledPosts(userId: number): Promise<ScheduledPost[]> {
+    return await db.select().from(scheduledPosts)
+      .where(eq(scheduledPosts.userId, userId))
+      .orderBy(desc(scheduledPosts.scheduledDate));
   }
 
   async updateScheduledPost(postId: number, updates: Partial<InsertScheduledPost>): Promise<ScheduledPost> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
+    const [scheduledPost] = await db.update(scheduledPosts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(scheduledPosts.id, postId))
+      .returning();
     
-    return await prisma.scheduledPost.update({
-      where: { id: postId },
-      data: updates
-    });
+    return scheduledPost;
   }
 
   async deleteScheduledPost(postId: number): Promise<void> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    await prisma.scheduledPost.delete({
-      where: { id: postId }
-    });
+    await db.delete(scheduledPosts).where(eq(scheduledPosts.id, postId));
   }
 
   // Indian Holidays operations
   async getUpcomingHolidays(limit = 10): Promise<IndianHoliday[]> {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('Database not initialized. Please check your DATABASE_URL environment variable.');
-    }
-    
-    const now = new Date();
-    return await prisma.indianHoliday.findMany({
-      where: {
-        date: {
-          gte: now
-        }
-      },
-      orderBy: { date: 'asc' },
-      take: limit
-    });
+    const now = new Date().toISOString().split('T')[0];
+    return await db.select().from(indianHolidays)
+      .where(gte(indianHolidays.date, now))
+      .orderBy(indianHolidays.date)
+      .limit(limit);
   }
 
   async seedHolidays(): Promise<void> {
-    if (!process.env.DATABASE_URL) {
-      console.warn('Database not initialized - skipping holiday seeding');
-      return;
-    }
-    
     const holidays: InsertIndianHoliday[] = [
       {
         name: "Diwali",
-        date: new Date("2024-11-01"),
+        date: "2024-11-01",
         description: "Festival of Lights",
         category: "religious"
       },
       {
         name: "Holi",
-        date: new Date("2025-03-14"),
+        date: "2025-03-14",
         description: "Festival of Colors",
         category: "religious"
       },
       {
         name: "Independence Day",
-        date: new Date("2025-08-15"),
+        date: "2025-08-15",
         description: "India's Independence Day",
         category: "national"
       },
       {
         name: "Republic Day",
-        date: new Date("2025-01-26"),
+        date: "2025-01-26",
         description: "India's Republic Day",
         category: "national"
       },
       {
         name: "Eid ul-Fitr",
-        date: new Date("2025-03-31"),
+        date: "2025-03-31",
         description: "Festival marking the end of Ramadan",
         category: "religious"
       },
       {
         name: "Christmas",
-        date: new Date("2024-12-25"),
+        date: "2024-12-25",
         description: "Celebration of the birth of Jesus Christ",
         category: "religious"
       },
       {
         name: "Dussehra",
-        date: new Date("2024-10-12"),
+        date: "2024-10-12",
         description: "Victory of good over evil",
         category: "religious"
       },
       {
         name: "Karva Chauth",
-        date: new Date("2024-10-20"),
+        date: "2024-10-20",
         description: "Festival of married women",
         category: "cultural"
       },
       {
         name: "Bhai Dooj",
-        date: new Date("2024-11-03"),
+        date: "2024-11-03",
         description: "Celebration of brother-sister bond",
         category: "cultural"
       },
       {
         name: "Makar Sankranti",
-        date: new Date("2025-01-14"),
+        date: "2025-01-14",
         description: "Harvest festival",
         category: "cultural"
       }
     ];
 
-    // Use createMany with skipDuplicates to avoid conflicts
-    await prisma.indianHoliday.createMany({
-      data: holidays,
-      skipDuplicates: true
-    });
+    // Insert holidays, ignoring duplicates
+    try {
+      await db.insert(indianHolidays).values(holidays);
+    } catch (error) {
+      // Ignore duplicate key errors
+      console.log('Holidays already seeded');
+    }
   }
 }
 

@@ -1,37 +1,43 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { User } from '../shared/schema';
 
-export interface AuthenticatedRequest extends Request {
-  user: {
-    uid: string;
-    email: string;
-    name?: string;
-    picture?: string;
-  };
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
 }
 
-export const authenticateUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+
+export function generateToken(userId: number): string {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+}
+
+export function verifyToken(token: string): { userId: number } | null {
   try {
-    // Check if user is authenticated via session
-    if (!req.session || !(req.session as any).user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const sessionUser = (req.session as any).user;
-    
-    (req as AuthenticatedRequest).user = {
-      uid: sessionUser.id || 'demo-user',
-      email: sessionUser.email || 'demo@example.com',
-      name: sessionUser.name || 'Demo User',
-      picture: sessionUser.picture,
-    };
-
-    next();
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    return decoded;
   } catch (error) {
-    console.error("Authentication error:", error);
-    return res.status(401).json({ message: "Unauthorized" });
+    return null;
   }
-};
+}
+
+export function authenticateToken(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+
+  req.user = { id: decoded.userId } as User;
+  next();
+}

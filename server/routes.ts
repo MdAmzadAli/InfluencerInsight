@@ -1,202 +1,197 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { authenticateUser, AuthenticatedRequest } from "./auth";
-import { checkDatabaseHealth } from "./db";
-import { generateInstagramContent, optimizeHashtags } from "./openai";
-import { generateInstagramContentWithGemini, optimizeHashtagsWithGemini, analyzeCompetitorContent, generateSinglePostContent } from "./gemini";
-import { instagramScraper } from "./instagram-scraper";
-import { advancedInstagramScraper } from "./instagram-api";
-import { realInstagramScraper } from "./instagram-real-scraper";
+import { authenticateToken, generateToken } from "./auth";
+import { 
+  generateInstagramContentWithGemini, 
+  optimizeHashtagsWithGemini, 
+  analyzeCompetitorContent,
+  refineContentWithGemini
+} from "./gemini";
 import { apifyScraper } from "./apify-scraper";
+import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
-import session from "express-session";
-import { z } from "zod";
-
-// Validation schemas
-const insertContentIdeaSchema = z.object({
-  userId: z.string(),
-  headline: z.string(),
-  caption: z.string(),
-  hashtags: z.string(),
-  ideas: z.string(),
-  generationType: z.string(),
-  isSaved: z.boolean().optional(),
-});
-
-const insertScheduledPostSchema = z.object({
-  userId: z.string(),
-  contentIdeaId: z.number().optional().nullable(),
-  headline: z.string(),
-  caption: z.string(),
-  hashtags: z.string(),
-  ideas: z.string().optional().nullable(),
-  scheduledDate: z.string().transform((str) => new Date(str)),
-  isCustom: z.boolean().optional(),
-  status: z.string().optional(),
-});
-
-const updateUserSchema = z.object({
-  niche: z.string().optional(),
-  competitors: z.string().optional(),
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'demo-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
-
-  // Check custom database health
+  // Initialize database and check health
   await checkDatabaseHealth();
-
-  // Seed holidays on startup (only if database is available)
-  if (storage) {
-    await storage.seedHolidays();
-  }
-
-  // Start notification service
+  
+  // Seed holidays
+  await storage.seedHolidays();
+  
+  // Start notification scheduler
   notificationService.startNotificationScheduler();
-
-  // Simple auth routes
-  app.get('/api/login', (req, res) => {
-    // For demo purposes, create a demo user session
-    (req.session as any).user = {
-      id: 'demo-user-123',
-      email: 'demo@example.com',
-      name: 'Demo User',
-      picture: null
-    };
-    res.redirect('/');
+  
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  app.get('/api/logout', (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Session destruction error:', err);
-      }
-      res.redirect('/');
-    });
-  });
-
-  app.get('/api/auth/user', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Authentication routes
+  app.post('/api/auth/register', async (req, res) => {
     try {
-      const userId = req.user.uid;
-      let user = await storage.getUser(userId);
+      const { email, password, firstName, lastName, niche } = req.body;
       
-      // Create user if doesn't exist
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      const user = await storage.registerUser({
+        email,
+        password,
+        firstName,
+        lastName,
+        niche
+      });
+
+      const token = generateToken(user.id);
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName, 
+          lastName: user.lastName,
+          niche: user.niche 
+        } 
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({ error: 'Registration failed' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const user = await storage.loginUser({ email, password });
       if (!user) {
-        user = await storage.upsertUser({
-          id: userId,
-          email: req.user.email,
-          firstName: req.user.name?.split(' ')[0] || null,
-          lastName: req.user.name?.split(' ').slice(1).join(' ') || null,
-          profileImageUrl: req.user.picture || null,
-        });
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      const token = generateToken(user.id);
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName, 
+          lastName: user.lastName,
+          niche: user.niche,
+          competitors: user.competitors 
+        } 
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  // Protected route to get current user
+  app.get('/api/auth/user', authenticateToken, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'User not found' });
       }
       
-      res.json(user);
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({ 
+        id: user.id, 
+        email: user.email, 
+        firstName: user.firstName, 
+        lastName: user.lastName,
+        niche: user.niche,
+        competitors: user.competitors 
+      });
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(500).json({ error: "Failed to fetch user" });
     }
   });
 
-  // Update user competitors
-  app.put('/api/user/competitors', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Update user's niche and competitors
+  app.put('/api/user/competitors', authenticateToken, async (req, res) => {
     try {
-      const userId = req.user.uid;
-      const { competitors } = req.body;
+      const { niche, competitors } = req.body;
       
-      if (typeof competitors !== 'string') {
-        return res.status(400).json({ message: "Competitors must be a string" });
+      if (!niche || !competitors) {
+        return res.status(400).json({ error: "Niche and competitors are required" });
       }
 
-      const updatedUser = await storage.updateUserNiche(userId, null, competitors);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating competitors:", error);
-      res.status(500).json({ message: "Failed to update competitors" });
-    }
-  });
-
-  // Get top competitor posts
-  app.get('/api/competitors/top-posts', authenticateUser, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = req.user.uid;
-      const user = await storage.getUser(userId);
-      
-      if (!user?.competitors) {
-        return res.json({ posts: [], competitorProfiles: [] });
-      }
-
-      const competitors = user.competitors.split(',').filter(Boolean);
-      
-      if (competitors.length === 0) {
-        return res.json({ posts: [], competitorProfiles: [] });
-      }
-
-      // Use real Instagram scraper - no fallback to mock data
-      try {
-        const result = await realInstagramScraper.getTopPostsFromCompetitors(competitors, 10);
-        res.json(result);
-      } catch (error) {
-        console.error('Real Instagram scraping failed:', error);
-        res.status(500).json({ 
-          message: "Failed to scrape real Instagram data. Please ensure competitor usernames are correct and try again.",
-          error: "REAL_SCRAPING_FAILED"
-        });
-      }
-      return;
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching competitor posts:", error);
-      res.status(500).json({ message: "Failed to fetch competitor posts" });
-    }
-  });
-
-  // User profile routes
-  app.patch('/api/user/niche', authenticateUser, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = req.user.uid;
-      const { niche, competitors } = updateUserSchema.parse(req.body);
-      
-      const user = await storage.updateUserNiche(userId, niche || '', competitors || undefined);
+      const user = await storage.updateUserNiche(req.user!.id, niche, JSON.stringify(competitors));
       res.json(user);
     } catch (error) {
       console.error("Error updating user niche:", error);
-      res.status(500).json({ message: "Failed to update user niche" });
+      res.status(500).json({ error: "Failed to update user niche" });
     }
   });
 
-  // Real-time content generation with streaming
-  app.post('/api/content/generate/stream', authenticateUser, async (req: AuthenticatedRequest, res) => {
-    // Set request timeout to 15 minutes for long-running Apify requests
-    req.setTimeout(900000, () => {
-      console.log('⏰ Request timeout reached (15 minutes)');
-      res.status(408).json({ message: 'Request timeout' });
-    });
-    
+  // Get competitor top posts
+  app.get('/api/competitors/top-posts', authenticateToken, async (req, res) => {
     try {
-      console.log('🚀 Starting streaming content generation...');
-      const userId = req.user.uid;
-      const { generationType, context } = req.body;
-      
-      console.log(`📋 Request details - User: ${userId}, Type: ${generationType}, Context: ${context}`);
-      
-      const user = await storage.getUser(userId);
-      if (!user?.niche) {
-        console.log('❌ User niche not set');
-        return res.status(400).json({ message: "User niche not set" });
+      const user = await storage.getUser(req.user!.id);
+      if (!user || !user.competitors) {
+        return res.status(400).json({ error: "No competitors found for user" });
       }
+
+      const competitors = JSON.parse(user.competitors);
+      if (!Array.isArray(competitors) || competitors.length === 0) {
+        return res.status(400).json({ error: "No valid competitors found" });
+      }
+
+      // Use Apify scraper to get real Instagram data
+      if (apifyScraper) {
+        const posts = await apifyScraper.scrapeCompetitorProfiles(competitors, 3);
+        res.json(posts);
+      } else {
+        res.status(500).json({ error: "Instagram scraper not available" });
+      }
+    } catch (error) {
+      console.error("Error fetching competitor posts:", error);
+      res.status(500).json({ error: "Failed to fetch competitor posts" });
+    }
+  });
+
+  // Update user's niche
+  app.patch('/api/user/niche', authenticateToken, async (req, res) => {
+    try {
+      const { niche } = req.body;
       
-      console.log(`👤 User found - Niche: ${user.niche}, Competitors: ${user.competitors}`);
+      if (!niche) {
+        return res.status(400).json({ error: "Niche is required" });
+      }
+
+      const user = await storage.updateUserNiche(req.user!.id, niche);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user niche:", error);
+      res.status(500).json({ error: "Failed to update user niche" });
+    }
+  });
+
+  // Streaming content generation endpoint
+  app.post('/api/content/generate/stream', authenticateToken, async (req, res) => {
+    try {
+      const { niche, generationType, context, competitors } = req.body;
+      
+      if (!niche || !generationType) {
+        return res.status(400).json({ error: "Niche and generation type are required" });
+      }
 
       // Set up Server-Sent Events
       res.writeHead(200, {
@@ -207,292 +202,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      const sendEvent = (data: any) => {
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
-      };
-
-      try {
-        // Send initial status
-        sendEvent({ type: 'status', message: 'Starting content generation...' });
-
-        let holidays;
-        if (generationType === 'date') {
-          holidays = await storage.getUpcomingHolidays(10);
-        }
-
-        // Get Instagram posts from Apify
-        const competitors = user.competitors ? user.competitors.split(',').map(c => c.trim()) : [];
-        let apifyPosts: any[] = [];
-        
-        console.log(`📊 Apify scraper available: ${!!apifyScraper}`);
-        console.log(`🎯 Competitors: ${competitors}`);
+      // Get scraped data based on generation type
+      let scrapedData = [];
+      if (generationType === 'competitor' && competitors && competitors.length > 0) {
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching competitor posts...', progress: 0 })}\n\n`);
         
         if (apifyScraper) {
-          sendEvent({ type: 'status', message: 'Fetching Instagram data...' });
-          
-          try {
-            if (generationType === 'trending') {
-              sendEvent({ type: 'status', message: `Searching trending posts for "${user.niche}"...` });
-              apifyPosts = await apifyScraper.searchTrendingPosts(user.niche, 10);
-            } else if (generationType === 'competitor' && competitors.length > 0) {
-              const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
-              sendEvent({ 
-                type: 'status', 
-                message: `Fetching posts from ${competitors.length} competitors in single API call: ${competitors.join(', ')}` 
-              });
-              console.log(`Making single Apify API call for ${competitors.length} competitors:`, instagramUrls);
-              apifyPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
-            } else if (generationType === 'date') {
-              // For date-based generation, we'll generate content based on holidays without needing Instagram posts
-              sendEvent({ 
-                type: 'status', 
-                message: `Generating content for upcoming holidays and ${user.niche}...` 
-              });
-              console.log(`📅 Date-based generation for ${user.niche} with ${holidays?.length || 0} holidays`);
-              // We'll handle this differently - generate content directly from holidays
-              apifyPosts = []; // Keep empty for now, will be handled separately
-            }
-            
-            if (generationType !== 'date') {
-              sendEvent({ 
-                type: 'status', 
-                message: `Found ${apifyPosts.length} posts to analyze from ${generationType === 'competitor' ? competitors.length + ' competitors' : 'trending sources'}` 
-              });
-            }
-          } catch (error) {
-            sendEvent({ 
-              type: 'error', 
-              message: 'Failed to fetch Instagram data: ' + (error instanceof Error ? error.message : 'Unknown error')
-            });
-            res.end();
-            return;
-          }
-        } else {
-          console.log('❌ Instagram scraper not configured');
-          sendEvent({ type: 'error', message: 'Instagram scraper not configured' });
-          res.end();
-          return;
+          scrapedData = await apifyScraper.scrapeCompetitorProfiles(competitors, 3);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} posts from competitors`, progress: 20 })}\n\n`);
         }
-
-        // Process each post individually and stream results
-        const generatedIdeas = [];
+      } else if (generationType === 'trending') {
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching trending posts...', progress: 0 })}\n\n`);
         
-        if (generationType === 'date') {
-          // For date-based generation, generate content based on holidays
-          const numberOfIdeas = holidays?.length || 5;
-          sendEvent({ 
-            type: 'status', 
-            message: `Generating ${numberOfIdeas} content ideas for upcoming holidays...` 
-          });
-          
-          for (let i = 0; i < numberOfIdeas; i++) {
-            const holiday = holidays?.[i];
-            
-            sendEvent({ 
-              type: 'progress', 
-              current: i + 1, 
-              total: numberOfIdeas,
-              message: `Generating content idea ${i + 1}/${numberOfIdeas}${holiday ? ` for ${holiday.name}` : ''}...`
-            });
-
-            try {
-              console.log(`🎯 Generating date-based content ${i + 1}/${numberOfIdeas}${holiday ? ` for ${holiday.name}` : ''}`);
-              
-              // Use the bulk generation method for date-based content
-              const bulkContent = await generateInstagramContentWithGemini({
-                niche: user.niche,
-                generationType,
-                context,
-                holidays: holiday ? [holiday] : [],
-                useApifyData: false
-              });
-              
-              // Take only the first generated content
-              const singleContent = bulkContent[0];
-              
-              if (singleContent) {
-                console.log(`✅ Generated date-based content:`, singleContent.headline);
-
-                // Save to database
-                const savedIdea = await storage.createContentIdea({
-                  userId,
-                  headline: singleContent.headline,
-                  caption: singleContent.caption,
-                  hashtags: singleContent.hashtags,
-                  ideas: singleContent.ideas,
-                  generationType,
-                  isSaved: false
-                });
-
-                console.log(`💾 Saved date-based idea to database with ID: ${savedIdea.id}`);
-                generatedIdeas.push(savedIdea);
-
-                // Send individual result immediately
-                sendEvent({ 
-                  type: 'content', 
-                  data: savedIdea,
-                  progress: {
-                    current: i + 1,
-                    total: numberOfIdeas
-                  }
-                });
-
-                console.log(`📡 Sent date-based result ${i + 1} to frontend`);
-              }
-              
-              // Small delay to prevent overwhelming the client
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-            } catch (error) {
-              console.error(`❌ Error generating date-based content ${i + 1}:`, error);
-              sendEvent({ 
-                type: 'error', 
-                message: `Failed to generate content idea ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`
-              });
-            }
-          }
-        } else {
-          // For post-based generation (competitor/trending)
-          for (let i = 0; i < apifyPosts.length; i++) {
-          const post = apifyPosts[i];
-          
-          sendEvent({ 
-            type: 'progress', 
-            current: i + 1, 
-            total: apifyPosts.length,
-            message: `Analyzing post ${i + 1}/${apifyPosts.length} from @${post.ownerUsername}...`
-          });
-
-          try {
-            console.log(`🤖 Processing post ${i + 1}/${apifyPosts.length} from @${post.ownerUsername}`);
-            
-            // Generate content for single post
-            const singlePostContent = await generateSinglePostContent({
-              niche: user.niche,
-              generationType,
-              context,
-              post,
-              holidays
-            });
-
-            console.log(`✅ Generated content for post ${i + 1}:`, singlePostContent.headline);
-
-            // Save to database
-            const savedIdea = await storage.createContentIdea({
-              userId,
-              headline: singlePostContent.headline,
-              caption: singlePostContent.caption,
-              hashtags: singlePostContent.hashtags,
-              ideas: singlePostContent.ideas,
-              generationType,
-              isSaved: false
-            });
-
-            console.log(`💾 Saved idea to database with ID: ${savedIdea.id}`);
-            generatedIdeas.push(savedIdea);
-
-            // Send individual result immediately
-            sendEvent({ 
-              type: 'content', 
-              data: savedIdea,
-              progress: {
-                current: i + 1,
-                total: apifyPosts.length
-              }
-            });
-
-            console.log(`📡 Sent result ${i + 1} to frontend`);
-
-            // Small delay to prevent overwhelming the client
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-          } catch (error) {
-            console.error(`❌ Error processing post ${i + 1}:`, error);
-            sendEvent({ 
-              type: 'error', 
-              message: `Failed to generate content for post ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`
-            });
-          }
-          }
+        if (apifyScraper) {
+          scrapedData = await apifyScraper.searchTrendingPosts(niche, 10);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} trending posts`, progress: 20 })}\n\n`);
         }
-
-        // Send completion event
-        sendEvent({ 
-          type: 'complete', 
-          message: `Generated ${generatedIdeas.length} content ideas`,
-          totalGenerated: generatedIdeas.length
-        });
-
-      } catch (error) {
-        sendEvent({ 
-          type: 'error', 
-          message: error instanceof Error ? error.message : 'Unknown error occurred'
-        });
       }
 
+      // Generate content for each post individually
+      const generatedContent = [];
+      for (let i = 0; i < scrapedData.length; i++) {
+        const post = scrapedData[i];
+        const progress = 20 + ((i + 1) / scrapedData.length) * 70;
+        
+        res.write(`data: ${JSON.stringify({ 
+          type: 'progress', 
+          message: `Analyzing post ${i + 1}/${scrapedData.length}...`, 
+          progress: Math.round(progress) 
+        })}\n\n`);
+
+        try {
+          const content = await generateInstagramContentWithGemini({
+            niche,
+            generationType,
+            context,
+            competitors,
+            scrapedData: [post], // Generate content for individual post
+            useApifyData: true
+          });
+
+          if (content && content.length > 0) {
+            generatedContent.push(content[0]);
+            
+            // Stream the generated content immediately
+            res.write(`data: ${JSON.stringify({ 
+              type: 'content', 
+              content: content[0],
+              sourceUrl: post.url || `https://instagram.com/p/${post.shortCode}`,
+              index: i
+            })}\n\n`);
+          }
+        } catch (contentError) {
+          console.error(`Error generating content for post ${i + 1}:`, contentError);
+          res.write(`data: ${JSON.stringify({ 
+            type: 'error', 
+            message: `Failed to generate content for post ${i + 1}` 
+          })}\n\n`);
+        }
+      }
+
+      // Save all generated content to database
+      for (const content of generatedContent) {
+        try {
+          await storage.createContentIdea({
+            userId: req.user!.id,
+            headline: content.headline,
+            caption: content.caption,
+            hashtags: content.hashtags,
+            ideas: content.ideas,
+            generationType,
+            isSaved: false
+          });
+        } catch (saveError) {
+          console.error("Error saving content idea:", saveError);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ type: 'complete', message: 'Content generation completed!', progress: 100 })}\n\n`);
       res.end();
+
     } catch (error) {
-      console.error("❌ Error in streaming content generation:", error);
-      if (error instanceof Error) {
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-      }
-      res.status(500).json({ message: "Failed to generate content" });
+      console.error("Error in streaming content generation:", error);
+      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Failed to generate content' })}\n\n`);
+      res.end();
     }
   });
 
-  // Content generation routes (legacy - keeping for backward compatibility)
-  app.post('/api/content/generate', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Traditional content generation endpoint
+  app.post('/api/content/generate', authenticateToken, async (req, res) => {
     try {
-      const userId = req.user.uid;
-      const { generationType, context } = req.body;
+      const { niche, generationType, context, competitors } = req.body;
       
-      const user = await storage.getUser(userId);
-      if (!user?.niche) {
-        return res.status(400).json({ message: "User niche not set" });
+      if (!niche || !generationType) {
+        return res.status(400).json({ error: "Niche and generation type are required" });
       }
 
-      let holidays;
-      if (generationType === 'date') {
-        holidays = await storage.getUpcomingHolidays(10);
+      // Get holidays for context
+      const holidays = await storage.getUpcomingHolidays(5);
+      
+      // Get scraped data based on generation type
+      let scrapedData = [];
+      if (generationType === 'competitor' && competitors && competitors.length > 0) {
+        if (apifyScraper) {
+          scrapedData = await apifyScraper.scrapeCompetitorProfiles(competitors, 3);
+        }
+      } else if (generationType === 'trending') {
+        if (apifyScraper) {
+          scrapedData = await apifyScraper.searchTrendingPosts(niche, 10);
+        }
       }
 
-      // Use Gemini as primary AI service with Apify data integration
-      let generatedContent;
-      try {
-        generatedContent = await generateInstagramContentWithGemini({
-          niche: user.niche,
-          generationType,
-          context,
-          competitors: user.competitors ? user.competitors.split(',').map(c => c.trim()) : [],
-          // Apify data integration is now enabled by default
-          holidays: holidays?.map(h => ({
-            name: h.name,
-            date: h.date.toISOString(),
-            description: h.description || ''
-          }))
-        });
-      } catch (error) {
-        console.error('Gemini generation failed, trying OpenAI:', error);
-        generatedContent = await generateInstagramContent({
-          niche: user.niche,
-          generationType,
-          context,
-          competitors,
-          scrapedData,
-          holidays: holidays?.map(h => ({
-            name: h.name,
-            date: h.date.toISOString(),
-            description: h.description || ''
-          }))
-        });
-      }
+      const generatedContent = await generateInstagramContentWithGemini({
+        niche,
+        generationType,
+        context,
+        competitors,
+        holidays,
+        scrapedData,
+        useApifyData: scrapedData.length > 0
+      });
 
-      // Save generated ideas to database
-      const savedIdeas = [];
+      // Save generated content to database
       for (const content of generatedContent) {
-        const idea = await storage.createContentIdea({
-          userId,
+        await storage.createContentIdea({
+          userId: req.user!.id,
           headline: content.headline,
           caption: content.caption,
           hashtags: content.hashtags,
@@ -500,214 +334,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generationType,
           isSaved: false
         });
-        savedIdeas.push(idea);
       }
 
-      res.json(savedIdeas);
+      res.json({ 
+        success: true, 
+        content: generatedContent,
+        totalPosts: scrapedData.length 
+      });
+
     } catch (error) {
       console.error("Error generating content:", error);
-      res.status(500).json({ message: "Failed to generate content" });
+      res.status(500).json({ error: "Failed to generate content" });
     }
   });
 
-  // Content ideas routes
-  app.get('/api/content/ideas', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Get user's content ideas
+  app.get('/api/content/ideas', authenticateToken, async (req, res) => {
     try {
-      const userId = req.user.uid;
-      const ideas = await storage.getUserContentIdeas(userId);
+      const ideas = await storage.getUserContentIdeas(req.user!.id);
       res.json(ideas);
     } catch (error) {
       console.error("Error fetching content ideas:", error);
-      res.status(500).json({ message: "Failed to fetch content ideas" });
+      res.status(500).json({ error: "Failed to fetch content ideas" });
     }
   });
 
-  app.get('/api/content/ideas/saved', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Get user's saved content ideas
+  app.get('/api/content/ideas/saved', authenticateToken, async (req, res) => {
     try {
-      const userId = req.user.uid;
-      const savedIdeas = await storage.getSavedContentIdeas(userId);
-      res.json(savedIdeas);
+      const ideas = await storage.getSavedContentIdeas(req.user!.id);
+      res.json(ideas);
     } catch (error) {
-      console.error("Error fetching saved ideas:", error);
-      res.status(500).json({ message: "Failed to fetch saved ideas" });
+      console.error("Error fetching saved content ideas:", error);
+      res.status(500).json({ error: "Failed to fetch saved content ideas" });
     }
   });
 
-  app.patch('/api/content/ideas/:id/save', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Save/unsave content idea
+  app.patch('/api/content/ideas/:id/save', authenticateToken, async (req, res) => {
     try {
-      const ideaId = parseInt(req.params.id);
+      const { id } = req.params;
       const { isSaved } = req.body;
       
-      await storage.updateContentIdeaSaved(ideaId, isSaved);
+      await storage.updateContentIdeaSaved(parseInt(id), isSaved);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error updating saved status:", error);
-      res.status(500).json({ message: "Failed to update saved status" });
+      console.error("Error updating content idea save status:", error);
+      res.status(500).json({ error: "Failed to update content idea" });
     }
   });
 
-  // Scheduled posts routes
-  app.post('/api/posts/schedule', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Schedule a post
+  app.post('/api/posts/schedule', authenticateToken, async (req, res) => {
     try {
-      const userId = req.user.uid;
-      const postData = insertScheduledPostSchema.parse({
-        ...req.body,
-        userId
+      const { contentIdeaId, headline, caption, hashtags, ideas, scheduledDate, isCustom } = req.body;
+      
+      if (!headline || !caption || !hashtags || !scheduledDate) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      const scheduledPost = await storage.createScheduledPost({
+        userId: req.user!.id,
+        contentIdeaId: contentIdeaId || null,
+        headline,
+        caption,
+        hashtags,
+        ideas,
+        scheduledDate: new Date(scheduledDate),
+        isCustom: isCustom || false,
+        status: 'TODO'
       });
-      
-      const scheduledPost = await storage.createScheduledPost(postData);
-      
-      // Schedule notification for this post
-      notificationService.schedulePostNotification(scheduledPost.id, scheduledPost.scheduledDate);
-      
+
       res.json(scheduledPost);
     } catch (error) {
       console.error("Error scheduling post:", error);
-      res.status(500).json({ message: "Failed to schedule post" });
+      res.status(500).json({ error: "Failed to schedule post" });
     }
   });
 
-  app.get('/api/posts/scheduled', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Get scheduled posts
+  app.get('/api/posts/scheduled', authenticateToken, async (req, res) => {
     try {
-      const userId = req.user.uid;
-      const scheduledPosts = await storage.getUserScheduledPosts(userId);
-      res.json(scheduledPosts);
+      const posts = await storage.getUserScheduledPosts(req.user!.id);
+      res.json(posts);
     } catch (error) {
       console.error("Error fetching scheduled posts:", error);
-      res.status(500).json({ message: "Failed to fetch scheduled posts" });
+      res.status(500).json({ error: "Failed to fetch scheduled posts" });
     }
   });
 
-  app.patch('/api/posts/scheduled/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Update scheduled post
+  app.patch('/api/posts/scheduled/:id', authenticateToken, async (req, res) => {
     try {
-      const postId = parseInt(req.params.id);
+      const { id } = req.params;
       const updates = req.body;
       
-      const updatedPost = await storage.updateScheduledPost(postId, updates);
+      const updatedPost = await storage.updateScheduledPost(parseInt(id), updates);
       res.json(updatedPost);
     } catch (error) {
       console.error("Error updating scheduled post:", error);
-      res.status(500).json({ message: "Failed to update scheduled post" });
+      res.status(500).json({ error: "Failed to update scheduled post" });
     }
   });
 
-  app.delete('/api/posts/scheduled/:id', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Delete scheduled post
+  app.delete('/api/posts/scheduled/:id', authenticateToken, async (req, res) => {
     try {
-      const postId = parseInt(req.params.id);
-      await storage.deleteScheduledPost(postId);
+      const { id } = req.params;
+      
+      await storage.deleteScheduledPost(parseInt(id));
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting scheduled post:", error);
-      res.status(500).json({ message: "Failed to delete scheduled post" });
+      res.status(500).json({ error: "Failed to delete scheduled post" });
     }
   });
 
-  // Hashtag optimization route
-  app.post('/api/content/optimize-hashtags', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Optimize hashtags
+  app.post('/api/content/optimize-hashtags', authenticateToken, async (req, res) => {
     try {
       const { niche, caption } = req.body;
       
-      // Use Gemini as primary service, fallback to OpenAI
-      let optimizedHashtags;
-      try {
-        optimizedHashtags = await optimizeHashtagsWithGemini(niche, caption);
-      } catch (error) {
-        console.error('Gemini hashtag optimization failed, trying OpenAI:', error);
-        optimizedHashtags = await optimizeHashtags(niche, caption);
+      if (!niche || !caption) {
+        return res.status(400).json({ error: "Niche and caption are required" });
       }
-      
+
+      const optimizedHashtags = await optimizeHashtagsWithGemini(niche, caption);
       res.json({ hashtags: optimizedHashtags });
     } catch (error) {
       console.error("Error optimizing hashtags:", error);
-      res.status(500).json({ message: "Failed to optimize hashtags" });
+      res.status(500).json({ error: "Failed to optimize hashtags" });
     }
   });
 
-  // Content refine route
-  app.post('/api/content/refine', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Refine content with AI
+  app.post('/api/content/refine', authenticateToken, async (req, res) => {
     try {
       const { idea, message, chatHistory } = req.body;
       
       if (!idea || !message) {
-        return res.status(400).json({ message: 'Idea and message are required' });
+        return res.status(400).json({ error: "Idea and message are required" });
       }
 
-      // Import the refine function
-      const { refineContentWithGemini } = await import('./gemini');
-      
-      const refinedResponse = await refineContentWithGemini(idea, message, chatHistory || []);
-      
-      res.json({ response: refinedResponse });
+      const refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
+      res.json({ content: refinedContent });
     } catch (error) {
-      console.error('Error refining content:', error);
-      res.status(500).json({ message: 'Failed to refine content' });
+      console.error("Error refining content:", error);
+      res.status(500).json({ error: "Failed to refine content" });
     }
   });
 
-  // Apify integration testing routes
-  app.post('/api/apify/test-trending', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Test Apify trending posts
+  app.post('/api/apify/test-trending', authenticateToken, async (req, res) => {
     try {
       const { niche } = req.body;
       
       if (!niche) {
-        return res.status(400).json({ message: "Niche is required" });
+        return res.status(400).json({ error: "Niche is required" });
       }
 
       if (!apifyScraper) {
-        return res.status(400).json({ 
-          message: "Apify API not configured. Please provide APIFY_API_TOKEN environment variable.",
-          error: "APIFY_NOT_CONFIGURED"
-        });
+        return res.status(500).json({ error: "Apify scraper not available" });
       }
 
-      const trendingPosts = await apifyScraper.searchTrendingPosts(niche, 5);
-      const formattedPosts = apifyScraper.formatPostsForAI(trendingPosts);
-
-      res.json({ 
-        posts: formattedPosts,
-        totalPosts: trendingPosts.length,
-        message: "Successfully fetched trending posts from Apify"
-      });
+      const posts = await apifyScraper.searchTrendingPosts(niche, 5);
+      res.json({ posts, count: posts.length });
     } catch (error) {
-      console.error("Error testing Apify integration:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch trending posts from Apify",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+      console.error("Error testing Apify trending:", error);
+      res.status(500).json({ error: "Failed to test Apify trending" });
     }
   });
 
-  app.post('/api/apify/test-competitors', authenticateUser, async (req: AuthenticatedRequest, res) => {
+  // Test Apify competitor analysis
+  app.post('/api/apify/test-competitors', authenticateToken, async (req, res) => {
     try {
       const { competitors } = req.body;
       
-      if (!competitors || !Array.isArray(competitors) || competitors.length === 0) {
-        return res.status(400).json({ message: "Competitors array is required" });
+      if (!competitors || !Array.isArray(competitors)) {
+        return res.status(400).json({ error: "Competitors array is required" });
       }
 
       if (!apifyScraper) {
-        return res.status(400).json({ 
-          message: "Apify API not configured. Please provide APIFY_API_TOKEN environment variable.",
-          error: "APIFY_NOT_CONFIGURED"
-        });
+        return res.status(500).json({ error: "Apify scraper not available" });
       }
 
-      const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
-      const competitorPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
-      const formattedPosts = apifyScraper.formatPostsForAI(competitorPosts);
-
-      res.json({ 
-        posts: formattedPosts,
-        totalPosts: competitorPosts.length,
-        instagramUrls: instagramUrls,
-        message: "Successfully fetched competitor posts from Apify"
-      });
+      const posts = await apifyScraper.scrapeCompetitorProfiles(competitors, 3);
+      res.json({ posts, count: posts.length });
     } catch (error) {
-      console.error("Error testing Apify competitor integration:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch competitor posts from Apify",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+      console.error("Error testing Apify competitors:", error);
+      res.status(500).json({ error: "Failed to test Apify competitors" });
     }
   });
 
