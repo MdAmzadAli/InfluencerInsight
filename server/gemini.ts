@@ -36,9 +36,9 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         if (request.generationType === 'trending') {
           apifyData = await apifyScraper.searchTrendingPosts(request.niche, 10);
         } else if (request.generationType === 'competitor' && request.competitors) {
-          // Search multiple competitors
-          const hashtags = request.competitors.map(comp => comp.replace('@', ''));
-          apifyData = await apifyScraper.searchMultipleHashtags(hashtags, 8);
+          // Use direct URLs for competitor analysis
+          const instagramUrls = apifyScraper.convertUsernamesToUrls(request.competitors);
+          apifyData = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
         }
         console.log(`Fetched ${apifyData.length} posts from Apify`);
       } catch (error) {

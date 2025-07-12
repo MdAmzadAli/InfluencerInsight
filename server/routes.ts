@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Apify integration testing route
+  // Apify integration testing routes
   app.post('/api/apify/test-trending', authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
       const { niche } = req.body;
@@ -409,6 +409,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error testing Apify integration:", error);
       res.status(500).json({ 
         message: "Failed to fetch trending posts from Apify",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post('/api/apify/test-competitors', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { competitors } = req.body;
+      
+      if (!competitors || !Array.isArray(competitors) || competitors.length === 0) {
+        return res.status(400).json({ message: "Competitors array is required" });
+      }
+
+      if (!apifyScraper) {
+        return res.status(400).json({ 
+          message: "Apify API not configured. Please provide APIFY_API_TOKEN environment variable.",
+          error: "APIFY_NOT_CONFIGURED"
+        });
+      }
+
+      const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
+      const competitorPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
+      const formattedPosts = apifyScraper.formatPostsForAI(competitorPosts);
+
+      res.json({ 
+        posts: formattedPosts,
+        totalPosts: competitorPosts.length,
+        instagramUrls: instagramUrls,
+        message: "Successfully fetched competitor posts from Apify"
+      });
+    } catch (error) {
+      console.error("Error testing Apify competitor integration:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch competitor posts from Apify",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }

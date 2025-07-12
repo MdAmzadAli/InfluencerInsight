@@ -34,12 +34,23 @@ export interface ApifySearchInput {
   enhanceUserSearchWithFacebookPage: boolean;
   isUserReelFeedURL: boolean;
   isUserTaggedFeedURL: boolean;
-  onlyPostsNewerThan: string;
+  onlyPostsNewerThan?: string;
   resultsLimit: number;
   resultsType: 'posts' | 'reels' | 'comments';
-  search: string;
-  searchLimit: number;
-  searchType: 'hashtag' | 'user';
+  search?: string;
+  searchLimit?: number;
+  searchType?: 'hashtag' | 'user';
+  directUrls?: string[];
+}
+
+export interface ApifyCompetitorInput {
+  addParentData: boolean;
+  directUrls: string[];
+  enhanceUserSearchWithFacebookPage: boolean;
+  isUserReelFeedURL: boolean;
+  isUserTaggedFeedURL: boolean;
+  resultsLimit: number;
+  resultsType: 'posts' | 'reels' | 'comments';
 }
 
 export class ApifyInstagramScraper {
@@ -72,7 +83,7 @@ export class ApifyInstagramScraper {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 30000, // 30 second timeout
+          timeout: 120000, // 30 second timeout
         }
       );
 
@@ -113,7 +124,7 @@ export class ApifyInstagramScraper {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 30000,
+          timeout: 120000,
         }
       );
 
@@ -144,6 +155,53 @@ export class ApifyInstagramScraper {
     return uniquePosts
       .sort((a, b) => (b.likesCount + b.commentsCount) - (a.likesCount + a.commentsCount))
       .slice(0, limit);
+  }
+
+  async scrapeCompetitorProfiles(instagramUrls: string[], postsPerProfile: number = 3): Promise<ApifyTrendingPost[]> {
+    const input: ApifyCompetitorInput = {
+      addParentData: false,
+      directUrls: instagramUrls,
+      enhanceUserSearchWithFacebookPage: false,
+      isUserReelFeedURL: false,
+      isUserTaggedFeedURL: false,
+      resultsLimit: postsPerProfile,
+      resultsType: 'posts'
+    };
+
+    try {
+      const response = await axios.post<ApifyTrendingPost[]>(
+        `${this.baseUrl}?token=${this.apiToken}`,
+        input,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 45000, // Longer timeout for multiple profiles
+        }
+      );
+
+      // Response is directly an array of posts, not wrapped in topPosts
+      return response.data || [];
+    } catch (error) {
+      console.error('Apify competitor scraper error:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Invalid Apify API token. Please check your APIFY_API_TOKEN.');
+        }
+        if (error.response?.status === 429) {
+          throw new Error('Apify API rate limit exceeded. Please try again later.');
+        }
+      }
+      throw new Error(`Failed to fetch competitor data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Convert usernames to Instagram URLs for competitor analysis
+  convertUsernamesToUrls(usernames: string[]): string[] {
+    return usernames.map(username => {
+      const cleanUsername = username.replace(/^@+/, '').trim();
+      return `https://www.instagram.com/${cleanUsername}`;
+    });
   }
 
   private getDateDaysAgo(days: number): string {
