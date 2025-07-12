@@ -260,6 +260,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           try {
+            console.log(`🤖 Processing post ${i + 1}/${apifyPosts.length} from @${post.ownerUsername}`);
+            
             // Generate content for single post
             const singlePostContent = await generateSinglePostContent({
               niche: user.niche,
@@ -268,6 +270,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               post,
               holidays
             });
+
+            console.log(`✅ Generated content for post ${i + 1}:`, singlePostContent.headline);
 
             // Save to database
             const savedIdea = await storage.createContentIdea({
@@ -280,6 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               isSaved: false
             });
 
+            console.log(`💾 Saved idea to database with ID: ${savedIdea.id}`);
             generatedIdeas.push(savedIdea);
 
             // Send individual result immediately
@@ -292,10 +297,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
 
+            console.log(`📡 Sent result ${i + 1} to frontend`);
+
             // Small delay to prevent overwhelming the client
             await new Promise(resolve => setTimeout(resolve, 500));
             
           } catch (error) {
+            console.error(`❌ Error processing post ${i + 1}:`, error);
             sendEvent({ 
               type: 'error', 
               message: `Failed to generate content for post ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`

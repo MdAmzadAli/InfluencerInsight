@@ -395,12 +395,16 @@ Important:
 - Focus on viral potential`;
 
   try {
+    console.log(`🤖 Gemini: Generating content for post from @${post.ownerUsername}`);
     const result = await model.generateContent(prompt);
     const responseText = result.response.text().trim();
+    
+    console.log(`📝 Gemini response received (${responseText.length} characters)`);
     
     // Extract JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('❌ No valid JSON found in Gemini response:', responseText);
       throw new Error('No valid JSON found in response');
     }
     
@@ -408,12 +412,18 @@ Important:
     
     // Validate the structure
     if (!generatedContent.headline || !generatedContent.caption || !generatedContent.hashtags || !generatedContent.ideas) {
+      console.error('❌ Generated content missing required fields:', generatedContent);
       throw new Error('Generated content missing required fields');
     }
     
+    console.log(`✅ Gemini: Successfully generated content - ${generatedContent.headline}`);
     return generatedContent;
   } catch (error) {
-    console.error('Error generating single post content:', error);
+    console.error('❌ Error generating single post content:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw new Error(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
