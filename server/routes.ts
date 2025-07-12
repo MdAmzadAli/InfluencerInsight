@@ -177,6 +177,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Real-time content generation with streaming
   app.post('/api/content/generate/stream', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    // Set request timeout to 15 minutes for long-running Apify requests
+    req.setTimeout(900000, () => {
+      console.log('⏰ Request timeout reached (15 minutes)');
+      res.status(408).json({ message: 'Request timeout' });
+    });
+    
     try {
       console.log('🚀 Starting streaming content generation...');
       const userId = req.user.uid;

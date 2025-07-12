@@ -95,6 +95,7 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Database Setup**: Created and configured PostgreSQL database with proper schema
 - **✅ API Keys Integration**: Added APIFY_API_TOKEN and GEMINI_API_KEY environment variables
 - **✅ Gemini API Fixed**: Resolved API initialization issues causing competitor analysis failures
+- **✅ Apify Timeout Issues Fixed**: Increased request timeouts to prevent long-running Instagram scraping from timing out
 - **✅ Real Instagram Data**: Apify scraper now working with authentic Instagram data
 - **✅ Authentication System**: Replit Auth properly configured with session management
 - **✅ Project Structure**: All dependencies installed and working correctly

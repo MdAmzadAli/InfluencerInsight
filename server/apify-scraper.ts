@@ -83,7 +83,7 @@ export class ApifyInstagramScraper {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 120000, // 30 second timeout
+          timeout: 300000, // 5 minute timeout
         }
       );
 
@@ -124,7 +124,7 @@ export class ApifyInstagramScraper {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 120000,
+          timeout: 300000, // 5 minute timeout
         }
       );
 
@@ -179,7 +179,7 @@ export class ApifyInstagramScraper {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 45000, // Longer timeout for multiple profiles
+          timeout: 600000, // 10 minute timeout for multiple profiles
         }
       );
 
