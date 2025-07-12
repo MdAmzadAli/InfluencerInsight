@@ -99,6 +99,8 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Single Post Content Generation**: New Gemini function to generate content from individual Instagram posts
 - **✅ Streaming Progress UI**: Blue progress card with spinner, step descriptions, and completion percentage
 - **✅ API Key Configuration**: Successfully configured APIFY_API_TOKEN and GEMINI_API_KEY environment variables
+- **✅ Optimized Apify API Calls**: Competitor analysis makes single API call for all competitors using directUrls parameter
+- **✅ Enhanced Logging**: Added detailed logging for API calls and post distribution per competitor
 
 ### July 12, 2025 - Enhanced Content Generation & UI Improvements
 - **✅ Dynamic Content Generation**: Modified Gemini to generate as many ideas as input posts from Apify scraper

@@ -158,6 +158,9 @@ export class ApifyInstagramScraper {
   }
 
   async scrapeCompetitorProfiles(instagramUrls: string[], postsPerProfile: number = 3): Promise<ApifyTrendingPost[]> {
+    console.log(`🔄 Apify: Making single API call for ${instagramUrls.length} competitors`);
+    console.log(`📋 URLs: ${instagramUrls.join(', ')}`);
+    
     const input: ApifyCompetitorInput = {
       addParentData: false,
       directUrls: instagramUrls,
@@ -180,10 +183,21 @@ export class ApifyInstagramScraper {
         }
       );
 
-      // Response is directly an array of posts, not wrapped in topPosts
-      return response.data || [];
+      const posts = response.data || [];
+      console.log(`✅ Apify: Successfully fetched ${posts.length} posts from ${instagramUrls.length} competitors`);
+      
+      // Log distribution of posts per competitor
+      const postsByCompetitor = posts.reduce((acc: { [key: string]: number }, post) => {
+        const username = post.ownerUsername;
+        acc[username] = (acc[username] || 0) + 1;
+        return acc;
+      }, {});
+      
+      console.log(`📊 Posts distribution:`, postsByCompetitor);
+      
+      return posts;
     } catch (error) {
-      console.error('Apify competitor scraper error:', error);
+      console.error('❌ Apify competitor scraper error:', error);
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           throw new Error('Invalid Apify API token. Please check your APIFY_API_TOKEN.');

@@ -217,15 +217,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           try {
             if (generationType === 'trending') {
+              sendEvent({ type: 'status', message: `Searching trending posts for "${user.niche}"...` });
               apifyPosts = await apifyScraper.searchTrendingPosts(user.niche, 10);
             } else if (generationType === 'competitor' && competitors.length > 0) {
               const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
+              sendEvent({ 
+                type: 'status', 
+                message: `Fetching posts from ${competitors.length} competitors in single API call: ${competitors.join(', ')}` 
+              });
+              console.log(`Making single Apify API call for ${competitors.length} competitors:`, instagramUrls);
               apifyPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
             }
             
             sendEvent({ 
               type: 'status', 
-              message: `Found ${apifyPosts.length} posts to analyze` 
+              message: `Found ${apifyPosts.length} posts to analyze from ${generationType === 'competitor' ? competitors.length + ' competitors' : 'trending sources'}` 
             });
           } catch (error) {
             sendEvent({ 
