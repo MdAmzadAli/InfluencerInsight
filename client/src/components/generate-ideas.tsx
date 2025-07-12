@@ -517,16 +517,16 @@ export default function GenerateIdeas() {
                     
                     // Add ideas grid for this session
                     components.push(
-                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
                         {sessionIdeas.map((idea) => {
                           const { strategy, link } = separateIdeasAndLinks(idea.ideas);
                           return (
                             <Card key={idea.id} className="hover:shadow-lg transition-shadow">
-                              <CardContent className="p-6">
-                                <div className="flex items-start justify-between mb-4">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between mb-3">
                                   <div className="flex-1">
-                                    <h4 className="text-lg font-semibold text-gray-900">
-                                      {idea.headline}
+                                    <h4 className="text-base font-semibold text-gray-900 leading-tight">
+                                      {idea.headline || 'Untitled Idea'}
                                     </h4>
                                     <Badge variant="outline" className="text-xs mt-1">
                                       {idea.generationType}
@@ -540,14 +540,14 @@ export default function GenerateIdeas() {
                                   </button>
                                 </div>
                                 
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION (20-40 words)</label>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION</label>
                                     <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
                                   </div>
                                   
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS (5-10)</label>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS</label>
                                     <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
                                   </div>
                                   
@@ -558,7 +558,7 @@ export default function GenerateIdeas() {
                                   
                                   {link && (
                                     <div>
-                                      <label className="block text-xs font-medium text-gray-500 mb-1">INSPIRATION SOURCE</label>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">SOURCE</label>
                                       <a 
                                         href={link} 
                                         target="_blank" 
@@ -572,16 +572,16 @@ export default function GenerateIdeas() {
                                   )}
                                 </div>
                               
-                                <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-100">
+                                <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-100">
                                   <Button 
                                     onClick={() => handleScheduleIdea(idea)}
-                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs py-2"
                                   >
                                     Schedule
                                   </Button>
                                   <Button 
                                     variant="outline"
-                                    className="flex-1 text-sm"
+                                    className="flex-1 text-xs py-2"
                                   >
                                     Edit
                                   </Button>
