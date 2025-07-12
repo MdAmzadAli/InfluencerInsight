@@ -466,3 +466,47 @@ Format the response as a detailed strategic report.`;
     throw new Error(`Failed to analyze competitor content with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
+export async function refineContentWithGemini(idea: any, message: string, chatHistory: any[]): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
+  try {
+    const systemPrompt = `You are an Instagram content specialist helping users refine their content ideas.
+
+Original Content:
+- Headline: ${idea.headline}
+- Caption: ${idea.caption}
+- Hashtags: ${idea.hashtags}
+- Strategy: ${idea.ideas}
+- Generation Type: ${idea.generationType}
+
+Previous chat history:
+${chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+User's current request: ${message}
+
+Provide helpful, actionable suggestions to improve the content. Be specific and creative. Consider:
+- Different angles or perspectives
+- Engagement optimization techniques
+- Content structure improvements
+- Hashtag strategy refinements
+- Call-to-action suggestions
+- Visual content ideas
+- Trending topics integration
+- Audience targeting improvements
+
+Keep your response conversational and helpful, around 100-200 words.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-pro",
+      contents: systemPrompt,
+    });
+
+    return response.text || "I'm having trouble processing your request. Please try again with a different question.";
+  } catch (error) {
+    console.error('Error refining content with Gemini:', error);
+    throw new Error('Failed to refine content. Please try again.');
+  }
+}

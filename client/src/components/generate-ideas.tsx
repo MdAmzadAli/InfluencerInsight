@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink } from 'lucide-react';
+import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle } from 'lucide-react';
 import ScheduleModal from "./schedule-modal";
+import RefineIdea from "./refine-idea";
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
 import type { ContentIdea as SharedContentIdea } from "@shared/schema";
 
@@ -30,6 +31,7 @@ export default function GenerateIdeas() {
   const [clearIdeas, setClearIdeas] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -78,6 +80,34 @@ export default function GenerateIdeas() {
     currentStep: '',
     progress: null
   });
+  
+  const [streamingAbortController, setStreamingAbortController] = useState<AbortController | null>(null);
+  
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied!",
+        description: `${type} copied to clipboard`,
+      });
+    });
+  };
+  
+  const stopGeneration = () => {
+    if (streamingAbortController) {
+      streamingAbortController.abort();
+      setStreamingAbortController(null);
+    }
+    setGenerating(false);
+    setStreamingStatus({
+      isStreaming: false,
+      currentStep: '',
+      progress: null
+    });
+    toast({
+      title: "Generation Stopped",
+      description: "Content generation has been stopped",
+    });
+  };
 
   const generateContentWithStream = async (generationType: 'date' | 'competitor' | 'trending') => {
     setGenerating(true, generationType);
@@ -88,12 +118,16 @@ export default function GenerateIdeas() {
     });
 
     try {
+      const abortController = new AbortController();
+      setStreamingAbortController(abortController);
+      
       const response = await fetch('/api/content/generate/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ generationType }),
+        signal: abortController.signal
       });
 
       if (!response.ok) {
@@ -174,13 +208,21 @@ export default function GenerateIdeas() {
       });
 
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate content",
-        variant: "destructive",
-      });
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast({
+          title: "Generation Stopped",
+          description: "Content generation was cancelled",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to generate content",
+          variant: "destructive",
+        });
+      }
     } finally {
       setGenerating(false, generationType);
+      setStreamingAbortController(null);
       setStreamingStatus({
         isStreaming: false,
         currentStep: '',
@@ -326,6 +368,10 @@ export default function GenerateIdeas() {
     setShowScheduleModal(true);
   };
 
+  const handleRefineIdea = (idea: ContentIdea) => {
+    setRefineIdea(idea);
+  };
+
   // Initialize with user's existing data
   useState(() => {
     if (user?.niche) {
@@ -334,6 +380,16 @@ export default function GenerateIdeas() {
       setShowOptions(true);
     }
   });
+
+  // Show refine interface if refineIdea is set
+  if (refineIdea) {
+    return (
+      <RefineIdea 
+        idea={refineIdea} 
+        onBack={() => setRefineIdea(null)} 
+      />
+    );
+  }
 
   return (
     <div className="p-8">
@@ -433,11 +489,22 @@ export default function GenerateIdeas() {
                     <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-sm font-medium text-blue-900">Real-time Generation</span>
                   </div>
-                  {streamingStatus.progress && (
-                    <Badge variant="outline" className="text-blue-700 bg-blue-100">
-                      {streamingStatus.progress.current}/{streamingStatus.progress.total}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {streamingStatus.progress && (
+                      <Badge variant="outline" className="text-blue-700 bg-blue-100">
+                        {streamingStatus.progress.current}/{streamingStatus.progress.total}
+                      </Badge>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={stopGeneration}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    >
+                      <StopCircle className="h-4 w-4 mr-1" />
+                      Stop
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-sm text-blue-700 mb-2">{streamingStatus.currentStep}</p>
                 {streamingStatus.progress && (
@@ -517,7 +584,7 @@ export default function GenerateIdeas() {
                     
                     // Add ideas grid for this session
                     components.push(
-                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                         {sessionIdeas.map((idea) => {
                           const { strategy, link } = separateIdeasAndLinks(idea.ideas);
                           return (
@@ -525,9 +592,17 @@ export default function GenerateIdeas() {
                               <CardContent className="p-4">
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex-1">
-                                    <h4 className="text-base font-semibold text-gray-900 leading-tight">
-                                      {idea.headline || 'Untitled Idea'}
-                                    </h4>
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="text-base font-semibold text-gray-900 leading-tight">
+                                        {idea.headline || 'Untitled Idea'}
+                                      </h4>
+                                      <button 
+                                        onClick={() => copyToClipboard(idea.headline || 'Untitled Idea', 'Headline')}
+                                        className="ml-2 text-gray-400 hover:text-gray-600"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                     <Badge variant="outline" className="text-xs mt-1">
                                       {idea.generationType}
                                     </Badge>
@@ -542,17 +617,41 @@ export default function GenerateIdeas() {
                                 
                                 <div className="space-y-2">
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION</label>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <label className="block text-xs font-medium text-gray-500">CAPTION</label>
+                                      <button 
+                                        onClick={() => copyToClipboard(idea.caption, 'Caption')}
+                                        className="text-gray-400 hover:text-gray-600"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                     <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
                                   </div>
                                   
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS</label>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <label className="block text-xs font-medium text-gray-500">HASHTAGS</label>
+                                      <button 
+                                        onClick={() => copyToClipboard(idea.hashtags, 'Hashtags')}
+                                        className="text-gray-400 hover:text-gray-600"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                     <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
                                   </div>
                                   
                                   <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">STRATEGY</label>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <label className="block text-xs font-medium text-gray-500">STRATEGY</label>
+                                      <button 
+                                        onClick={() => copyToClipboard(strategy, 'Strategy')}
+                                        className="text-gray-400 hover:text-gray-600"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                     <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{strategy}</p>
                                   </div>
                                   
@@ -572,7 +671,7 @@ export default function GenerateIdeas() {
                                   )}
                                 </div>
                               
-                                <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-100">
+                                <div className="flex space-x-1 mt-3 pt-3 border-t border-gray-100">
                                   <Button 
                                     onClick={() => handleScheduleIdea(idea)}
                                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs py-2"
@@ -582,8 +681,9 @@ export default function GenerateIdeas() {
                                   <Button 
                                     variant="outline"
                                     className="flex-1 text-xs py-2"
+                                    onClick={() => handleRefineIdea(idea)}
                                   >
-                                    Edit
+                                    Refine
                                   </Button>
                                 </div>
                               </CardContent>

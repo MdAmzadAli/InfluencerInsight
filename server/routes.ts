@@ -623,6 +623,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Content refine route
+  app.post('/api/content/refine', authenticateUser, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { idea, message, chatHistory } = req.body;
+      
+      if (!idea || !message) {
+        return res.status(400).json({ message: 'Idea and message are required' });
+      }
+
+      // Import the refine function
+      const { refineContentWithGemini } = await import('./gemini');
+      
+      const refinedResponse = await refineContentWithGemini(idea, message, chatHistory || []);
+      
+      res.json({ response: refinedResponse });
+    } catch (error) {
+      console.error('Error refining content:', error);
+      res.status(500).json({ message: 'Failed to refine content' });
+    }
+  });
+
   // Apify integration testing routes
   app.post('/api/apify/test-trending', authenticateUser, async (req: AuthenticatedRequest, res) => {
     try {
