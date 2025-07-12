@@ -17,7 +17,7 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
 
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('token');
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -40,7 +40,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const headers: Record<string, string> = {};
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
