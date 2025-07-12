@@ -60,7 +60,7 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         break;
 
       case 'competitor':
-        prompt += `Analyze competitor posts and generate 3 unique viral Instagram posts for ${request.niche}. `;
+        prompt += `Analyze competitor posts and generate 6 unique viral Instagram posts for ${request.niche}. `;
         
         // Use Apify data
         if (apifyData && apifyData.length > 0) {
