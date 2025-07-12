@@ -236,12 +236,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               console.log(`Making single Apify API call for ${competitors.length} competitors:`, instagramUrls);
               apifyPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
+            } else if (generationType === 'date') {
+              // For date-based generation, we'll generate content based on holidays without needing Instagram posts
+              sendEvent({ 
+                type: 'status', 
+                message: `Generating content for upcoming holidays and ${user.niche}...` 
+              });
+              console.log(`📅 Date-based generation for ${user.niche} with ${holidays?.length || 0} holidays`);
+              // We'll handle this differently - generate content directly from holidays
+              apifyPosts = []; // Keep empty for now, will be handled separately
             }
             
-            sendEvent({ 
-              type: 'status', 
-              message: `Found ${apifyPosts.length} posts to analyze from ${generationType === 'competitor' ? competitors.length + ' competitors' : 'trending sources'}` 
-            });
+            if (generationType !== 'date') {
+              sendEvent({ 
+                type: 'status', 
+                message: `Found ${apifyPosts.length} posts to analyze from ${generationType === 'competitor' ? competitors.length + ' competitors' : 'trending sources'}` 
+              });
+            }
           } catch (error) {
             sendEvent({ 
               type: 'error', 
@@ -259,7 +270,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Process each post individually and stream results
         const generatedIdeas = [];
-        for (let i = 0; i < apifyPosts.length; i++) {
+        
+        if (generationType === 'date') {
+          // For date-based generation, generate content based on holidays
+          const numberOfIdeas = holidays?.length || 5;
+          sendEvent({ 
+            type: 'status', 
+            message: `Generating ${numberOfIdeas} content ideas for upcoming holidays...` 
+          });
+          
+          for (let i = 0; i < numberOfIdeas; i++) {
+            const holiday = holidays?.[i];
+            
+            sendEvent({ 
+              type: 'progress', 
+              current: i + 1, 
+              total: numberOfIdeas,
+              message: `Generating content idea ${i + 1}/${numberOfIdeas}${holiday ? ` for ${holiday.name}` : ''}...`
+            });
+
+            try {
+              console.log(`🎯 Generating date-based content ${i + 1}/${numberOfIdeas}${holiday ? ` for ${holiday.name}` : ''}`);
+              
+              // Use the bulk generation method for date-based content
+              const bulkContent = await generateInstagramContentWithGemini({
+                niche: user.niche,
+                generationType,
+                context,
+                holidays: holiday ? [holiday] : [],
+                useApifyData: false
+              });
+              
+              // Take only the first generated content
+              const singleContent = bulkContent[0];
+              
+              if (singleContent) {
+                console.log(`✅ Generated date-based content:`, singleContent.headline);
+
+                // Save to database
+                const savedIdea = await storage.createContentIdea({
+                  userId,
+                  headline: singleContent.headline,
+                  caption: singleContent.caption,
+                  hashtags: singleContent.hashtags,
+                  ideas: singleContent.ideas,
+                  generationType,
+                  isSaved: false
+                });
+
+                console.log(`💾 Saved date-based idea to database with ID: ${savedIdea.id}`);
+                generatedIdeas.push(savedIdea);
+
+                // Send individual result immediately
+                sendEvent({ 
+                  type: 'content', 
+                  data: savedIdea,
+                  progress: {
+                    current: i + 1,
+                    total: numberOfIdeas
+                  }
+                });
+
+                console.log(`📡 Sent date-based result ${i + 1} to frontend`);
+              }
+              
+              // Small delay to prevent overwhelming the client
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+            } catch (error) {
+              console.error(`❌ Error generating date-based content ${i + 1}:`, error);
+              sendEvent({ 
+                type: 'error', 
+                message: `Failed to generate content idea ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`
+              });
+            }
+          }
+        } else {
+          // For post-based generation (competitor/trending)
+          for (let i = 0; i < apifyPosts.length; i++) {
           const post = apifyPosts[i];
           
           sendEvent({ 
@@ -318,6 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: 'error', 
               message: `Failed to generate content for post ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
+          }
           }
         }
 
