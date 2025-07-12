@@ -78,12 +78,12 @@ export default function GenerateIdeas() {
       });
       return response.json();
     },
-    onSuccess: (data: ContentIdea[]) => {
+    onSuccess: (data: ContentIdea[], variables: 'date' | 'competitor' | 'trending') => {
       if (clearIdeas) {
         clearGeneratedIdeas();
         setClearIdeas(false);
       }
-      addGeneratedIdeas(data);
+      addGeneratedIdeas(data, variables);
       toast({
         title: "Success",
         description: `Generated ${data.length} content ideas using real Instagram data!`,
@@ -314,65 +314,122 @@ export default function GenerateIdeas() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {state.generatedIdeas.map((idea) => {
-                  const { strategy, link } = separateIdeasAndLinks(idea.ideas);
-                  return (
-                    <Card key={idea.id} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              {idea.headline}
-                            </h4>
-                            <Badge variant="outline" className="text-xs mt-1">
-                              {idea.generationType}
-                            </Badge>
-                          </div>
-                          <button 
-                            onClick={() => handleSaveIdea(idea)}
-                            className={`ml-2 ${idea.isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
-                          >
-                            <i className="fas fa-bookmark"></i>
-                          </button>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION (20-40 words)</label>
-                            <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
-                          </div>
-                          
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS (5-10)</label>
-                            <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
-                          </div>
-                          
-                          <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">STRATEGY</label>
-                            <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{strategy}</p>
-                          </div>
-                          
-                          {link && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">INSPIRATION SOURCE</label>
-                              <a 
-                                href={link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                View Original Instagram Post
-                              </a>
+              {(() => {
+                const renderIdeasWithDividers = () => {
+                  const components = [];
+                  let currentIndex = 0;
+                  
+                  for (let sessionIndex = 0; sessionIndex < state.generationSessions.length; sessionIndex++) {
+                    const session = state.generationSessions[sessionIndex];
+                    const sessionIdeas = state.generatedIdeas.slice(currentIndex, currentIndex + session.count);
+                    
+                    // Add divider panel (except for the first session)
+                    if (sessionIndex > 0) {
+                      components.push(
+                        <div key={`divider-${sessionIndex}`} className="my-8">
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <div className="w-full border-t border-gray-300"></div>
                             </div>
-                          )}
+                            <div className="relative flex justify-center text-sm">
+                              <span className="px-4 bg-white text-gray-500 font-medium">
+                                {session.type === 'date' && <Calendar className="inline h-4 w-4 mr-1" />}
+                                {session.type === 'competitor' && <Users className="inline h-4 w-4 mr-1" />}
+                                {session.type === 'trending' && <TrendingUp className="inline h-4 w-4 mr-1" />}
+                                {session.type.charAt(0).toUpperCase() + session.type.slice(1)} Ideas • {session.count} posts • {new Date(session.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      
-                      <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-100">
-                        <Button 
-                          onClick={() => handleScheduleIdea(idea)}
-                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                      );
+                    }
+                    
+                    // Add ideas grid for this session
+                    components.push(
+                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {sessionIdeas.map((idea) => {
+                          const { strategy, link } = separateIdeasAndLinks(idea.ideas);
+                          return (
+                            <Card key={idea.id} className="hover:shadow-lg transition-shadow">
+                              <CardContent className="p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex-1">
+                                    <h4 className="text-lg font-semibold text-gray-900">
+                                      {idea.headline}
+                                    </h4>
+                                    <Badge variant="outline" className="text-xs mt-1">
+                                      {idea.generationType}
+                                    </Badge>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleSaveIdea(idea)}
+                                    className={`ml-2 ${idea.isSaved ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
+                                  >
+                                    <i className="fas fa-bookmark"></i>
+                                  </button>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">CAPTION (20-40 words)</label>
+                                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{idea.caption}</p>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">HASHTAGS (5-10)</label>
+                                    <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all">{idea.hashtags}</p>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">STRATEGY</label>
+                                    <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line">{strategy}</p>
+                                  </div>
+                                  
+                                  {link && (
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-500 mb-1">INSPIRATION SOURCE</label>
+                                      <a 
+                                        href={link} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded flex items-center gap-1"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        View Original Instagram Post
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              
+                                <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-100">
+                                  <Button 
+                                    onClick={() => handleScheduleIdea(idea)}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                                  >
+                                    Schedule
+                                  </Button>
+                                  <Button 
+                                    variant="outline"
+                                    className="flex-1 text-sm"
+                                  >
+                                    Edit
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    );
+                    
+                    currentIndex += session.count;
+                  }
+                  
+                  return components;
+                };
+                
+                return renderIdeasWithDividers();
+              })()}
                         >
                           Schedule
                         </Button>

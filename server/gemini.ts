@@ -60,14 +60,15 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         break;
 
       case 'competitor':
-        prompt += `Analyze competitor posts and generate 6 unique viral Instagram posts for ${request.niche}. `;
+        const numCompetitorPosts = apifyData.length;
+        prompt += `Analyze competitor posts and generate ${numCompetitorPosts} unique viral Instagram posts for ${request.niche}. `;
         
         // Use Apify data
         if (apifyData && apifyData.length > 0) {
           prompt += `\n\nREAL COMPETITOR ANALYSIS DATA (from Apify):\n`;
           const sortedPosts = apifyData.sort((a, b) => (b.likesCount + b.commentsCount) - (a.likesCount + a.commentsCount));
           
-          for (const post of sortedPosts.slice(0, 6)) {
+          for (const post of sortedPosts) {
             prompt += `\nCompetitor: @${post.ownerUsername} (${post.ownerFullName})\n`;
             prompt += `  Caption: "${post.caption.substring(0, 200)}${post.caption.length > 200 ? '...' : ''}"\n`;
             prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
@@ -76,8 +77,8 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
             prompt += `  Post Type: ${post.type || 'Image'}\n`;
             prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
             
-            // Add image analysis if available
-            if (post.displayUrl) {
+            // Add image analysis only for Image type posts
+            if (post.displayUrl && post.type === 'Image') {
               try {
                 const imageAnalysis = await analyzeImageFromUrl(post.displayUrl);
                 prompt += `  Image Analysis: ${imageAnalysis}\n`;
@@ -98,14 +99,14 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         break;
 
       case 'trending':
-        prompt += `Generate 3 viral Instagram posts for ${request.niche} based on current trending topics and viral formats. `;
+        const numTrendingPosts = apifyData.length;
+        prompt += `Generate ${numTrendingPosts} viral Instagram posts for ${request.niche} based on current trending topics and viral formats. `;
         
         // Use Apify data
         if (apifyData && apifyData.length > 0) {
           prompt += `\n\nREAL TRENDING INSTAGRAM DATA (from Apify):\n`;
-          const topPosts = apifyData.slice(0, 8);
           
-          for (const post of topPosts) {
+          for (const post of apifyData) {
             prompt += `\nPost by @${post.ownerUsername} (${post.ownerFullName}):\n`;
             prompt += `  Caption: "${post.caption.substring(0, 200)}${post.caption.length > 200 ? '...' : ''}"\n`;
             prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
@@ -114,8 +115,8 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
             prompt += `  Post Type: ${post.type || 'Image'}\n`;
             prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
             
-            // Add image analysis if available
-            if (post.displayUrl) {
+            // Add image analysis only for Image type posts
+            if (post.displayUrl && post.type === 'Image') {
               try {
                 const imageAnalysis = await analyzeImageFromUrl(post.displayUrl);
                 prompt += `  Image Analysis: ${imageAnalysis}\n`;
@@ -178,13 +179,35 @@ Make each post unique, viral-worthy, and perfectly formatted according to the re
       throw new Error('Empty response from Gemini');
     }
 
-    const generatedContent = JSON.parse(responseText);
+    let generatedContent = JSON.parse(responseText);
     
     if (!Array.isArray(generatedContent) || generatedContent.length === 0) {
       throw new Error('Invalid response format from Gemini');
     }
 
-    return generatedContent;
+    // Timer fallback for strategy generation - if ideas field is short, enhance it
+    const enhancedContent = await Promise.all(
+      generatedContent.map(async (content, index) => {
+        try {
+          // If ideas field is less than 30 words, enhance it using hashtags and caption
+          const wordsCount = content.ideas.split(' ').length;
+          if (wordsCount < 30) {
+            console.log(`Enhancing strategy for content ${index + 1} (${wordsCount} words)`);
+            const enhancedStrategy = await generateStrategyFromContent(content.caption, content.hashtags, request.niche);
+            return {
+              ...content,
+              ideas: enhancedStrategy
+            };
+          }
+          return content;
+        } catch (error) {
+          console.error(`Failed to enhance strategy for content ${index + 1}:`, error);
+          return content; // Return original if enhancement fails
+        }
+      })
+    );
+
+    return enhancedContent;
 
   } catch (error) {
     console.error('Gemini content generation error:', error);
@@ -227,6 +250,40 @@ Return only the hashtags string, nothing else.`;
   } catch (error) {
     console.error('Gemini hashtag optimization error:', error);
     throw new Error(`Failed to optimize hashtags with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Helper function to generate enhanced strategy from content
+async function generateStrategyFromContent(caption: string, hashtags: string, niche: string): Promise<string> {
+  try {
+    const prompt = `Based on this Instagram content for ${niche}, create a detailed 40-50 word strategy explaining what to do, how to execute, and why this approach works:
+
+Caption: "${caption}"
+Hashtags: "${hashtags}"
+
+Generate a comprehensive strategy that includes:
+1. What specific action to take
+2. How to execute it effectively  
+3. Why this strategy works for engagement
+4. Best timing or format recommendations
+
+Keep it exactly 40-50 words and actionable.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    const strategy = response.text?.trim();
+    if (!strategy) {
+      throw new Error('Empty strategy response from Gemini');
+    }
+
+    return strategy;
+  } catch (error) {
+    console.error('Strategy generation error:', error);
+    // Fallback strategy based on content
+    return `Post this ${niche} content during peak hours (6-9 PM). Use engaging visuals and include call-to-action. Hashtags target both broad and niche audiences. Respond to comments within first hour to boost engagement algorithm ranking.`;
   }
 }
 

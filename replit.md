@@ -90,6 +90,15 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
+### July 12, 2025 - Enhanced Content Generation & UI Improvements
+- **✅ Dynamic Content Generation**: Modified Gemini to generate as many ideas as input posts from Apify scraper
+- **✅ Selective Image Analysis**: Image analysis now only processes posts with type="Image" for better performance
+- **✅ Timer Fallback Strategy**: Added fallback strategy generation using hashtags and caption when initial strategy is too short
+- **✅ Dividing Panels**: Added visual dividers between different generation session types in the frontend
+- **✅ Generation Session Tracking**: Frontend now tracks and displays generation sessions with timestamps and counts
+- **✅ Stacked Results**: Generated ideas now accumulate and stack on previous results instead of replacing them
+- **✅ Project Migration**: Successfully migrated project from Replit Agent to Replit environment with database setup
+
 ### July 12, 2025 - Apify Integration & Enhanced Image Analysis
 - **✅ Apify Instagram Scraper Integration**: Added real-time Instagram data fetching using Apify API
 - **✅ Enhanced Image Analysis**: Gemini AI now analyzes Instagram images for better content context

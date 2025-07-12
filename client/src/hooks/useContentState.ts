@@ -17,6 +17,7 @@ export interface ContentState {
   savedIdeas: ContentIdea[];
   isGenerating: boolean;
   lastGenerationType: string | null;
+  generationSessions: { type: string; timestamp: number; count: number }[];
 }
 
 const STORAGE_KEY = 'instagram-content-state';
@@ -35,7 +36,8 @@ export function useContentState() {
       generatedIdeas: [],
       savedIdeas: [],
       isGenerating: false,
-      lastGenerationType: null
+      lastGenerationType: null,
+      generationSessions: []
     };
   });
 
@@ -48,12 +50,21 @@ export function useContentState() {
     }
   }, [state]);
 
-  const addGeneratedIdeas = (ideas: ContentIdea[]) => {
-    setState(prev => ({
-      ...prev,
-      generatedIdeas: [...prev.generatedIdeas, ...ideas],
-      isGenerating: false
-    }));
+  const addGeneratedIdeas = (ideas: ContentIdea[], generationType?: string) => {
+    setState(prev => {
+      const newSession = {
+        type: generationType || prev.lastGenerationType || 'unknown',
+        timestamp: Date.now(),
+        count: ideas.length
+      };
+      
+      return {
+        ...prev,
+        generatedIdeas: [...prev.generatedIdeas, ...ideas],
+        generationSessions: [...prev.generationSessions, newSession],
+        isGenerating: false
+      };
+    });
   };
 
   const setGenerating = (isGenerating: boolean, generationType?: string) => {
@@ -77,7 +88,8 @@ export function useContentState() {
   const clearGeneratedIdeas = () => {
     setState(prev => ({
       ...prev,
-      generatedIdeas: []
+      generatedIdeas: [],
+      generationSessions: []
     }));
   };
 
