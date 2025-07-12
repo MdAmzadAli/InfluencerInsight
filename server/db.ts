@@ -1,18 +1,15 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from '../shared/schema';
+import { PrismaClient } from '@prisma/client';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set');
 }
 
-const client = postgres(process.env.DATABASE_URL);
-export const db = drizzle(client, { schema });
+export const db = new PrismaClient();
 
 export async function checkDatabaseHealth() {
   try {
-    const result = await db.execute('SELECT NOW()');
-    console.log('Database connected successfully at:', result);
+    await db.$queryRaw`SELECT NOW()`;
+    console.log('Database connected successfully');
     return true;
   } catch (error) {
     console.error('Database connection failed:', error);

@@ -1,7 +1,4 @@
 import { db } from './db';
-import { users, contentIdeas, scheduledPosts, indianHolidays } from '../shared/schema';
-import { eq, desc, gte, sql } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
 import type { User, ContentIdea, ScheduledPost, IndianHoliday } from '../shared/schema';
 
 export interface RegisterUser {
@@ -18,7 +15,7 @@ export interface LoginUser {
 }
 
 export interface InsertContentIdea {
-  userId: number;
+  userId: string;
   headline: string;
   caption: string;
   hashtags: string;
@@ -29,7 +26,7 @@ export interface InsertContentIdea {
 }
 
 export interface InsertScheduledPost {
-  userId: number;
+  userId: string;
   contentIdeaId?: number | null;
   headline: string;
   caption: string;
@@ -49,21 +46,19 @@ export interface InsertIndianHoliday {
 
 export interface IStorage {
   // User operations
-  registerUser(user: RegisterUser): Promise<User>;
-  loginUser(credentials: LoginUser): Promise<User | null>;
-  getUser(id: number): Promise<User | null>;
+  getUser(id: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
-  updateUserNiche(userId: number, niche: string, competitors?: string): Promise<User>;
+  updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
   
   // Content Ideas operations
   createContentIdea(idea: InsertContentIdea): Promise<ContentIdea>;
-  getUserContentIdeas(userId: number): Promise<ContentIdea[]>;
-  getSavedContentIdeas(userId: number): Promise<ContentIdea[]>;
+  getUserContentIdeas(userId: string): Promise<ContentIdea[]>;
+  getSavedContentIdeas(userId: string): Promise<ContentIdea[]>;
   updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void>;
   
   // Scheduled Posts operations
   createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost>;
-  getUserScheduledPosts(userId: number): Promise<ScheduledPost[]>;
+  getUserScheduledPosts(userId: string): Promise<ScheduledPost[]>;
   updateScheduledPost(postId: number, updates: Partial<InsertScheduledPost>): Promise<ScheduledPost>;
   deleteScheduledPost(postId: number): Promise<void>;
   
@@ -74,182 +69,145 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async registerUser(userData: RegisterUser): Promise<User> {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    
-    const [user] = await db.insert(users).values({
-      email: userData.email,
-      password: hashedPassword,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      niche: userData.niche,
-    }).returning();
-    
-    return user;
-  }
-
-  async loginUser(credentials: LoginUser): Promise<User | null> {
-    const [user] = await db.select().from(users).where(eq(users.email, credentials.email));
-    
-    if (!user) return null;
-    
-    const isValidPassword = await bcrypt.compare(credentials.password, user.password);
-    if (!isValidPassword) return null;
-    
-    return user;
-  }
-
-  async getUser(id: number): Promise<User | null> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || null;
+  async getUser(id: string): Promise<User | null> {
+    return await db.user.findUnique({
+      where: { id }
+    });
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || null;
+    return await db.user.findUnique({
+      where: { email }
+    });
   }
 
-  async updateUserNiche(userId: number, niche: string, competitors?: string): Promise<User> {
-    const [user] = await db.update(users)
-      .set({ 
+  async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {
+    return await db.user.update({
+      where: { id: userId },
+      data: { 
         niche, 
         competitors,
         updatedAt: new Date() 
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    return user;
+      }
+    });
   }
 
   // Content Ideas operations
   async createContentIdea(idea: InsertContentIdea): Promise<ContentIdea> {
-    const [contentIdea] = await db.insert(contentIdeas).values(idea).returning();
-    return contentIdea;
+    return await db.contentIdea.create({
+      data: {
+        userId: idea.userId,
+        headline: idea.headline,
+        caption: idea.caption,
+        hashtags: idea.hashtags,
+        ideas: idea.ideas,
+        generationType: idea.generationType,
+        isSaved: idea.isSaved || false,
+      }
+    });
   }
 
-  async getUserContentIdeas(userId: number): Promise<ContentIdea[]> {
-    return await db.select().from(contentIdeas)
-      .where(eq(contentIdeas.userId, userId))
-      .orderBy(desc(contentIdeas.createdAt));
+  async getUserContentIdeas(userId: string): Promise<ContentIdea[]> {
+    return await db.contentIdea.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
   }
 
-  async getSavedContentIdeas(userId: number): Promise<ContentIdea[]> {
-    return await db.select().from(contentIdeas)
-      .where(sql`${contentIdeas.userId} = ${userId} AND ${contentIdeas.isSaved} = true`)
-      .orderBy(desc(contentIdeas.createdAt));
+  async getSavedContentIdeas(userId: string): Promise<ContentIdea[]> {
+    return await db.contentIdea.findMany({
+      where: { 
+        userId,
+        isSaved: true 
+      },
+      orderBy: { createdAt: 'desc' }
+    });
   }
 
   async updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void> {
-    await db.update(contentIdeas)
-      .set({ isSaved })
-      .where(eq(contentIdeas.id, ideaId));
+    await db.contentIdea.update({
+      where: { id: ideaId },
+      data: { isSaved }
+    });
   }
 
   // Scheduled Posts operations
   async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
-    const [scheduledPost] = await db.insert(scheduledPosts).values(post).returning();
-    return scheduledPost;
+    return await db.scheduledPost.create({
+      data: {
+        userId: post.userId,
+        contentIdeaId: post.contentIdeaId,
+        headline: post.headline,
+        caption: post.caption,
+        hashtags: post.hashtags,
+        ideas: post.ideas,
+        scheduledDate: post.scheduledDate,
+        isCustom: post.isCustom || false,
+        status: post.status || 'scheduled',
+      }
+    });
   }
 
-  async getUserScheduledPosts(userId: number): Promise<ScheduledPost[]> {
-    return await db.select().from(scheduledPosts)
-      .where(eq(scheduledPosts.userId, userId))
-      .orderBy(desc(scheduledPosts.scheduledDate));
+  async getUserScheduledPosts(userId: string): Promise<ScheduledPost[]> {
+    return await db.scheduledPost.findMany({
+      where: { userId },
+      orderBy: { scheduledDate: 'asc' }
+    });
   }
 
   async updateScheduledPost(postId: number, updates: Partial<InsertScheduledPost>): Promise<ScheduledPost> {
-    const [scheduledPost] = await db.update(scheduledPosts)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(scheduledPosts.id, postId))
-      .returning();
-    
-    return scheduledPost;
+    return await db.scheduledPost.update({
+      where: { id: postId },
+      data: updates
+    });
   }
 
   async deleteScheduledPost(postId: number): Promise<void> {
-    await db.delete(scheduledPosts).where(eq(scheduledPosts.id, postId));
+    await db.scheduledPost.delete({
+      where: { id: postId }
+    });
   }
 
   // Indian Holidays operations
   async getUpcomingHolidays(limit = 10): Promise<IndianHoliday[]> {
-    const now = new Date().toISOString().split('T')[0];
-    return await db.select().from(indianHolidays)
-      .where(gte(indianHolidays.date, now))
-      .orderBy(indianHolidays.date)
-      .limit(limit);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db.indianHoliday.findMany({
+      where: {
+        date: {
+          gte: today
+        }
+      },
+      orderBy: { date: 'asc' },
+      take: limit
+    });
   }
 
   async seedHolidays(): Promise<void> {
-    const holidays: InsertIndianHoliday[] = [
-      {
-        name: "Diwali",
-        date: "2024-11-01",
-        description: "Festival of Lights",
-        category: "religious"
-      },
-      {
-        name: "Holi",
-        date: "2025-03-14",
-        description: "Festival of Colors",
-        category: "religious"
-      },
-      {
-        name: "Independence Day",
-        date: "2025-08-15",
-        description: "India's Independence Day",
-        category: "national"
-      },
-      {
-        name: "Republic Day",
-        date: "2025-01-26",
-        description: "India's Republic Day",
-        category: "national"
-      },
-      {
-        name: "Eid ul-Fitr",
-        date: "2025-03-31",
-        description: "Festival marking the end of Ramadan",
-        category: "religious"
-      },
-      {
-        name: "Christmas",
-        date: "2024-12-25",
-        description: "Celebration of the birth of Jesus Christ",
-        category: "religious"
-      },
-      {
-        name: "Dussehra",
-        date: "2024-10-12",
-        description: "Victory of good over evil",
-        category: "religious"
-      },
-      {
-        name: "Karva Chauth",
-        date: "2024-10-20",
-        description: "Festival of married women",
-        category: "cultural"
-      },
-      {
-        name: "Bhai Dooj",
-        date: "2024-11-03",
-        description: "Celebration of brother-sister bond",
-        category: "cultural"
-      },
-      {
-        name: "Makar Sankranti",
-        date: "2025-01-14",
-        description: "Harvest festival",
-        category: "cultural"
-      }
+    const holidays = [
+      { name: 'Republic Day', date: new Date('2025-01-26'), description: 'National holiday celebrating the adoption of the Constitution of India', category: 'National' },
+      { name: 'Holi', date: new Date('2025-03-14'), description: 'Festival of colors', category: 'Religious' },
+      { name: 'Independence Day', date: new Date('2025-08-15'), description: 'National holiday celebrating independence from British rule', category: 'National' },
+      { name: 'Diwali', date: new Date('2025-10-20'), description: 'Festival of lights', category: 'Religious' },
+      { name: 'Dussehra', date: new Date('2025-10-02'), description: 'Victory of good over evil', category: 'Religious' },
+      { name: 'Gandhi Jayanti', date: new Date('2025-10-02'), description: 'Birth anniversary of Mahatma Gandhi', category: 'National' },
+      { name: 'Eid al-Fitr', date: new Date('2025-03-30'), description: 'Festival marking the end of Ramadan', category: 'Religious' },
+      { name: 'Eid al-Adha', date: new Date('2025-06-06'), description: 'Festival of sacrifice', category: 'Religious' },
+      { name: 'Christmas', date: new Date('2025-12-25'), description: 'Christian festival celebrating the birth of Jesus Christ', category: 'Religious' },
+      { name: 'Karva Chauth', date: new Date('2025-10-13'), description: 'Hindu festival observed by married women', category: 'Religious' },
     ];
 
-    // Insert holidays, ignoring duplicates
-    try {
-      await db.insert(indianHolidays).values(holidays);
-    } catch (error) {
-      // Ignore duplicate key errors
-      console.log('Holidays already seeded');
+    for (const holiday of holidays) {
+      const existing = await db.indianHoliday.findFirst({
+        where: { name: holiday.name }
+      });
+      
+      if (!existing) {
+        await db.indianHoliday.create({
+          data: holiday
+        });
+      }
     }
   }
 }
