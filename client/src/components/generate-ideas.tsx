@@ -430,21 +430,6 @@ export default function GenerateIdeas() {
                 
                 return renderIdeasWithDividers();
               })()}
-                        >
-                          Schedule
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          className="flex-1 text-sm"
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-                })}
-              </div>
             </div>
           )}
         </>
