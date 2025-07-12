@@ -239,17 +239,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Generate content for each post individually
+      // Generate content for each post individually, or fallback to general content
       const generatedContent = [];
-      for (let i = 0; i < scrapedData.length; i++) {
-        const post = scrapedData[i];
-        const progress = 20 + ((i + 1) / scrapedData.length) * 70;
+      const numberOfPosts = scrapedData.length > 0 ? scrapedData.length : 5; // Default to 5 posts if no scraped data
+      
+      for (let i = 0; i < numberOfPosts; i++) {
+        const post = scrapedData[i] || null;
+        const progress = 20 + ((i + 1) / numberOfPosts) * 70;
         
-        res.write(`data: ${JSON.stringify({ 
-          type: 'progress', 
-          message: `Analyzing post ${i + 1}/${scrapedData.length}...`, 
-          progress: Math.round(progress) 
-        })}\n\n`);
+        if (post) {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'progress', 
+            message: `Analyzing post ${i + 1}/${numberOfPosts}...`, 
+            progress: Math.round(progress) 
+          })}\n\n`);
+        } else {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'progress', 
+            message: `Generating content idea ${i + 1}/${numberOfPosts}...`, 
+            progress: Math.round(progress) 
+          })}\n\n`);
+        }
 
         try {
           const content = await generateInstagramContentWithGemini({
@@ -257,8 +267,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             generationType,
             context: "Generated from streaming API",
             competitors,
-            scrapedData: [post], // Generate content for individual post
-            useApifyData: true
+            scrapedData: post ? [post] : [], // Pass individual post or empty array
+            useApifyData: !!post
           });
 
           if (content && content.length > 0) {
@@ -268,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             res.write(`data: ${JSON.stringify({ 
               type: 'content', 
               content: content[0],
-              sourceUrl: post.url || `https://instagram.com/p/${post.shortCode}`,
+              sourceUrl: post ? (post.url || `https://instagram.com/p/${post.shortCode}`) : null,
               index: i
             })}\n\n`);
           }

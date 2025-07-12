@@ -177,10 +177,12 @@ export default function GenerateIdeas() {
                 case 'content':
                   // Add the new idea immediately to the UI
                   const newIdea = {
-                    ...data.data,
-                    id: data.data.id.toString(),
-                    generationType: data.data.generationType,
-                    isSaved: false
+                    ...data.content,
+                    id: Date.now() + Math.random(),
+                    generationType: generationType,
+                    isSaved: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
                   };
                   newIdeas.push(newIdea);
                   addGeneratedIdeas([newIdea], generationType);

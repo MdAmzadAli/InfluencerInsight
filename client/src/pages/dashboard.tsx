@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+// import { useMobile } from "@/hooks/use-mobile";
 import GenerateIdeas from "@/components/generate-ideas";
 import CreatePost from "@/components/create-post";
 import SavedIdeas from "@/components/saved-ideas";
@@ -11,6 +12,7 @@ import CompetitorPostsView from "@/components/competitor-posts-view";
 import UserSettings from "@/components/user-settings";
 import RefineIdea from "@/components/refine-idea";
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
+import { Menu, X } from "lucide-react";
 
 type Section = 'generateIdeas' | 'createPost' | 'savedIdeas' | 'scheduling' | 'competitorPosts' | 'competitors' | 'settings';
 
@@ -18,9 +20,22 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<Section>('generateIdeas');
   const [showRefinePanel, setShowRefinePanel] = useState(false);
   const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isLoading, firebaseUser } = useAuth();
   const { toast } = useToast();
   const { state } = useContentState();
+  // Simple mobile detection using window width
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -163,15 +178,49 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Content tabs */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex flex-wrap gap-2 mb-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile menu button */}
+      {isMobile && (
+        <div className="lg:hidden fixed top-4 left-4 z-50">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg bg-white shadow-md border border-gray-200 hover:bg-gray-50"
+          >
+            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      )}
+
+      {/* Sidebar overlay for mobile */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 transition-transform duration-300 ease-in-out
+        lg:static lg:inset-0
+        w-64 bg-white shadow-xl z-50 lg:z-0
+        flex flex-col
+      `}>
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-xl font-bold text-gray-900">Instagram AI</h1>
+          <p className="text-sm text-gray-500">Content Generator</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
           {sectionConfig.map((section) => (
             <button
               key={section.id}
-              onClick={() => setActiveSection(section.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              onClick={() => {
+                setActiveSection(section.id);
+                if (isMobile) setSidebarOpen(false);
+              }}
+              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                 activeSection === section.id
                   ? 'bg-purple-100 text-purple-700'
                   : 'hover:bg-gray-100 text-gray-700'
@@ -181,17 +230,32 @@ export default function Dashboard() {
               <span className="font-medium">{section.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
 
-        {/* Main Content */}
-        <div className="mt-6">
-          {activeSection === 'generateIdeas' && <GenerateIdeas />}
-          {activeSection === 'createPost' && <CreatePost />}
-          {activeSection === 'savedIdeas' && <SavedIdeas />}
-          {activeSection === 'scheduling' && <PostSchedulingBoard />}
-          {activeSection === 'competitorPosts' && <CompetitorPostsComponent />}
-          {activeSection === 'competitors' && <CompetitorsManagement />}
-          {activeSection === 'settings' && <UserSettings />}
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+          >
+            <i className="fas fa-sign-out-alt"></i>
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="lg:ml-64 min-h-screen">
+        <div className="p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Main Content */}
+            {activeSection === 'generateIdeas' && <GenerateIdeas />}
+            {activeSection === 'createPost' && <CreatePost />}
+            {activeSection === 'savedIdeas' && <SavedIdeas />}
+            {activeSection === 'scheduling' && <PostSchedulingBoard />}
+            {activeSection === 'competitorPosts' && <CompetitorPostsComponent />}
+            {activeSection === 'competitors' && <CompetitorsManagement />}
+            {activeSection === 'settings' && <UserSettings />}
+          </div>
         </div>
       </div>
     </div>

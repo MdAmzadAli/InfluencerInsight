@@ -36,9 +36,15 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
   }
 
   try {
-    // Always use Apify as primary data source
+    // Use provided scraped data or fetch fresh data if needed
     let apifyData: ApifyTrendingPost[] = [];
-    if (apifyScraper) {
+    
+    if (request.scrapedData && request.scrapedData.length > 0) {
+      // Use provided scraped data (from streaming API)
+      apifyData = request.scrapedData;
+      console.log(`Using provided scraped data: ${apifyData.length} posts`);
+    } else if (apifyScraper && !request.useApifyData) {
+      // Fresh data fetch when no scraped data provided
       try {
         console.log('Fetching real Instagram data from Apify...');
         if (request.generationType === 'trending') {
@@ -51,10 +57,9 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
         console.log(`Fetched ${apifyData.length} posts from Apify`);
       } catch (error) {
         console.error('Failed to fetch Apify data:', error);
-        throw new Error(`Failed to fetch Instagram data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Continue with fallback generation instead of throwing error
+        apifyData = [];
       }
-    } else {
-      throw new Error('Apify API not configured. Please provide APIFY_API_TOKEN.');
     }
 
     let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. `;
@@ -98,7 +103,9 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
           prompt += `\nCreate content that outperforms these competitors by identifying gaps and improving on their successful patterns. `;
           prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
         } else {
-          throw new Error('No competitor data available from Apify. Please check your competitors list.');
+          // Fallback for no competitor data
+          prompt += `Generate 3 viral Instagram posts for ${request.niche} using general competitor analysis strategies. `;
+          prompt += `Focus on creating engaging content that would outperform typical competitors in the ${request.niche} space. `;
         }
         
         if (request.competitors && request.competitors.length > 0) {
@@ -136,7 +143,9 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
           prompt += `\nUse these real trending patterns to create viral content that follows successful formats. `;
           prompt += `For each generated idea, include the specific Instagram post URL that inspired it using the format: "Inspired by: [post URL]" in the ideas field. `;
         } else {
-          throw new Error('No trending data available from Apify. Please check your niche.');
+          // Fallback for no trending data
+          prompt += `Generate 3 viral Instagram posts for ${request.niche} using current trending topics and formats. `;
+          prompt += `Focus on popular content strategies that work well in the ${request.niche} space. `;
         }
         break;
     }

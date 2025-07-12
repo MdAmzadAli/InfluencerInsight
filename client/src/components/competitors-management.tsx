@@ -17,11 +17,16 @@ export default function CompetitorsManagement() {
     queryKey: ["/api/auth/user"],
   });
 
-  const competitors = user?.competitors ? user.competitors.split(',').filter(Boolean) : [];
+  const competitors = user?.competitors ? 
+    (typeof user.competitors === 'string' ? user.competitors.split(',').filter(Boolean) : JSON.parse(user.competitors)) 
+    : [];
 
   const updateCompetitorsMutation = useMutation({
     mutationFn: async (competitors: string[]) => {
-      return apiRequest('PUT', '/api/user/competitors', { competitors: competitors.join(',') });
+      return apiRequest('PUT', '/api/user/competitors', { 
+        niche: user?.niche || 'general', 
+        competitors: competitors 
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
