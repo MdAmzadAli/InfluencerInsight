@@ -30,7 +30,7 @@ function Router() {
         // Fetch posts for competitors
         if (parsedCompetitors.length > 0) {
           setLoadingPosts(true);
-          const token = localStorage.getItem('token');
+          const token = localStorage.getItem('authToken');
           fetch('/api/competitors/top-posts', {
             headers: token ? { Authorization: `Bearer ${token}` } : {}
           })

@@ -121,10 +121,12 @@ export default function GenerateIdeas() {
       const abortController = new AbortController();
       setStreamingAbortController(abortController);
       
+      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/content/generate/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ generationType }),
         signal: abortController.signal

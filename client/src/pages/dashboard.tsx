@@ -9,13 +9,18 @@ import PostSchedulingBoard from "@/components/post-scheduling-board";
 import CompetitorsManagement from "@/components/competitors-management";
 import CompetitorPostsView from "@/components/competitor-posts-view";
 import UserSettings from "@/components/user-settings";
+import RefineIdea from "@/components/refine-idea";
+import { useContentState, ContentIdea } from "@/hooks/useContentState";
 
 type Section = 'generateIdeas' | 'createPost' | 'savedIdeas' | 'scheduling' | 'competitorPosts' | 'competitors' | 'settings';
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<Section>('generateIdeas');
+  const [showRefinePanel, setShowRefinePanel] = useState(false);
+  const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
   const { user, isLoading, firebaseUser } = useAuth();
   const { toast } = useToast();
+  const { state } = useContentState();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -30,6 +35,26 @@ export default function Dashboard() {
       return;
     }
   }, [user, isLoading, toast]);
+
+  // Listen for refine panel events from sidebar
+  useEffect(() => {
+    const handleShowRefineIdeas = () => {
+      // Get the first available idea from the content state
+      if (state.generatedIdeas.length > 0) {
+        setRefineIdea(state.generatedIdeas[0]);
+        setShowRefinePanel(true);
+      } else {
+        toast({
+          title: "No Ideas Available",
+          description: "Generate some content ideas first to use the refine feature.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    window.addEventListener('showRefineIdeas', handleShowRefineIdeas);
+    return () => window.removeEventListener('showRefineIdeas', handleShowRefineIdeas);
+  }, [state.generatedIdeas, toast]);
 
   if (isLoading) {
     return (
@@ -124,6 +149,18 @@ export default function Dashboard() {
       color: 'text-gray-600'
     }
   ];
+
+  if (showRefinePanel && refineIdea) {
+    return (
+      <RefineIdea 
+        idea={refineIdea} 
+        onBack={() => {
+          setShowRefinePanel(false);
+          setRefineIdea(null);
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
