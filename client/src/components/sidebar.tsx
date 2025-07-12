@@ -37,7 +37,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
 
   return (
     <div className={cn(
-      "bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300",
+      "bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 h-screen",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4">
