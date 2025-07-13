@@ -465,12 +465,14 @@ export default function GenerateIdeas() {
             // Mobile version with selector and generate button
             <Card className="mb-8">
               <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="space-y-4">
+                <div className="space-y-6">
+                  <div className="space-y-5">
                     <div>
-                      <Label htmlFor="generation-type">Choose Generation Type</Label>
+                      <Label htmlFor="generation-type" className="text-base font-medium text-gray-900 mb-3 block">
+                        Choose Generation Type
+                      </Label>
                       <Select value={selectedGenerationType} onValueChange={(value: 'date' | 'competitor' | 'trending') => setSelectedGenerationType(value)}>
-                        <SelectTrigger className="w-full mt-2">
+                        <SelectTrigger className="w-full h-12">
                           <SelectValue placeholder="Select generation type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -506,9 +508,11 @@ export default function GenerateIdeas() {
                     </div>
                     
                     <div>
-                      <Label htmlFor="number-of-ideas">Number of Ideas</Label>
+                      <Label htmlFor="number-of-ideas" className="text-base font-medium text-gray-900 mb-3 block">
+                        Number of Ideas
+                      </Label>
                       <Select value={numberOfIdeas.toString()} onValueChange={(value) => setNumberOfIdeas(parseInt(value))}>
-                        <SelectTrigger className="w-full mt-2">
+                        <SelectTrigger className="w-full h-12">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -528,9 +532,9 @@ export default function GenerateIdeas() {
                   <Button 
                     onClick={() => handleGenerateIdeas(selectedGenerationType)}
                     disabled={generateContentMutation.isPending || state.isGenerating}
-                    className="w-full instagram-gradient text-white hover:opacity-90 flex items-center justify-center space-x-2"
+                    className="w-full h-12 instagram-gradient text-white hover:opacity-90 flex items-center justify-center space-x-2 text-base font-medium"
                   >
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className="h-5 w-5" />
                     <span>
                       {generateContentMutation.isPending || state.isGenerating ? "Generating..." : "Generate Ideas"}
                     </span>

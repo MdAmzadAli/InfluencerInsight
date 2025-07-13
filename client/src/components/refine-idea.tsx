@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Send, Lightbulb, Copy, ArrowLeft, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Lightbulb, Copy, ArrowLeft, Bot, User, Loader2, ChevronDown } from 'lucide-react';
 import type { ContentIdea } from "@/hooks/useContentState";
 
 interface RefineIdeaProps {
@@ -27,7 +27,9 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   
   const { toast } = useToast();
@@ -36,6 +38,23 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Check if user is at bottom of chat
+  const checkScrollPosition = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      setShowScrollButton(!isAtBottom);
+    }
+  };
+
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+      return () => container.removeEventListener('scroll', checkScrollPosition);
+    }
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -326,7 +345,7 @@ What's your biggest challenge with this content?`,
 
         {/* Chat Interface */}
         <div className="lg:col-span-2">
-          <Card className="h-[600px] flex flex-col">
+          <Card className="h-[600px] flex flex-col relative">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Bot className="h-5 w-5 text-purple-600" />
@@ -336,9 +355,12 @@ What's your biggest challenge with this content?`,
                 Get expert advice to optimize your content for maximum engagement and viral potential
               </p>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+            <CardContent className="flex-1 flex flex-col overflow-hidden">
               {/* Chat Messages */}
-              <div className="flex-1 space-y-4 mb-4 overflow-y-auto p-4 bg-gray-50 rounded-lg">
+              <div 
+                ref={chatContainerRef}
+                className="flex-1 space-y-4 overflow-y-auto p-4 bg-gray-50 rounded-lg"
+              >
                 {messages.map((message, index) => (
                   <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex items-start gap-2 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -405,8 +427,18 @@ What's your biggest challenge with this content?`,
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="flex gap-2 pt-4 border-t">
+              {/* Scroll to bottom button */}
+              {showScrollButton && (
+                <button
+                  onClick={scrollToBottom}
+                  className="absolute bottom-20 right-6 bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-full shadow-lg transition-all duration-200 z-10"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Input Area - Sticky to bottom */}
+              <div className="flex gap-2 pt-4 border-t bg-white">
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

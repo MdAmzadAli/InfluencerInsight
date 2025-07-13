@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Calendar, 
   Clock, 
@@ -29,6 +30,18 @@ export default function PostSchedulingBoard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
+  const [selectedColumn, setSelectedColumn] = useState('scheduled');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const { data: scheduledPosts = [], isLoading } = useQuery({
     queryKey: ["/api/posts/scheduled"],
@@ -201,116 +214,250 @@ export default function PostSchedulingBoard() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {columns.map((column) => {
-            const posts = groupedPosts[column.id] || [];
-            const Icon = column.icon;
-            
-            return (
-              <div key={column.id} className="flex flex-col">
-                <Card className={`${column.color} border-2 mb-4`}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className={`text-sm flex items-center ${column.textColor}`}>
-                      <Icon className="h-4 w-4 mr-2" />
-                      {column.title}
-                      <Badge className={`ml-auto ${column.badgeColor} text-white`}>
-                        {posts.length}
-                      </Badge>
-                    </CardTitle>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {column.description}
-                    </p>
-                  </CardHeader>
-                </Card>
+        <>
+          {/* Mobile View - Column Selector */}
+          {isMobile && (
+            <div className="mb-6">
+              <Select value={selectedColumn} onValueChange={setSelectedColumn}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {columns.map((column) => {
+                    const posts = groupedPosts[column.id] || [];
+                    const Icon = column.icon;
+                    return (
+                      <SelectItem key={column.id} value={column.id}>
+                        <div className="flex items-center space-x-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{column.title}</span>
+                          <Badge className="ml-auto bg-gray-500 text-white">
+                            {posts.length}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Mobile View - Selected Column Posts */}
+          {isMobile ? (
+            <div className="space-y-4">
+              {(() => {
+                const selectedColumnData = columns.find(c => c.id === selectedColumn);
+                const posts = groupedPosts[selectedColumn] || [];
                 
-                <div className="flex-1 space-y-3 min-h-96">
-                  {posts.map((post: ScheduledPost) => (
-                    <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
-                      <CardContent className="p-4">
-                        {/* Post Header - Clickable to view details */}
-                        <div className="cursor-pointer" onClick={() => setSelectedPost(post)}>
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-purple-600">
-                                {post.headline}
-                              </h4>
-                              <div className="flex items-center space-x-2 mt-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {post.isCustom ? 'Custom' : 'AI Generated'}
-                                </Badge>
-                                <div className="flex items-center text-xs text-gray-500">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {format(new Date(post.scheduledDate), 'MMM d, h:mm a')}
+                if (posts.length === 0) {
+                  return (
+                    <Card className="p-8 text-center">
+                      <CardContent>
+                        <div className="text-gray-400 mb-4">
+                          {selectedColumnData?.icon && (() => {
+                            const Icon = selectedColumnData.icon;
+                            return <Icon className="h-12 w-12 mx-auto" />;
+                          })()}
+                        </div>
+                        <p className="text-gray-500 text-lg mb-2">
+                          No posts in {selectedColumnData?.title.toLowerCase()}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                
+                return posts.map((post: ScheduledPost) => (
+                  <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      {/* Post Header - Clickable to view details */}
+                      <div className="cursor-pointer" onClick={() => setSelectedPost(post)}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-purple-600">
+                              {post.headline}
+                            </h4>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                {post.isCustom ? 'Custom' : 'AI Generated'}
+                              </Badge>
+                              <div className="flex items-center text-xs text-gray-500">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {format(new Date(post.scheduledDate), 'MMM d, h:mm a')}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPost(post);
+                              }}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deletePost(post.id);
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Progress Actions - Separate from post detail click */}
+                      <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100">
+                        <div className="text-xs text-gray-500 mr-2 py-1">Move to:</div>
+                        {columns.map((targetColumn) => {
+                          if (targetColumn.id === selectedColumn) return null;
+                          const TargetIcon = targetColumn.icon;
+                          return (
+                            <Button
+                              key={targetColumn.id}
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                movePost(post.id, targetColumn.id);
+                              }}
+                              className="text-xs py-1 px-2 hover:bg-purple-50"
+                              disabled={updatePostMutation.isPending}
+                            >
+                              <TargetIcon className="h-3 w-3 mr-1" />
+                              {targetColumn.title}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ));
+              })()}
+            </div>
+          ) : (
+            /* Desktop View - Column Grid with wider posts */
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+              {columns.map((column) => {
+                const posts = groupedPosts[column.id] || [];
+                const Icon = column.icon;
+                
+                return (
+                  <div key={column.id} className="flex flex-col">
+                    <Card className={`${column.color} border-2 mb-4`}>
+                      <CardHeader className="pb-3">
+                        <CardTitle className={`text-sm flex items-center ${column.textColor}`}>
+                          <Icon className="h-4 w-4 mr-2" />
+                          {column.title}
+                          <Badge className={`ml-auto ${column.badgeColor} text-white`}>
+                            {posts.length}
+                          </Badge>
+                        </CardTitle>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {column.description}
+                        </p>
+                      </CardHeader>
+                    </Card>
+                    
+                    <div className="flex-1 space-y-4 min-h-96">
+                      {posts.map((post: ScheduledPost) => (
+                        <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+                          <CardContent className="p-6">
+                            {/* Post Header - Clickable to view details */}
+                            <div className="cursor-pointer" onClick={() => setSelectedPost(post)}>
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                  <h4 className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-purple-600 mb-2">
+                                    {post.headline}
+                                  </h4>
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {post.isCustom ? 'Custom' : 'AI Generated'}
+                                    </Badge>
+                                    <div className="flex items-center text-xs text-gray-500">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {format(new Date(post.scheduledDate), 'MMM d, h:mm a')}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedPost(post);
+                                    }}
+                                    className="text-blue-500 hover:text-blue-700"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deletePost(post.id);
+                                    }}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex space-x-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedPost(post);
-                                }}
-                                className="text-blue-500 hover:text-blue-700"
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deletePost(post.id);
-                                }}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                            
+                            {/* Progress Actions - Separate from post detail click */}
+                            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+                              <div className="text-xs text-gray-500 mr-2 py-1">Move to:</div>
+                              {columns.map((targetColumn) => {
+                                if (targetColumn.id === column.id) return null;
+                                const TargetIcon = targetColumn.icon;
+                                return (
+                                  <Button
+                                    key={targetColumn.id}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      movePost(post.id, targetColumn.id);
+                                    }}
+                                    className="text-xs py-1 px-3 hover:bg-purple-50"
+                                    disabled={updatePostMutation.isPending}
+                                  >
+                                    <TargetIcon className="h-3 w-3 mr-1" />
+                                    {targetColumn.title}
+                                  </Button>
+                                );
+                              })}
                             </div>
-                          </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      
+                      {posts.length === 0 && (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                          <p className="text-gray-500 text-sm">
+                            No posts in {column.title.toLowerCase()}
+                          </p>
                         </div>
-                        
-                        {/* Progress Actions - Separate from post detail click */}
-                        <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100">
-                          <div className="text-xs text-gray-500 mr-2 py-1">Move to:</div>
-                          {columns.map((targetColumn) => {
-                            if (targetColumn.id === column.id) return null;
-                            const TargetIcon = targetColumn.icon;
-                            return (
-                              <Button
-                                key={targetColumn.id}
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  movePost(post.id, targetColumn.id);
-                                }}
-                                className="text-xs py-1 px-2 hover:bg-purple-50"
-                                disabled={updatePostMutation.isPending}
-                              >
-                                <TargetIcon className="h-3 w-3 mr-1" />
-                                {targetColumn.title}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  
-                  {posts.length === 0 && (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      <p className="text-gray-500 text-sm">
-                        No posts in {column.title.toLowerCase()}
-                      </p>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
       
       {/* Post Detail Modal */}
