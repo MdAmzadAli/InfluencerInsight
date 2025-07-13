@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Streaming content generation endpoint
   app.post('/api/content/generate/stream', authenticateToken, async (req, res) => {
     try {
-      const { generationType } = req.body;
+      const { generationType, numberOfIdeas = 3 } = req.body;
       
       // Get user details and use their niche
       const user = await storage.getUser(req.user!.id);
@@ -227,21 +227,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching competitor posts...', progress: 0 })}\n\n`);
         
         if (apifyScraper) {
-          scrapedData = await apifyScraper.scrapeCompetitorProfiles(competitors, 3);
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} posts from competitors`, progress: 20 })}\n\n`);
+          // For competitor analysis: randomly choose 2 competitors, calculate posts per profile
+          const shuffledCompetitors = competitors.sort(() => 0.5 - Math.random());
+          const selectedCompetitors = shuffledCompetitors.slice(0, Math.min(2, competitors.length));
+          const postsPerProfile = Math.ceil(numberOfIdeas / selectedCompetitors.length) + 1; // +1 for safety
+          
+          console.log(`Selected ${selectedCompetitors.length} competitors for ${numberOfIdeas} ideas, ${postsPerProfile} posts per profile`);
+          scrapedData = await apifyScraper.scrapeCompetitorProfiles(selectedCompetitors, postsPerProfile);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} posts from ${selectedCompetitors.length} competitors`, progress: 20 })}\n\n`);
         }
       } else if (generationType === 'trending') {
         res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching trending posts...', progress: 0 })}\n\n`);
         
         if (apifyScraper) {
-          scrapedData = await apifyScraper.searchTrendingPosts(niche, 10);
+          // For trending: use numberOfIdeas as limit
+          scrapedData = await apifyScraper.searchTrendingPosts(niche, numberOfIdeas);
           res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} trending posts`, progress: 20 })}\n\n`);
         }
       }
 
       // Generate content for each post individually, or fallback to general content
       const generatedContent = [];
-      const numberOfPosts = scrapedData.length > 0 ? scrapedData.length : 5; // Default to 5 posts if no scraped data
+      let numberOfPosts = generationType === 'date' ? numberOfIdeas : (scrapedData.length > 0 ? Math.min(scrapedData.length, numberOfIdeas) : numberOfIdeas);
+      
+      // Special handling for date-specific content generation
+      if (generationType === 'date') {
+        res.write(`data: ${JSON.stringify({ 
+          type: 'progress', 
+          message: `Generating ${numberOfIdeas} date-specific ideas...`, 
+          progress: 30 
+        })}\n\n`);
+        
+        try {
+          const holidayData = await storage.getUpcomingHolidays(10);
+          const content = await generateSinglePostContent({
+            niche,
+            generationType,
+            context: 'date-specific',
+            post: null, // No specific post for date-based content
+            holidays: holidayData,
+            numberOfIdeas: numberOfIdeas
+          });
+          
+          // Handle both array and single object responses
+          const contentArray = Array.isArray(content) ? content : [content];
+          
+          for (let i = 0; i < contentArray.length; i++) {
+            const ideaContent = contentArray[i];
+            const progress = 30 + ((i + 1) / contentArray.length) * 60;
+            
+            res.write(`data: ${JSON.stringify({ 
+              type: 'progress', 
+              message: `Generating idea ${i + 1}/${contentArray.length}...`, 
+              progress: Math.round(progress) 
+            })}\n\n`);
+            
+            generatedContent.push(ideaContent);
+            
+            // Stream the generated content immediately
+            res.write(`data: ${JSON.stringify({ 
+              type: 'content', 
+              content: ideaContent,
+              sourceUrl: null,
+              index: i
+            })}\n\n`);
+          }
+          
+          // Skip the loop below for date-specific content
+          numberOfPosts = 0;
+        } catch (error) {
+          console.error('Error generating date-specific content:', error);
+          res.write(`data: ${JSON.stringify({ 
+            type: 'error', 
+            message: 'Failed to generate date-specific content' 
+          })}\n\n`);
+          numberOfPosts = 0;
+        }
+      }
       
       for (let i = 0; i < numberOfPosts; i++) {
         const post = scrapedData[i] || null;
@@ -268,7 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             context: "Generated from streaming API",
             competitors,
             scrapedData: post ? [post] : [], // Pass individual post or empty array
-            useApifyData: !!post
+            useApifyData: !!post,
+            numberOfIdeas: 1 // Always generate 1 idea per iteration for streaming
           });
 
           if (content && content.length > 0) {

@@ -13,6 +13,7 @@ export interface ContentGenerationRequest {
   holidays?: Array<{ name: string; date: string; description: string; }>;
   scrapedData?: any[];
   useApifyData?: boolean;
+  numberOfIdeas?: number;
 }
 
 export interface GeneratedContent {
@@ -28,6 +29,7 @@ export interface SinglePostRequest {
   context?: string;
   post: any;
   holidays?: Array<{ name: string; date: string; description: string; }>;
+  numberOfIdeas?: number;
 }
 
 export async function generateInstagramContentWithGemini(request: ContentGenerationRequest): Promise<GeneratedContent[]> {
@@ -66,7 +68,8 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
 
     switch (request.generationType) {
       case 'date':
-        prompt += `Generate 3 viral Instagram posts for ${request.niche} based on upcoming holidays and trending dates. `;
+        const numberOfDateIdeas = request.numberOfIdeas || 3;
+        prompt += `Generate ${numberOfDateIdeas} viral Instagram posts for ${request.niche} based on upcoming holidays and trending dates. `;
         if (request.holidays && request.holidays.length > 0) {
           prompt += `Focus on these holidays: ${request.holidays.map(h => `${h.name} (${h.date}): ${h.description}`).join(', ')}. `;
         }
@@ -200,6 +203,27 @@ Make each post unique, viral-worthy, and perfectly formatted according to the re
     
     if (!Array.isArray(generatedContent) || generatedContent.length === 0) {
       throw new Error('Invalid response format from Gemini');
+    }
+    
+    // Verify exact number of ideas generated
+    const expectedCount = request.numberOfIdeas || (apifyData.length > 0 ? apifyData.length : 3);
+    if (generatedContent.length !== expectedCount) {
+      console.warn(`Expected ${expectedCount} ideas, got ${generatedContent.length}. Adjusting...`);
+      
+      if (generatedContent.length > expectedCount) {
+        // Truncate to exact count
+        generatedContent = generatedContent.slice(0, expectedCount);
+      } else {
+        // Pad with copies of existing ideas if needed
+        while (generatedContent.length < expectedCount) {
+          const randomExisting = generatedContent[Math.floor(Math.random() * generatedContent.length)];
+          generatedContent.push({
+            ...randomExisting,
+            headline: randomExisting.headline + " (Variant)",
+            caption: randomExisting.caption.replace(/\b\w/, (l) => l.toUpperCase()) // Slight variation
+          });
+        }
+      }
     }
 
     // Timer fallback for strategy generation - if ideas field is short, enhance it
@@ -356,14 +380,14 @@ export async function generateSinglePostContent(request: SinglePostRequest): Pro
   
   let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. 
 
-Analyze this single Instagram post and create 1 unique viral content idea based on it:
+  ${request.post ? `Analyze this single Instagram post and create 1 unique viral content idea based on it:` : `Create ${request.numberOfIdeas || 1} unique viral content ideas for ${request.niche}:`}
 
-ORIGINAL POST DATA:
+${post ? `ORIGINAL POST DATA:
 - Creator: @${post.ownerUsername} (${post.ownerFullName})
 - Caption: "${post.caption}"
 - Hashtags: ${post.hashtags ? post.hashtags.join(' ') : 'none'}
 - Performance: ${post.likesCount} likes, ${post.commentsCount} comments
-- Post URL: ${post.url}
+- Post URL: ${post.url}` : ''}
 
 `;
 
@@ -381,29 +405,34 @@ ORIGINAL POST DATA:
     }
   }
 
+  const numberOfIdeas = request.numberOfIdeas || 1;
   prompt += `
-Create 1 Instagram post that:
-1. Is inspired by the original post but completely unique for ${request.niche}
+Create ${numberOfIdeas} Instagram post${numberOfIdeas > 1 ? 's' : ''} that:
+${post ? `1. Is inspired by the original post but completely unique for ${request.niche}
 2. Uses similar engagement tactics but with your own twist
 3. Incorporates trending elements from the original
-4. Has maximum viral potential
+4. Has maximum viral potential` : `1. Is completely unique for ${request.niche}
+2. Uses viral engagement tactics and trending elements
+3. Has maximum viral potential and audience appeal`}
 
-Return ONLY a valid JSON object with exactly this structure:
+Return ONLY a valid JSON ${numberOfIdeas > 1 ? 'array' : 'object'} with exactly this structure:
+${numberOfIdeas > 1 ? '[' : ''}
 {
   "headline": "Catchy headline (max 10 words)",
   "caption": "Instagram caption (exactly 20-40 words, engaging and actionable)",
   "hashtags": "5-10 relevant hashtags separated by spaces",
-  "ideas": "Detailed execution strategy (40-50 words explaining why this will work and how to execute it). Source: ${post.url}"
-}
+  "ideas": "Detailed execution strategy (40-50 words explaining why this will work and how to execute it)${post ? `. Source: ${post.url}` : ''}"
+}${numberOfIdeas > 1 ? ', {...}]' : ''}
 
 Important: 
 - Caption must be exactly 20-40 words
-- Ideas must include strategy + original post URL with 'Source:' prefix at the end
+- Generate exactly ${numberOfIdeas} idea${numberOfIdeas > 1 ? 's' : ''}
+${post ? `- Ideas must include strategy + original post URL with 'Source:' prefix at the end` : ''}
 - Make it specific to ${request.niche}
 - Focus on viral potential`;
 
   try {
-    console.log(`🤖 Gemini: Generating content for post from @${post.ownerUsername}`);
+    console.log(`🤖 Gemini: Generating ${numberOfIdeas} idea${numberOfIdeas > 1 ? 's' : ''} ${post ? `for post from @${post.ownerUsername}` : 'for date-specific content'}`);
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -412,8 +441,11 @@ Important:
     
     console.log(`📝 Gemini response received (${responseText.length} characters)`);
     
-    // Extract JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    // Extract JSON from response (handle both array and object)
+    const jsonMatch = numberOfIdeas > 1 ? 
+      responseText.match(/\[[\s\S]*\]/) : 
+      responseText.match(/\{[\s\S]*\}/);
+    
     if (!jsonMatch) {
       console.error('❌ No valid JSON found in Gemini response:', responseText);
       throw new Error('No valid JSON found in response');
@@ -421,16 +453,45 @@ Important:
     
     const generatedContent = JSON.parse(jsonMatch[0]);
     
-    // Validate the structure
-    if (!generatedContent.headline || !generatedContent.caption || !generatedContent.hashtags || !generatedContent.ideas) {
-      console.error('❌ Generated content missing required fields:', generatedContent);
-      throw new Error('Generated content missing required fields');
+    if (numberOfIdeas > 1) {
+      // Validate array response
+      if (!Array.isArray(generatedContent) || generatedContent.length === 0) {
+        throw new Error('Invalid array response format from Gemini');
+      }
+      
+      // Verify exact count
+      if (generatedContent.length !== numberOfIdeas) {
+        console.warn(`Expected ${numberOfIdeas} ideas, got ${generatedContent.length}. Adjusting...`);
+        
+        if (generatedContent.length > numberOfIdeas) {
+          generatedContent.splice(numberOfIdeas);
+        } else {
+          // Pad with variations
+          while (generatedContent.length < numberOfIdeas) {
+            const randomExisting = generatedContent[Math.floor(Math.random() * generatedContent.length)];
+            generatedContent.push({
+              ...randomExisting,
+              headline: randomExisting.headline + " (Variant)",
+              caption: randomExisting.caption.replace(/\b\w/, (l) => l.toUpperCase())
+            });
+          }
+        }
+      }
+      
+      console.log(`✅ Gemini: Successfully generated ${generatedContent.length} ideas`);
+      return generatedContent;
+    } else {
+      // Validate single object response
+      if (!generatedContent.headline || !generatedContent.caption || !generatedContent.hashtags || !generatedContent.ideas) {
+        console.error('❌ Generated content missing required fields:', generatedContent);
+        throw new Error('Generated content missing required fields');
+      }
+      
+      console.log(`✅ Gemini: Successfully generated content - ${generatedContent.headline}`);
+      return generatedContent;
     }
-    
-    console.log(`✅ Gemini: Successfully generated content - ${generatedContent.headline}`);
-    return generatedContent;
   } catch (error) {
-    console.error('❌ Error generating single post content:', error);
+    console.error('❌ Error generating content:', error);
     if (error instanceof Error) {
       console.error('Error details:', error.message);
       console.error('Error stack:', error.stack);

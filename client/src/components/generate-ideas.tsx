@@ -35,6 +35,7 @@ export default function GenerateIdeas() {
   const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
   const [selectedGenerationType, setSelectedGenerationType] = useState<'date' | 'competitor' | 'trending'>('date');
   const [isMobile, setIsMobile] = useState(false);
+  const [numberOfIdeas, setNumberOfIdeas] = useState(3);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -122,7 +123,7 @@ export default function GenerateIdeas() {
     });
   };
 
-  const generateContentWithStream = async (generationType: 'date' | 'competitor' | 'trending') => {
+  const generateContentWithStream = async (generationType: 'date' | 'competitor' | 'trending', numberOfIdeas: number = 3) => {
     setGenerating(true, generationType);
     setStreamingStatus({
       isStreaming: true,
@@ -141,7 +142,11 @@ export default function GenerateIdeas() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ generationType }),
+        body: JSON.stringify({ 
+          generationType,
+          context: generationType,
+          numberOfIdeas
+        }),
         signal: abortController.signal
       });
 
@@ -249,8 +254,8 @@ export default function GenerateIdeas() {
   };
 
   const generateContentMutation = useMutation({
-    mutationFn: async (generationType: 'date' | 'competitor' | 'trending') => {
-      return generateContentWithStream(generationType);
+    mutationFn: async ({ type, numberOfIdeas }: { type: 'date' | 'competitor' | 'trending'; numberOfIdeas: number }) => {
+      return generateContentWithStream(type, numberOfIdeas);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -373,7 +378,7 @@ export default function GenerateIdeas() {
   };
 
   const handleGenerateIdeas = (type: 'date' | 'competitor' | 'trending') => {
-    generateContentMutation.mutate(type);
+    generateContentMutation.mutate({ type, numberOfIdeas });
   };
 
   const handleSaveIdea = (idea: ContentIdea) => {
@@ -461,42 +466,63 @@ export default function GenerateIdeas() {
             <Card className="mb-8">
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="generation-type">Choose Generation Type</Label>
-                    <Select value={selectedGenerationType} onValueChange={(value: 'date' | 'competitor' | 'trending') => setSelectedGenerationType(value)}>
-                      <SelectTrigger className="w-full mt-2">
-                        <SelectValue placeholder="Select generation type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="date">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4 text-blue-600" />
-                            <div>
-                              <div className="font-medium">Date Specific</div>
-                              <div className="text-sm text-gray-600">Ideas based on upcoming holidays & festivals</div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="generation-type">Choose Generation Type</Label>
+                      <Select value={selectedGenerationType} onValueChange={(value: 'date' | 'competitor' | 'trending') => setSelectedGenerationType(value)}>
+                        <SelectTrigger className="w-full mt-2">
+                          <SelectValue placeholder="Select generation type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="date">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <div>
+                                <div className="font-medium">Date Specific</div>
+                                <div className="text-sm text-gray-600">Ideas based on upcoming holidays & festivals</div>
+                              </div>
                             </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="competitor">
-                          <div className="flex items-center space-x-2">
-                            <Users className="h-4 w-4 text-green-600" />
-                            <div>
-                              <div className="font-medium">Competitor Analysis</div>
-                              <div className="text-sm text-gray-600">Analyze top posts from your competitors</div>
+                          </SelectItem>
+                          <SelectItem value="competitor">
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4 text-green-600" />
+                              <div>
+                                <div className="font-medium">Competitor Analysis</div>
+                                <div className="text-sm text-gray-600">Analyze top posts from your competitors</div>
+                              </div>
                             </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="trending">
-                          <div className="flex items-center space-x-2">
-                            <TrendingUp className="h-4 w-4 text-red-600" />
-                            <div>
-                              <div className="font-medium">Trending Posts</div>
-                              <div className="text-sm text-gray-600">Discover what's trending in your niche</div>
+                          </SelectItem>
+                          <SelectItem value="trending">
+                            <div className="flex items-center space-x-2">
+                              <TrendingUp className="h-4 w-4 text-red-600" />
+                              <div>
+                                <div className="font-medium">Trending Posts</div>
+                                <div className="text-sm text-gray-600">Discover what's trending in your niche</div>
+                              </div>
                             </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="number-of-ideas">Number of Ideas</Label>
+                      <Select value={numberOfIdeas.toString()} onValueChange={(value) => setNumberOfIdeas(parseInt(value))}>
+                        <SelectTrigger className="w-full mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 idea</SelectItem>
+                          <SelectItem value="2">2 ideas</SelectItem>
+                          <SelectItem value="3">3 ideas</SelectItem>
+                          <SelectItem value="4">4 ideas</SelectItem>
+                          <SelectItem value="5">5 ideas</SelectItem>
+                          <SelectItem value="6">6 ideas</SelectItem>
+                          <SelectItem value="8">8 ideas</SelectItem>
+                          <SelectItem value="10">10 ideas</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   
                   <Button 
@@ -513,46 +539,74 @@ export default function GenerateIdeas() {
               </CardContent>
             </Card>
           ) : (
-            // Desktop version with cards
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card 
-                className="cursor-pointer hover:border-purple-500 transition-colors group"
-                onClick={() => handleGenerateIdeas('date')}
-              >
-                <CardContent className="p-6 text-left">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
-                    <Calendar className="h-6 w-6 text-blue-600" />
+            // Desktop version with cards and number selector
+            <div className="space-y-6 mb-8">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Number of Ideas</h3>
+                      <p className="text-sm text-gray-600">Choose how many ideas to generate</p>
+                    </div>
+                    <Select value={numberOfIdeas.toString()} onValueChange={(value) => setNumberOfIdeas(parseInt(value))}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 idea</SelectItem>
+                        <SelectItem value="2">2 ideas</SelectItem>
+                        <SelectItem value="3">3 ideas</SelectItem>
+                        <SelectItem value="4">4 ideas</SelectItem>
+                        <SelectItem value="5">5 ideas</SelectItem>
+                        <SelectItem value="6">6 ideas</SelectItem>
+                        <SelectItem value="8">8 ideas</SelectItem>
+                        <SelectItem value="10">10 ideas</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Date Specific</h3>
-                  <p className="text-gray-600 text-sm">Ideas based on upcoming Indian holidays, festivals, and events</p>
                 </CardContent>
               </Card>
               
-              <Card 
-                className="cursor-pointer hover:border-purple-500 transition-colors group"
-                onClick={() => handleGenerateIdeas('competitor')}
-              >
-                <CardContent className="p-6 text-left">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-                    <Users className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Competitor Analysis</h3>
-                  <p className="text-gray-600 text-sm">Analyze top posts from your competitors for inspiration</p>
-                </CardContent>
-              </Card>
-              
-              <Card 
-                className="cursor-pointer hover:border-purple-500 transition-colors group"
-                onClick={() => handleGenerateIdeas('trending')}
-              >
-                <CardContent className="p-6 text-left">
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
-                    <TrendingUp className="h-6 w-6 text-red-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending Posts</h3>
-                  <p className="text-gray-600 text-sm">Discover what's trending in your niche right now</p>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card 
+                  className="cursor-pointer hover:border-purple-500 transition-colors group"
+                  onClick={() => handleGenerateIdeas('date')}
+                >
+                  <CardContent className="p-6 text-left">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+                      <Calendar className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Date Specific</h3>
+                    <p className="text-gray-600 text-sm">Ideas based on upcoming Indian holidays, festivals, and events</p>
+                  </CardContent>
+                </Card>
+                
+                <Card 
+                  className="cursor-pointer hover:border-purple-500 transition-colors group"
+                  onClick={() => handleGenerateIdeas('competitor')}
+                >
+                  <CardContent className="p-6 text-left">
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+                      <Users className="h-6 w-6 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Competitor Analysis</h3>
+                    <p className="text-gray-600 text-sm">Analyze top posts from your competitors for inspiration</p>
+                  </CardContent>
+                </Card>
+                
+                <Card 
+                  className="cursor-pointer hover:border-purple-500 transition-colors group"
+                  onClick={() => handleGenerateIdeas('trending')}
+                >
+                  <CardContent className="p-6 text-left">
+                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
+                      <TrendingUp className="h-6 w-6 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending Posts</h3>
+                    <p className="text-gray-600 text-sm">Discover what's trending in your niche right now</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
