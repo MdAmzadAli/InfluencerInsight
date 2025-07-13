@@ -81,17 +81,18 @@ What's your biggest challenge with this content?`,
     try {
       abortControllerRef.current = new AbortController();
       
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/content/refine-stream', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           idea,
           message,
           chatHistory: messages
         }),
-        credentials: 'include',
         signal: abortControllerRef.current.signal
       });
 
