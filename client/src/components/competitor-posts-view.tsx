@@ -7,8 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 interface CompetitorPost {
   id: string;
   username: string;
-  caption: string;
-  hashtags: string[];
+  caption?: string;
+  hashtags?: string[];
   likes?: number;
   comments?: number;
   imageUrl?: string;
@@ -129,31 +129,33 @@ export default function CompetitorPostsView({ posts, isLoading }: CompetitorPost
             )}
 
             {/* Caption */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Caption:</h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(post.caption, "Caption")}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
+            {post.caption && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Caption:</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(post.caption || '', "Caption")}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                  {post.caption}
+                </p>
               </div>
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                {post.caption}
-              </p>
-            </div>
+            )}
 
             {/* Hashtags */}
-            {post.hashtags.length > 0 && (
+            {post.hashtags && post.hashtags.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Hashtags:</h4>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => copyToClipboard(post.hashtags.join(' '), "Hashtags")}
+                    onClick={() => copyToClipboard(post.hashtags?.join(' ') || '', "Hashtags")}
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
