@@ -7,32 +7,113 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Instagram, User, LogOut, Settings, Sparkles } from 'lucide-react';
-import { Link } from 'wouter';
+import { Instagram, User, LogOut, Settings, Sparkles, Menu, Home, Calendar, Users } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useState } from 'react';
 
-export function Navbar() {
+interface NavbarProps {
+  competitors?: string[];
+  posts?: any[];
+  loadingPosts?: boolean;
+}
+
+export function Navbar({ competitors = [], posts = [], loadingPosts = false }: NavbarProps) {
   const { user, logout } = useAuth();
+  const [location] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName && !lastName) return 'U';
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
+  const navigation = [
+    { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Schedule', href: '/schedule', icon: Calendar },
+    { name: 'Competitors', href: '/competitors', icon: Users },
+    { name: 'Settings', href: '/settings', icon: Settings },
+  ];
+
+  const isActive = (href: string) => location === href;
+
   return (
-    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="relative">
-            <Instagram className="h-8 w-8 text-pink-600" />
-            <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Instagram Content AI
-          </span>
-        </Link>
+        <div className="flex items-center space-x-4">
+          {/* Mobile Menu Button */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <div className="flex flex-col h-full">
+                <div className="p-6 border-b">
+                  <div className="flex items-center space-x-2">
+                    <div className="relative">
+                      <Instagram className="h-6 w-6 text-pink-600" />
+                      <Sparkles className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
+                    </div>
+                    <span className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      Content AI
+                    </span>
+                  </div>
+                </div>
+                
+                <nav className="flex-1 px-6 py-4 space-y-2">
+                  {navigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link key={item.name} href={item.href}>
+                        <Button
+                          variant={isActive(item.href) ? "default" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <Icon className="h-4 w-4 mr-3" />
+                          {item.name}
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </nav>
+                
+                {/* Mobile Quick Stats */}
+                <div className="p-6 border-t">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Competitors</span>
+                      <span className="text-sm font-medium">{competitors.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Recent Posts</span>
+                      <span className="text-sm font-medium">{posts.length}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="relative">
+              <Instagram className="h-8 w-8 text-pink-600" />
+              <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
+            </div>
+            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Instagram Content AI
+            </span>
+            <span className="sm:hidden text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Content AI
+            </span>
+          </Link>
+        </div>
 
         <div className="flex items-center space-x-4">
-          <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+          <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
             <span>Welcome back,</span>
             <span className="font-medium">{user?.firstName || user?.email}</span>
           </div>

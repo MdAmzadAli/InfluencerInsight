@@ -9,13 +9,15 @@ import {
   ChevronRight,
   Sparkles,
   TrendingUp,
-  BookOpen,
-  Lightbulb
+  Lightbulb,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SidebarProps {
   competitors: string[];
@@ -25,6 +27,7 @@ interface SidebarProps {
 
 export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [dashboardExpanded, setDashboardExpanded] = useState(true);
   const [location] = useLocation();
 
   const navigation = [
@@ -36,9 +39,16 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
 
   const isActive = (href: string) => location === href;
 
+  const dashboardOptions = [
+    { name: 'Generate Ideas', href: '/generate' },
+    { name: 'Saved Ideas', href: '/saved' },
+    { name: 'Create Post', href: '/create' },
+    { name: 'Analytics', href: '/analytics' },
+  ];
+
   return (
     <div className={cn(
-      "bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 h-screen",
+      "hidden md:flex bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col transition-all duration-300 h-screen sticky top-16",
       collapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4">
@@ -55,6 +65,44 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
       <nav className="px-4 space-y-2">
         {navigation.map((item) => {
           const Icon = item.icon;
+          const isDashboard = item.href === '/';
+          
+          if (isDashboard && !collapsed) {
+            return (
+              <div key={item.name} className="space-y-1">
+                <Collapsible open={dashboardExpanded} onOpenChange={setDashboardExpanded}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant={isActive(item.href) ? "default" : "ghost"}
+                      className="w-full justify-between"
+                    >
+                      <div className="flex items-center">
+                        <Icon className="h-4 w-4" />
+                        <span className="ml-2">{item.name}</span>
+                      </div>
+                      {dashboardExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 mt-1">
+                    <div className="ml-4 pl-4 border-l border-gray-200 dark:border-gray-700 space-y-1">
+                      {dashboardOptions.map((option) => (
+                        <Link key={option.name} href={option.href}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start text-sm"
+                          >
+                            {option.name}
+                          </Button>
+                        </Link>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            );
+          }
+          
           return (
             <Link key={item.name} href={item.href}>
               <Button
@@ -73,7 +121,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
       </nav>
 
       {!collapsed && (
-        <div className="flex-1 px-4 py-4 space-y-4">
+        <div className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
           {/* Competitors Section */}
           <Card>
             <CardHeader className="pb-3">

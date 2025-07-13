@@ -70,14 +70,18 @@ function Router() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar />
+      <Navbar 
+        competitors={competitors}
+        posts={posts}
+        loadingPosts={loadingPosts}
+      />
       <div className="flex">
         <Sidebar 
           competitors={competitors}
           posts={posts}
           loadingPosts={loadingPosts}
         />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 md:p-6">
           <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/schedule" component={PostSchedulingBoard} />
