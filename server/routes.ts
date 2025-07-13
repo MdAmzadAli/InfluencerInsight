@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { authenticateToken, generateToken } from "./auth";
-import { isAuthenticated } from "./replitAuth";
 import { 
   generateInstagramContentWithGemini, 
   optimizeHashtagsWithGemini, 
@@ -14,14 +13,13 @@ import {
 import { apifyScraper } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
-import { setupAuth } from "./replitAuth";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database and check health
   await checkDatabaseHealth();
   
-  // Setup Replit Auth
-  await setupAuth(app);
+
   
   // Seed holidays
   await storage.seedHolidays();
@@ -105,17 +103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Protected route to get current user (session-based)
-  app.get('/api/auth/user', isAuthenticated, async (req, res) => {
+  // Protected route to get current user (JWT-based)
+  app.get('/api/auth/user', authenticateToken, async (req, res) => {
     try {
-      const sessionUser = req.user as any;
-      const userId = sessionUser?.claims?.sub;
-      
-      if (!userId) {
-        return res.status(401).json({ error: 'User not found in session' });
-      }
-      
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -571,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Refine content with AI (non-streaming fallback)
-  app.post('/api/content/refine', isAuthenticated, async (req, res) => {
+  app.post('/api/content/refine', authenticateToken, async (req, res) => {
     try {
       const { idea, message, chatHistory } = req.body;
       
@@ -589,20 +580,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Streaming refine content with AI
-  app.post('/api/content/refine-stream', isAuthenticated, async (req, res) => {
+  app.post('/api/content/refine-stream', authenticateToken, async (req, res) => {
     try {
       const { idea, message, chatHistory } = req.body;
       
       if (!idea || !message) {
         return res.status(400).json({ error: "Idea and message are required" });
-      }
-
-      // Get user ID from session
-      const user = req.user as any;
-      const userId = user?.claims?.sub;
-      
-      if (!userId) {
-        return res.status(401).json({ error: "User ID not found in session" });
       }
 
       // Set up SSE headers

@@ -22,9 +22,9 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **Database ORM**: Drizzle ORM for type-safe database operations
 
 ### Authentication System
-- **Provider**: Replit Auth (OIDC-based authentication)
-- **Session Management**: Express sessions with PostgreSQL storage
-- **Security**: HTTP-only cookies, CSRF protection, and secure session configuration
+- **Provider**: JWT (JSON Web Token) authentication
+- **Token Management**: Client-side JWT tokens with secure HTTP-only storage
+- **Security**: JWT tokens with expiration, secure authentication headers, and proper token validation
 
 ## Key Components
 
@@ -41,7 +41,7 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **Content Ideas Table**: Generated content with save/unsave functionality
 - **Scheduled Posts Table**: Post scheduling with repeat options
 - **Indian Holidays Table**: Predefined holiday data for content inspiration
-- **Sessions Table**: Authentication session storage (required for Replit Auth)
+- **User Authentication**: JWT-based user authentication with secure token storage
 
 ### Content Management Features
 - **Content Generation**: AI-powered content creation based on user niche
@@ -51,7 +51,7 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Data Flow
 
-1. **User Authentication**: Replit Auth handles user login/logout with session persistence
+1. **User Authentication**: JWT-based authentication handles user login/logout with token persistence
 2. **Profile Setup**: Users define their niche and competitors for personalized content
 3. **Content Generation**: AI generates content based on user preferences and selected generation type
 4. **Content Management**: Users can save ideas, create custom posts, and schedule content
@@ -61,8 +61,8 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ### Core Dependencies
 - **Database**: Neon PostgreSQL (serverless PostgreSQL)
-- **AI Service**: OpenAI API for content generation
-- **Authentication**: Replit Auth service
+- **AI Service**: Google Gemini API for content generation
+- **Authentication**: JWT-based authentication
 - **UI Components**: Radix UI primitives with shadcn/ui styling
 
 ### Development Tools
@@ -84,11 +84,20 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **Serving**: Express serves both API routes and static frontend files
 
 ### Environment Configuration
-- **Required Variables**: `DATABASE_URL`, `GEMINI_API_KEY`, `APIFY_API_TOKEN`, `SESSION_SECRET`, `REPL_ID`
-- **Authentication**: Replit domains and OIDC configuration
+- **Required Variables**: `DATABASE_URL`, `GEMINI_API_KEY`, `APIFY_API_TOKEN`, `SESSION_SECRET`
+- **Authentication**: JWT-based authentication with secure token management
 - **Database**: Automatic schema pushing with Drizzle migrations
 
 ## Recent Changes
+
+### July 13, 2025 - JWT Authentication Migration Complete
+- **✅ Replit Auth Removal**: Completely removed Replit Auth and all session-based authentication
+- **✅ JWT Implementation**: Implemented secure JWT-based authentication throughout the application
+- **✅ Token Management**: Client-side JWT tokens with secure storage and validation
+- **✅ API Route Protection**: All protected routes now use JWT authentication middleware
+- **✅ Authentication Flow**: Login/register endpoints return JWT tokens for seamless user experience
+- **✅ Clean Architecture**: Removed all passport, session, and OIDC dependencies
+- **✅ Security Enhancement**: Improved security with token-based authentication and proper error handling
 
 ### July 12, 2025 - Migration to Replit Environment Complete
 - **✅ Migration Completed**: Successfully migrated project from Replit Agent to Replit environment

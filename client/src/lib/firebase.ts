@@ -1,15 +1,16 @@
-// Simple auth placeholder - Firebase removed
+// Simple JWT auth functions
 export function login() {
-  // Redirect to backend login endpoint
-  window.location.href = '/api/login';
+  // JWT auth is handled through the login form
+  console.log('Login through JWT form');
 }
 
 export function logout() {
-  // Redirect to backend logout endpoint
-  window.location.href = '/api/logout';
+  // Clear JWT token from localStorage
+  localStorage.removeItem('token');
+  window.location.href = '/';
 }
 
 export function handleRedirect() {
-  // No redirect handling needed for simple auth
+  // No redirect handling needed for JWT auth
   return Promise.resolve(null);
 }
