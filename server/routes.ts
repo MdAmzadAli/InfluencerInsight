@@ -7,7 +7,8 @@ import {
   optimizeHashtagsWithGemini, 
   analyzeCompetitorContent,
   refineContentWithGemini,
-  refineContentStreamWithGemini
+  refineContentStreamWithGemini,
+  generateSinglePostContent
 } from "./gemini";
 import { apifyScraper } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
@@ -157,7 +158,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use Apify scraper to get real Instagram data
       if (apifyScraper) {
-        const posts = await apifyScraper.scrapeCompetitorProfiles(competitors, 3);
+        const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
+        const posts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
         res.json(posts);
       } else {
         res.status(500).json({ error: "Instagram scraper not available" });
@@ -233,7 +235,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const postsPerProfile = Math.ceil(numberOfIdeas / selectedCompetitors.length) + 1; // +1 for safety
           
           console.log(`Selected ${selectedCompetitors.length} competitors for ${numberOfIdeas} ideas, ${postsPerProfile} posts per profile`);
-          scrapedData = await apifyScraper.scrapeCompetitorProfiles(selectedCompetitors, postsPerProfile);
+          const instagramUrls = apifyScraper.convertUsernamesToUrls(selectedCompetitors);
+          scrapedData = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, postsPerProfile);
           res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} posts from ${selectedCompetitors.length} competitors`, progress: 20 })}\n\n`);
         }
       } else if (generationType === 'trending') {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -5,6 +6,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { 
   Calendar, 
   Clock, 
@@ -15,7 +18,9 @@ import {
   Trash2,
   ArrowRight,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Hash,
+  Lightbulb
 } from "lucide-react";
 import { format } from "date-fns";
 import type { ScheduledPost } from "@shared/schema";
@@ -23,6 +28,7 @@ import type { ScheduledPost } from "@shared/schema";
 export default function PostSchedulingBoard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
 
   const { data: scheduledPosts = [], isLoading } = useQuery({
     queryKey: ["/api/posts/scheduled"],
@@ -219,7 +225,7 @@ export default function PostSchedulingBoard() {
                 
                 <div className="flex-1 space-y-3 min-h-96">
                   {posts.map((post: ScheduledPost) => (
-                    <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+                    <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedPost(post)}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
@@ -236,14 +242,30 @@ export default function PostSchedulingBoard() {
                               </div>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deletePost(post.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPost(post);
+                              }}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deletePost(post.id);
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                         
                         <div className="space-y-2">
@@ -313,6 +335,136 @@ export default function PostSchedulingBoard() {
           })}
         </div>
       )}
+      
+      {/* Post Detail Modal */}
+      <Dialog open={!!selectedPost} onOpenChange={(open) => !open && setSelectedPost(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{selectedPost?.headline}</span>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline">
+                  {selectedPost?.isCustom ? 'Custom' : 'AI Generated'}
+                </Badge>
+                <div className="flex items-center text-sm text-gray-500">
+                  <Clock className="h-4 w-4 mr-1" />
+                  {selectedPost && format(new Date(selectedPost.scheduledDate), 'MMM d, yyyy h:mm a')}
+                </div>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPost && (
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">Headline</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(selectedPost.headline, 'Headline')}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
+                  {selectedPost.headline}
+                </p>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">Caption</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(selectedPost.caption, 'Caption')}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-gray-700 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">
+                  {selectedPost.caption}
+                </p>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Hash className="h-5 w-5 mr-1" />
+                    Hashtags
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(selectedPost.hashtags, 'Hashtags')}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-blue-600 bg-blue-50 p-3 rounded-lg">
+                  {selectedPost.hashtags}
+                </p>
+              </div>
+              
+              {selectedPost.ideas && (
+                <>
+                  <Separator />
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <Lightbulb className="h-5 w-5 mr-1" />
+                        Strategy & Ideas
+                      </h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(selectedPost.ideas || '', 'Ideas')}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-gray-700 bg-yellow-50 p-3 rounded-lg whitespace-pre-wrap">
+                      {selectedPost.ideas}
+                    </p>
+                  </div>
+                </>
+              )}
+              
+              <Separator />
+              
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  <p>Status: <span className="font-medium">{selectedPost.status || 'TODO'}</span></p>
+                  <p>Created: {format(new Date(selectedPost.scheduledDate), 'MMM d, yyyy')}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      deletePost(selectedPost.id);
+                      setSelectedPost(null);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

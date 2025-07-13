@@ -85,11 +85,11 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
           const sortedPosts = apifyData.sort((a, b) => (b.likesCount + b.commentsCount) - (a.likesCount + a.commentsCount));
           
           for (const post of sortedPosts) {
-            prompt += `\nCompetitor: @${post.ownerUsername} (${post.ownerFullName})\n`;
-            prompt += `  Caption: "${post.caption.substring(0, 200)}${post.caption.length > 200 ? '...' : ''}"\n`;
-            prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
-            prompt += `  Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
-            prompt += `  Post URL: ${post.url}\n`;
+            prompt += `\nCompetitor: @${post.ownerUsername || 'unknown'} (${post.ownerFullName || 'Unknown'})\n`;
+            prompt += `  Caption: "${(post.caption || '').substring(0, 200)}${(post.caption || '').length > 200 ? '...' : ''}"\n`;
+            prompt += `  Performance: ${post.likesCount || 0} likes, ${post.commentsCount || 0} comments\n`;
+            prompt += `  Hashtags: ${(post.hashtags || []).slice(0, 10).join(' ')}\n`;
+            prompt += `  Post URL: ${post.url || 'N/A'}\n`;
             prompt += `  Post Type: ${post.type || 'Image'}\n`;
             prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
             
@@ -125,11 +125,11 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
           prompt += `\n\nREAL TRENDING INSTAGRAM DATA (from Apify):\n`;
           
           for (const post of apifyData) {
-            prompt += `\nPost by @${post.ownerUsername} (${post.ownerFullName}):\n`;
-            prompt += `  Caption: "${post.caption.substring(0, 200)}${post.caption.length > 200 ? '...' : ''}"\n`;
-            prompt += `  Performance: ${post.likesCount} likes, ${post.commentsCount} comments\n`;
-            prompt += `  Hashtags: ${post.hashtags.slice(0, 10).join(' ')}\n`;
-            prompt += `  Post URL: ${post.url}\n`;
+            prompt += `\nPost by @${post.ownerUsername || 'unknown'} (${post.ownerFullName || 'Unknown'}):\n`;
+            prompt += `  Caption: "${(post.caption || '').substring(0, 200)}${(post.caption || '').length > 200 ? '...' : ''}"\n`;
+            prompt += `  Performance: ${post.likesCount || 0} likes, ${post.commentsCount || 0} comments\n`;
+            prompt += `  Hashtags: ${(post.hashtags || []).slice(0, 10).join(' ')}\n`;
+            prompt += `  Post URL: ${post.url || 'N/A'}\n`;
             prompt += `  Post Type: ${post.type || 'Image'}\n`;
             prompt += `  Location: ${post.locationName || 'Not specified'}\n`;
             
