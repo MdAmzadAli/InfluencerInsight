@@ -257,19 +257,19 @@ What's your biggest challenge with this content?`,
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto md:p-6 space-y-0 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-4 md:p-0">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Instagram Content Expert 🚀
             </h1>
-            <p className="text-gray-600">AI-powered content refinement and optimization</p>
+            <p className="text-gray-600 text-sm md:text-base">AI-powered content refinement and optimization</p>
           </div>
         </div>
         <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
@@ -277,10 +277,10 @@ What's your biggest challenge with this content?`,
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 md:gap-6">
         {/* Original Content Panel */}
         <div className="lg:col-span-1">
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 h-fit sticky top-6">
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 h-fit sticky top-6 rounded-none md:rounded-lg border-l-0 border-r-0 md:border-l md:border-r">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Lightbulb className="h-5 w-5 text-purple-600" />
@@ -345,7 +345,7 @@ What's your biggest challenge with this content?`,
 
         {/* Chat Interface */}
         <div className="lg:col-span-2">
-          <Card className="h-[600px] flex flex-col relative">
+          <Card className="h-[600px] flex flex-col relative rounded-none md:rounded-lg border-l-0 border-r-0 md:border-l md:border-r">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Bot className="h-5 w-5 text-purple-600" />
