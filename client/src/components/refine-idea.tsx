@@ -81,18 +81,17 @@ What's your biggest challenge with this content?`,
     try {
       abortControllerRef.current = new AbortController();
       
-      const token = localStorage.getItem('authToken');
       const response = await fetch('/api/content/refine-stream', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           idea,
           message,
           chatHistory: messages
         }),
+        credentials: 'include',
         signal: abortControllerRef.current.signal
       });
 
@@ -154,11 +153,11 @@ What's your biggest challenge with this content?`,
       if (error.message === 'Authentication failed') {
         toast({
           title: "Session Expired",
-          description: "Please refresh the page and try again.",
+          description: "Please login again.",
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.reload();
+          window.location.href = "/api/login";
         }, 1000);
         return;
       }
