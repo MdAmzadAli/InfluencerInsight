@@ -35,6 +35,14 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
+  const dashboardOptions = [
+    { name: 'Generate Ideas', href: '/generate' },
+    { name: 'Saved Ideas', href: '/saved' },
+    { name: 'Create Post', href: '/create' },
+    { name: 'Analytics', href: '/analytics' },
+    { name: 'Manage Competitors', href: '/manage-competitors' },
+  ];
+
   const isActive = (href: string) => location === href;
 
   return (
@@ -65,6 +73,39 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
                 <nav className="flex-1 px-6 py-4 space-y-2">
                   {navigation.map((item) => {
                     const Icon = item.icon;
+                    const isDashboard = item.href === '/';
+                    
+                    if (isDashboard) {
+                      return (
+                        <div key={item.name} className="space-y-1">
+                          <Link href={item.href}>
+                            <Button
+                              variant={isActive(item.href) ? "default" : "ghost"}
+                              className="w-full justify-start"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <Icon className="h-4 w-4 mr-3" />
+                              {item.name}
+                            </Button>
+                          </Link>
+                          <div className="ml-4 pl-4 border-l border-gray-200 dark:border-gray-600 space-y-1">
+                            {dashboardOptions.map((option) => (
+                              <Link key={option.name} href={option.href}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full justify-start text-sm"
+                                  onClick={() => setMobileMenuOpen(false)}
+                                >
+                                  {option.name}
+                                </Button>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <Link key={item.name} href={item.href}>
                         <Button

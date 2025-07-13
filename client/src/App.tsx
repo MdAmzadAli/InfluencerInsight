@@ -84,6 +84,11 @@ function Router() {
         <main className="flex-1 p-4 md:p-6">
           <Switch>
             <Route path="/" component={Dashboard} />
+            <Route path="/generate" component={Dashboard} />
+            <Route path="/saved" component={Dashboard} />
+            <Route path="/create" component={Dashboard} />
+            <Route path="/analytics" component={Dashboard} />
+            <Route path="/manage-competitors" component={Dashboard} />
             <Route path="/schedule" component={PostSchedulingBoard} />
             <Route path="/competitors">
               <CompetitorPostsView posts={posts} isLoading={loadingPosts} />

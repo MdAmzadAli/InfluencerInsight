@@ -44,6 +44,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
     { name: 'Saved Ideas', href: '/saved' },
     { name: 'Create Post', href: '/create' },
     { name: 'Analytics', href: '/analytics' },
+    { name: 'Manage Competitors', href: '/manage-competitors' },
   ];
 
   return (
