@@ -97,6 +97,9 @@ What's your biggest challenge with this content?`,
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Authentication failed');
+        }
         throw new Error('Stream request failed');
       }
 
@@ -147,6 +150,19 @@ What's your biggest challenge with this content?`,
       setIsStreaming(false);
       setStreamingMessage("");
       
+      // Handle authentication errors
+      if (error.message === 'Authentication failed') {
+        toast({
+          title: "Session Expired",
+          description: "Please refresh the page and try again.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        return;
+      }
+      
       // Fallback to non-streaming
       try {
         const response = await apiRequest("POST", "/api/content/refine", {
@@ -160,6 +176,7 @@ What's your biggest challenge with this content?`,
           content: data.response,
           timestamp: new Date()
         }]);
+        setIsStreaming(false);
       } catch (fallbackError) {
         if (isUnauthorizedError(fallbackError)) {
           toast({
@@ -185,6 +202,7 @@ What's your biggest challenge with this content?`,
     if (!input.trim() || isStreaming) return;
     
     const userMessage = input.trim();
+    const currentInput = input;
     setInput("");
     
     // Add user message to chat
@@ -195,7 +213,13 @@ What's your biggest challenge with this content?`,
     }]);
     
     // Start streaming response
-    await handleStreamingRefine(userMessage);
+    try {
+      await handleStreamingRefine(userMessage);
+    } catch (error) {
+      // If streaming fails, restore input
+      setInput(currentInput);
+      setIsStreaming(false);
+    }
   };
 
   const handleStopStreaming = () => {
@@ -207,7 +231,7 @@ What's your biggest challenge with this content?`,
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
       e.preventDefault();
       handleSendMessage();
     }

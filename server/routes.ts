@@ -490,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const scheduledPost = await storage.createScheduledPost({
         userId: req.user!.id,
-        contentIdeaId: contentIdeaId || null,
+        contentIdeaId: contentIdeaId && !isNaN(Number(contentIdeaId)) ? Number(contentIdeaId) : null,
         headline,
         caption,
         hashtags,
