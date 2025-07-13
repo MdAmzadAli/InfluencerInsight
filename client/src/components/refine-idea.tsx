@@ -387,13 +387,14 @@ What's your biggest challenge with this content?`,
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me anything about optimizing your Instagram content..."
+                  placeholder={isStreaming ? "Please wait for AI response..." : "Ask me anything about optimizing your Instagram content..."}
                   className="flex-1 resize-none"
                   rows={2}
                   disabled={isStreaming}
                 />
                 {isStreaming ? (
                   <Button onClick={handleStopStreaming} variant="outline" className="self-end">
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
                     Stop
                   </Button>
                 ) : (

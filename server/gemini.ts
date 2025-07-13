@@ -546,7 +546,7 @@ export async function refineContentWithGemini(idea: any, message: string, chatHi
     const contextPrompt = buildInstagramExpertPrompt(idea, chatHistory, message);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-flash",
       contents: contextPrompt,
     });
 
@@ -567,7 +567,7 @@ export async function* refineContentStreamWithGemini(idea: any, message: string,
     const contextPrompt = buildInstagramExpertPrompt(idea, chatHistory, message);
 
     const response = await ai.models.generateContentStream({
-      model: "gemini-2.5-pro", 
+      model: "gemini-2.5-flash", 
       contents: contextPrompt,
     });
 

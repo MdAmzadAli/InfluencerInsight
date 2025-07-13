@@ -714,7 +714,7 @@ export default function GenerateIdeas() {
                     
                     // Add ideas grid for this session
                     components.push(
-                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {sessionIdeas.map((idea) => {
                           const { strategy, link } = separateIdeasAndLinks(idea.ideas);
                           return (
@@ -756,7 +756,7 @@ export default function GenerateIdeas() {
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
-                                    <p className="text-xs text-gray-700 bg-gray-50 p-2 rounded line-clamp-3">{idea.caption}</p>
+                                    <p className="text-xs text-gray-700 bg-gray-50 p-2 rounded line-clamp-4">{idea.caption}</p>
                                   </div>
                                   
                                   <div>
@@ -769,7 +769,7 @@ export default function GenerateIdeas() {
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
-                                    <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all line-clamp-2">{idea.hashtags}</p>
+                                    <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded break-all line-clamp-3">{idea.hashtags}</p>
                                   </div>
                                   
                                   <div>
@@ -782,7 +782,7 @@ export default function GenerateIdeas() {
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
-                                    <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line line-clamp-2">{strategy}</p>
+                                    <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line line-clamp-4">{strategy}</p>
                                   </div>
                                   
                                   {link && (

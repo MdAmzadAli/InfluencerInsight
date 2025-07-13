@@ -195,7 +195,7 @@ export class DatabaseStorage implements IStorage {
     return await db.scheduledPost.create({
       data: {
         userId: post.userId,
-        contentIdeaId: post.contentIdeaId,
+        contentIdeaId: post.contentIdeaId ? Number(post.contentIdeaId) : null,
         headline: post.headline,
         caption: post.caption,
         hashtags: post.hashtags,
