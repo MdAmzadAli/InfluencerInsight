@@ -225,94 +225,71 @@ export default function PostSchedulingBoard() {
                 
                 <div className="flex-1 space-y-3 min-h-96">
                   {posts.map((post: ScheduledPost) => (
-                    <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedPost(post)}>
+                    <Card key={post.id} className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-2">
-                              {post.headline}
-                            </h4>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                {post.isCustom ? 'Custom' : 'AI Generated'}
-                              </Badge>
-                              <div className="flex items-center text-xs text-gray-500">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {format(new Date(post.scheduledDate), 'MMM d, h:mm a')}
+                        {/* Post Header - Clickable to view details */}
+                        <div className="cursor-pointer" onClick={() => setSelectedPost(post)}>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-purple-600">
+                                {post.headline}
+                              </h4>
+                              <div className="flex items-center space-x-2 mt-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {post.isCustom ? 'Custom' : 'AI Generated'}
+                                </Badge>
+                                <div className="flex items-center text-xs text-gray-500">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {format(new Date(post.scheduledDate), 'MMM d, h:mm a')}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPost(post);
-                              }}
-                              className="text-blue-500 hover:text-blue-700"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deletePost(post.id);
-                              }}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            <div className="flex space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPost(post);
+                                }}
+                                className="text-blue-500 hover:text-blue-700"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deletePost(post.id);
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="block text-xs font-medium text-gray-500">CAPTION</label>
-                              <button 
-                                onClick={() => copyToClipboard(post.caption, 'Caption')}
-                                className="text-gray-400 hover:text-gray-600"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </button>
-                            </div>
-                            <p className="text-xs text-gray-700 bg-gray-50 p-2 rounded line-clamp-2">
-                              {post.caption}
-                            </p>
-                          </div>
-                          
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="block text-xs font-medium text-gray-500">HASHTAGS</label>
-                              <button 
-                                onClick={() => copyToClipboard(post.hashtags, 'Hashtags')}
-                                className="text-gray-400 hover:text-gray-600"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </button>
-                            </div>
-                            <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded line-clamp-1">
-                              {post.hashtags}
-                            </p>
-                          </div>
-                        </div>
-                      
+                        {/* Progress Actions - Separate from post detail click */}
                         <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100">
+                          <div className="text-xs text-gray-500 mr-2 py-1">Move to:</div>
                           {columns.map((targetColumn) => {
                             if (targetColumn.id === column.id) return null;
+                            const TargetIcon = targetColumn.icon;
                             return (
                               <Button
                                 key={targetColumn.id}
                                 variant="outline"
                                 size="sm"
-                                onClick={() => movePost(post.id, targetColumn.id)}
-                                className="text-xs py-1 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  movePost(post.id, targetColumn.id);
+                                }}
+                                className="text-xs py-1 px-2 hover:bg-purple-50"
                                 disabled={updatePostMutation.isPending}
                               >
-                                <ArrowRight className="h-3 w-3 mr-1" />
+                                <TargetIcon className="h-3 w-3 mr-1" />
                                 {targetColumn.title}
                               </Button>
                             );
