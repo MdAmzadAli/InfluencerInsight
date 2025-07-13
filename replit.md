@@ -145,6 +145,9 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Enhanced Mobile Menu**: Mobile hamburger menu now includes all desktop sidebar features including dashboard sub-options
 - **✅ Proper Route Management**: All sidebar links now properly route to their respective components
 - **✅ Progress Component**: Added missing UI components for better user experience
+- **✅ Mobile Generate Ideas**: Added mobile-specific selector interface with dropdown for generation types and single generate button
+- **✅ Responsive Generation UI**: Desktop maintains card-based selection, mobile uses streamlined dropdown selector
+- **✅ UI Component Creation**: Added missing Sheet, Collapsible, and Progress components for complete UI functionality
 
 ### July 12, 2025 - Enhanced Content Generation & UI Improvements
 - **✅ Dynamic Content Generation**: Modified Gemini to generate as many ideas as input posts from Apify scraper

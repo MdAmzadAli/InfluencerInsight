@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle, Sparkles } from 'lucide-react';
 import ScheduleModal from "./schedule-modal";
 import RefineIdea from "./refine-idea";
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
@@ -32,11 +33,23 @@ export default function GenerateIdeas() {
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
+  const [selectedGenerationType, setSelectedGenerationType] = useState<'date' | 'competitor' | 'trending'>('date');
+  const [isMobile, setIsMobile] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { state, addGeneratedIdeas, setGenerating, saveIdea, clearGeneratedIdeas, separateIdeasAndLinks } = useContentState();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const updateNicheMutation = useMutation({
     mutationFn: async (data: { niche: string; competitors?: string }) => {
@@ -443,46 +456,105 @@ export default function GenerateIdeas() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card 
-              className="cursor-pointer hover:border-purple-500 transition-colors group"
-              onClick={() => handleGenerateIdeas('date')}
-            >
-              <CardContent className="p-6 text-left">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
-                  <i className="fas fa-calendar-day text-blue-600"></i>
+          {isMobile ? (
+            // Mobile version with selector and generate button
+            <Card className="mb-8">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="generation-type">Choose Generation Type</Label>
+                    <Select value={selectedGenerationType} onValueChange={(value: 'date' | 'competitor' | 'trending') => setSelectedGenerationType(value)}>
+                      <SelectTrigger className="w-full mt-2">
+                        <SelectValue placeholder="Select generation type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium">Date Specific</div>
+                              <div className="text-sm text-gray-600">Ideas based on upcoming holidays & festivals</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="competitor">
+                          <div className="flex items-center space-x-2">
+                            <Users className="h-4 w-4 text-green-600" />
+                            <div>
+                              <div className="font-medium">Competitor Analysis</div>
+                              <div className="text-sm text-gray-600">Analyze top posts from your competitors</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="trending">
+                          <div className="flex items-center space-x-2">
+                            <TrendingUp className="h-4 w-4 text-red-600" />
+                            <div>
+                              <div className="font-medium">Trending Posts</div>
+                              <div className="text-sm text-gray-600">Discover what's trending in your niche</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => handleGenerateIdeas(selectedGenerationType)}
+                    disabled={generateContentMutation.isPending || state.isGenerating}
+                    className="w-full instagram-gradient text-white hover:opacity-90 flex items-center justify-center space-x-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>
+                      {generateContentMutation.isPending || state.isGenerating ? "Generating..." : "Generate Ideas"}
+                    </span>
+                  </Button>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Date Specific</h3>
-                <p className="text-gray-600 text-sm">Ideas based on upcoming Indian holidays, festivals, and events</p>
               </CardContent>
             </Card>
-            
-            <Card 
-              className="cursor-pointer hover:border-purple-500 transition-colors group"
-              onClick={() => handleGenerateIdeas('competitor')}
-            >
-              <CardContent className="p-6 text-left">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-                  <i className="fas fa-users text-green-600"></i>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Competitor Analysis</h3>
-                <p className="text-gray-600 text-sm">Analyze top posts from your competitors for inspiration</p>
-              </CardContent>
-            </Card>
-            
-            <Card 
-              className="cursor-pointer hover:border-purple-500 transition-colors group"
-              onClick={() => handleGenerateIdeas('trending')}
-            >
-              <CardContent className="p-6 text-left">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
-                  <i className="fas fa-fire text-red-600"></i>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending Posts</h3>
-                <p className="text-gray-600 text-sm">Discover what's trending in your niche right now</p>
-              </CardContent>
-            </Card>
-          </div>
+          ) : (
+            // Desktop version with cards
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card 
+                className="cursor-pointer hover:border-purple-500 transition-colors group"
+                onClick={() => handleGenerateIdeas('date')}
+              >
+                <CardContent className="p-6 text-left">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Date Specific</h3>
+                  <p className="text-gray-600 text-sm">Ideas based on upcoming Indian holidays, festivals, and events</p>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                className="cursor-pointer hover:border-purple-500 transition-colors group"
+                onClick={() => handleGenerateIdeas('competitor')}
+              >
+                <CardContent className="p-6 text-left">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+                    <Users className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Competitor Analysis</h3>
+                  <p className="text-gray-600 text-sm">Analyze top posts from your competitors for inspiration</p>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                className="cursor-pointer hover:border-purple-500 transition-colors group"
+                onClick={() => handleGenerateIdeas('trending')}
+              >
+                <CardContent className="p-6 text-left">
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
+                    <TrendingUp className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Trending Posts</h3>
+                  <p className="text-gray-600 text-sm">Discover what's trending in your niche right now</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Real-time Streaming Progress */}
           {streamingStatus.isStreaming && (
