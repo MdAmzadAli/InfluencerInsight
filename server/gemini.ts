@@ -571,7 +571,7 @@ export async function* refineContentStreamWithGemini(idea: any, message: string,
       contents: contextPrompt,
     });
 
-    for await (const chunk of response.stream) {
+    for await (const chunk of response) {
       if (chunk.text) {
         yield chunk.text;
       }

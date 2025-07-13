@@ -497,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ideas,
         scheduledDate: new Date(scheduledDate),
         isCustom: isCustom || false,
-        status: 'TODO'
+        status: 'scheduled'
       });
 
       res.json(scheduledPost);

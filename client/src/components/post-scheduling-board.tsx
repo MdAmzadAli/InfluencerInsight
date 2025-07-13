@@ -101,7 +101,7 @@ export default function PostSchedulingBoard() {
 
   // Group posts by status
   const groupedPosts = scheduledPosts.reduce((acc, post) => {
-    const status = post.status || 'TODO';
+    const status = post.status || 'scheduled';
     if (!acc[status]) {
       acc[status] = [];
     }
@@ -111,13 +111,13 @@ export default function PostSchedulingBoard() {
 
   const columns = [
     {
-      id: 'TODO',
-      title: 'To Do',
+      id: 'scheduled',
+      title: 'Scheduled',
       icon: Circle,
       color: 'bg-gray-50 border-gray-200',
       textColor: 'text-gray-700',
       badgeColor: 'bg-gray-500',
-      description: 'Posts ready to be worked on'
+      description: 'Posts scheduled for publishing'
     },
     {
       id: 'IN_PROGRESS',
