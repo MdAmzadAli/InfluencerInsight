@@ -42,3 +42,37 @@ export type InsertIndianHoliday = {
   description?: string | null;
   category?: string | null;
 };
+
+export type InsertCompetitorPostCache = {
+  userId: string;
+  postId: string;
+  username: string;
+  caption?: string | null;
+  hashtags: string[];
+  likes: number;
+  comments: number;
+  imageUrl?: string | null;
+  postUrl: string;
+  profileUrl: string;
+  timestamp: Date;
+  engagement: number;
+  expiresAt: Date;
+};
+
+export type CompetitorPostCache = {
+  id: number;
+  userId: string;
+  postId: string;
+  username: string;
+  caption?: string | null;
+  hashtags: string[];
+  likes: number;
+  comments: number;
+  imageUrl?: string | null;
+  postUrl: string;
+  profileUrl: string;
+  timestamp: Date;
+  engagement: number;
+  cachedAt: Date;
+  expiresAt: Date;
+};

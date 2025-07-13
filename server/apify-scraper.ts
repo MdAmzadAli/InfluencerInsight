@@ -71,7 +71,7 @@ export class ApifyInstagramScraper {
       resultsLimit: limit,
       resultsType: 'posts',
       search: niche,
-      searchLimit: 2,
+      searchLimit: Math.floor(Math.random() * 5) + 1,
       searchType: 'hashtag'
     };
 

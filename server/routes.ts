@@ -225,18 +225,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get scraped data based on generation type
       let scrapedData = [];
       if (generationType === 'competitor' && competitors && competitors.length > 0) {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching competitor posts...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking for cached competitor posts...', progress: 0 })}\n\n`);
         
-        if (apifyScraper) {
-          // For competitor analysis: randomly choose 2 competitors, calculate posts per profile
-          const shuffledCompetitors = competitors.sort(() => 0.5 - Math.random());
-          const selectedCompetitors = shuffledCompetitors.slice(0, Math.min(2, competitors.length));
-          const postsPerProfile = Math.ceil(numberOfIdeas / selectedCompetitors.length) + 1; // +1 for safety
+        // Check for cached competitor posts first
+        const cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
+        
+        if (cachedPosts.length >= 10) {
+          // Use cached posts - randomly select from top 10
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Using cached competitor posts...', progress: 10 })}\n\n`);
+          const randomPosts = cachedPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
+          scrapedData = randomPosts;
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} cached posts`, progress: 20 })}\n\n`);
+        } else {
+          // Fetch fresh data and cache it
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh competitor posts...', progress: 5 })}\n\n`);
           
-          console.log(`Selected ${selectedCompetitors.length} competitors for ${numberOfIdeas} ideas, ${postsPerProfile} posts per profile`);
-          const instagramUrls = apifyScraper.convertUsernamesToUrls(selectedCompetitors);
-          scrapedData = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, postsPerProfile);
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} posts from ${selectedCompetitors.length} competitors`, progress: 20 })}\n\n`);
+          if (apifyScraper) {
+            // Fetch 10 posts per competitor
+            const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
+            const allPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 10);
+            
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${allPosts.length} posts from ${competitors.length} competitors`, progress: 15 })}\n\n`);
+            
+            // Sort by engagement and take top 10
+            const sortedPosts = allPosts.sort((a, b) => {
+              const engagementA = (a.likesCount || 0) + (a.commentsCount || 0);
+              const engagementB = (b.likesCount || 0) + (b.commentsCount || 0);
+              return engagementB - engagementA;
+            }).slice(0, 10);
+            
+            // Cache the top 10 posts for 24 hours
+            await storage.setCachedCompetitorPosts(req.user!.id, sortedPosts);
+            
+            // Randomly select posts for this generation
+            const randomPosts = sortedPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
+            scrapedData = randomPosts;
+            
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached top 10 posts, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
+          }
         }
       } else if (generationType === 'trending') {
         res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching trending posts...', progress: 0 })}\n\n`);
