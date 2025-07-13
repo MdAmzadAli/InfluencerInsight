@@ -396,7 +396,7 @@ ${post ? `ORIGINAL POST DATA:
   }
 
   // Add image analysis if available
-  if (post.displayUrl && post.type === 'Image') {
+  if (post && post.displayUrl && post.type === 'Image') {
     try {
       const imageAnalysis = await analyzeImageFromUrl(post.displayUrl);
       prompt += `\nIMAGE ANALYSIS: ${imageAnalysis}\n`;
