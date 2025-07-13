@@ -9,8 +9,8 @@ interface CompetitorPost {
   username: string;
   caption: string;
   hashtags: string[];
-  likes: number;
-  comments: number;
+  likes?: number;
+  comments?: number;
   imageUrl?: string;
   postUrl: string;
   profileUrl: string;
@@ -33,7 +33,10 @@ export default function CompetitorPostsView({ posts, isLoading }: CompetitorPost
     });
   };
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | undefined) => {
+    if (num === undefined || num === null) {
+      return '0';
+    }
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     }
