@@ -37,10 +37,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
       
-      // Start cache warming in background (non-blocking)
-      cacheWarmer.warmCacheOnStartup(user.id).catch(error => {
-        console.error('Cache warming failed:', error);
-      });
+      // Start cache warming in background (completely non-blocking)
+      cacheWarmer.warmCacheOnStartup(user.id);
       
       res.json(user);
     } catch (error) {
@@ -246,23 +244,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      // Get scraped data based on generation type with cache warming support
+      // Get scraped data based on generation type with non-blocking approach
       let scrapedData = [];
       if (generationType === 'competitor' && competitors && competitors.length > 0) {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking competitor posts cache...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking competitor posts...', progress: 0 })}\n\n`);
         
-        // Wait for cache warming to complete if in progress
-        await cacheWarmer.waitForCache(req.user!.id, 'competitor');
+        // Check if cache is ready (non-blocking)
+        const isCacheReady = cacheWarmer.isCacheReady(req.user!.id, 'competitor');
+        let cachedPosts = [];
         
-        // Get cached competitor posts
-        const cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
+        if (isCacheReady) {
+          // Use cached data immediately
+          cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedPosts.length} cached competitor posts`, progress: 10 })}\n\n`);
+        } else {
+          // Try waiting for a short time (3 seconds max) for cache
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Cache warming in progress, waiting briefly...', progress: 5 })}\n\n`);
+          const cacheReady = await cacheWarmer.waitForCache(req.user!.id, 'competitor', 3000);
+          
+          if (cacheReady) {
+            cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cache ready! Using ${cachedPosts.length} posts`, progress: 10 })}\n\n`);
+          } else {
+            // Fetch fresh data immediately instead of waiting
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh competitor posts...', progress: 15 })}\n\n`);
+            if (apifyScraper) {
+              const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
+              const freshPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, Math.max(numberOfIdeas, 10));
+              cachedPosts = freshPosts.sort((a, b) => {
+                const engagementA = (a.likesCount || 0) + (a.commentsCount || 0);
+                const engagementB = (b.likesCount || 0) + (b.commentsCount || 0);
+                return engagementB - engagementA;
+              });
+              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Fetched ${cachedPosts.length} fresh posts`, progress: 20 })}\n\n`);
+            }
+          }
+        }
         
         if (cachedPosts.length > 0) {
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${cachedPosts.length} cached competitor posts`, progress: 10 })}\n\n`);
-          
           // Handle rotation logic - if requested more than available, rotate posts
           if (numberOfIdeas > cachedPosts.length) {
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 15 })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 25 })}\n\n`);
             
             // Create rotated posts array
             const rotatedPosts = [];
@@ -283,20 +305,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
       } else if (generationType === 'trending') {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking trending posts cache...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking trending posts...', progress: 0 })}\n\n`);
         
-        // Wait for cache warming to complete if in progress
-        await cacheWarmer.waitForCache(req.user!.id, 'trending');
+        // Check if cache is ready (non-blocking)
+        const isTrendingCacheReady = cacheWarmer.isCacheReady(req.user!.id, 'trending');
+        let cachedTrendingPosts = [];
         
-        // Get cached trending posts
-        const cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
+        if (isTrendingCacheReady) {
+          // Use cached data immediately
+          cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedTrendingPosts.length} cached trending posts`, progress: 10 })}\n\n`);
+        } else {
+          // Try waiting for a short time (3 seconds max) for cache
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Cache warming in progress, waiting briefly...', progress: 5 })}\n\n`);
+          const trendingCacheReady = await cacheWarmer.waitForCache(req.user!.id, 'trending', 3000);
+          
+          if (trendingCacheReady) {
+            cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cache ready! Using ${cachedTrendingPosts.length} posts`, progress: 10 })}\n\n`);
+          } else {
+            // Fetch fresh trending data immediately
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh trending posts...', progress: 15 })}\n\n`);
+            if (apifyScraper) {
+              const freshTrendingPosts = await apifyScraper.searchTrendingPosts(niche, Math.max(numberOfIdeas, 20));
+              cachedTrendingPosts = freshTrendingPosts;
+              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Fetched ${cachedTrendingPosts.length} fresh trending posts`, progress: 20 })}\n\n`);
+            }
+          }
+        }
         
         if (cachedTrendingPosts.length > 0) {
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${cachedTrendingPosts.length} cached trending posts`, progress: 10 })}\n\n`);
-          
           // Handle rotation logic - if requested more than available, rotate posts
           if (numberOfIdeas > cachedTrendingPosts.length) {
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedTrendingPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 15 })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedTrendingPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 25 })}\n\n`);
             
             // Create rotated posts array
             const rotatedPosts = [];
@@ -310,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             scrapedData = randomPosts;
           }
           
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 20 })}\n\n`);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 30 })}\n\n`);
         } else {
           res.write(`data: ${JSON.stringify({ type: 'error', message: 'No trending posts available. Please try again later.' })}\n\n`);
           res.end();

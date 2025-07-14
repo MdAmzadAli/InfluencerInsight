@@ -18,12 +18,24 @@ interface CacheWarmingState {
 class CacheWarmer {
   private warmingStates = new Map<string, CacheWarmingState>();
 
-  async warmCacheOnStartup(userId: string): Promise<void> {
+  warmCacheOnStartup(userId: string): void {
     // Check if already warming for this user
     if (this.warmingStates.has(userId)) {
       return;
     }
 
+    // Start warming process in background without blocking
+    setImmediate(async () => {
+      try {
+        await this.performCacheWarming(userId);
+      } catch (error) {
+        console.error(`Cache warming failed for user ${userId}:`, error);
+        this.cleanup(userId);
+      }
+    });
+  }
+
+  private async performCacheWarming(userId: string): Promise<void> {
     const user = await storage.getUser(userId);
     if (!user?.niche) {
       console.log(`❌ User ${userId} has no niche, skipping cache warming`);
@@ -60,16 +72,17 @@ class CacheWarmer {
 
     this.warmingStates.set(userId, state);
 
-    // Start warming processes
-    const promises: Promise<void>[] = [];
+    // Start warming processes in parallel but non-blocking
+    const warmingTasks: Promise<void>[] = [];
 
     // Warm competitor posts if competitors exist
     if (competitors.length > 0) {
       const cachedCompetitorPosts = await storage.getCachedCompetitorPosts(userId);
       if (cachedCompetitorPosts.length < 10) {
         console.log(`🔥 Warming competitor posts cache for ${competitors.length} competitors`);
-        state.promises.competitor = this.warmCompetitorPosts(state);
-        promises.push(state.promises.competitor);
+        const competitorTask = this.warmCompetitorPostsBackground(state);
+        state.promises.competitor = competitorTask;
+        warmingTasks.push(competitorTask);
       } else {
         console.log(`✅ Competitor posts cache already warmed (${cachedCompetitorPosts.length} posts)`);
         state.competitorPostsReady = true;
@@ -83,21 +96,25 @@ class CacheWarmer {
     const cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
     if (cachedTrendingPosts.length < 10) {
       console.log(`🔥 Warming trending posts cache for niche: ${niche}`);
-      state.promises.trending = this.warmTrendingPosts(state);
-      promises.push(state.promises.trending);
+      const trendingTask = this.warmTrendingPostsBackground(state);
+      state.promises.trending = trendingTask;
+      warmingTasks.push(trendingTask);
     } else {
       console.log(`✅ Trending posts cache already warmed (${cachedTrendingPosts.length} posts)`);
       state.trendingPostsReady = true;
     }
 
-    // Wait for all warming processes to complete
-    await Promise.all(promises);
-    
-    state.isWarming = false;
-    console.log(`✅ Cache warming completed for user ${userId}`);
+    // Wait for all warming processes to complete in background
+    Promise.all(warmingTasks).then(() => {
+      state.isWarming = false;
+      console.log(`✅ Cache warming completed for user ${userId}`);
+    }).catch((error) => {
+      console.error(`Cache warming failed for user ${userId}:`, error);
+      state.isWarming = false;
+    });
   }
 
-  private async warmCompetitorPosts(state: CacheWarmingState): Promise<void> {
+  private async warmCompetitorPostsBackground(state: CacheWarmingState): Promise<void> {
     try {
       if (!apifyScraper || state.competitors.length === 0) {
         state.competitorPostsReady = true;
@@ -125,7 +142,7 @@ class CacheWarmer {
     }
   }
 
-  private async warmTrendingPosts(state: CacheWarmingState): Promise<void> {
+  private async warmTrendingPostsBackground(state: CacheWarmingState): Promise<void> {
     try {
       if (!apifyScraper) {
         state.trendingPostsReady = true;
@@ -143,21 +160,53 @@ class CacheWarmer {
     }
   }
 
-  async waitForCache(userId: string, type: 'competitor' | 'trending'): Promise<void> {
+  // Non-blocking cache check - returns immediately if cache not ready
+  isCacheReady(userId: string, type: 'competitor' | 'trending'): boolean {
     const state = this.warmingStates.get(userId);
     if (!state) {
-      return; // No warming in progress
+      return false; // No warming state means cache not warmed
     }
 
-    console.log(`⏳ Waiting for ${type} cache to be ready...`);
-
-    if (type === 'competitor' && state.promises.competitor) {
-      await state.promises.competitor;
-    } else if (type === 'trending' && state.promises.trending) {
-      await state.promises.trending;
+    if (type === 'competitor') {
+      return state.competitorPostsReady;
+    } else if (type === 'trending') {
+      return state.trendingPostsReady;
     }
 
-    console.log(`✅ ${type} cache is ready`);
+    return false;
+  }
+
+  // Optional: still provide wait functionality but make it time-limited
+  async waitForCache(userId: string, type: 'competitor' | 'trending', timeoutMs: number = 5000): Promise<boolean> {
+    const state = this.warmingStates.get(userId);
+    if (!state) {
+      return false; // No warming in progress
+    }
+
+    console.log(`⏳ Waiting for ${type} cache (max ${timeoutMs}ms)...`);
+
+    try {
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), timeoutMs);
+      });
+
+      let cachePromise: Promise<boolean>;
+      
+      if (type === 'competitor' && state.promises.competitor) {
+        cachePromise = state.promises.competitor.then(() => true).catch(() => false);
+      } else if (type === 'trending' && state.promises.trending) {
+        cachePromise = state.promises.trending.then(() => true).catch(() => false);
+      } else {
+        return this.isCacheReady(userId, type);
+      }
+
+      const result = await Promise.race([cachePromise, timeoutPromise]);
+      console.log(`${result ? '✅' : '⏰'} ${type} cache ${result ? 'ready' : 'timeout'}`);
+      return result;
+    } catch (error) {
+      console.error(`Error waiting for cache: ${error}`);
+      return false;
+    }
   }
 
   isWarming(userId: string): boolean {
