@@ -349,11 +349,14 @@ export default function GenerateIdeas() {
       const response = await apiRequest("PATCH", `/api/content/ideas/${ideaId}/save`, { isSaved });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/content/ideas/saved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/content/ideas"] });
+      // Update the local state to reflect the saved status
+      saveIdea(variables.ideaId, variables.isSaved);
       toast({
         title: "Success",
-        description: "Idea saved successfully!",
+        description: `Idea ${variables.isSaved ? 'saved' : 'unsaved'} successfully!`,
       });
     },
     onError: (error) => {

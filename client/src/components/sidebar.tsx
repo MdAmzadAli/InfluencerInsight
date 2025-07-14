@@ -18,11 +18,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useQuery } from '@tanstack/react-query';
 
 interface SidebarProps {
   competitors: string[];
   posts: any[];
   loadingPosts: boolean;
+}
+
+function QuickStatsContent({ competitors }: { competitors: string[] }) {
+  const { data: contentIdeas = [] } = useQuery({
+    queryKey: ['/api/content/ideas'],
+  });
+
+  const { data: scheduledPosts = [] } = useQuery({
+    queryKey: ['/api/schedule/posts'],
+  });
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between">
+        <span className="text-sm text-muted-foreground">Ideas Generated</span>
+        <Badge variant="outline">{contentIdeas.length}</Badge>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-sm text-muted-foreground">Posts Scheduled</span>
+        <Badge variant="outline">{scheduledPosts.length}</Badge>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-sm text-muted-foreground">Competitors</span>
+        <Badge variant="outline">{competitors.length}</Badge>
+      </div>
+    </div>
+  );
 }
 
 export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
@@ -230,20 +258,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Ideas Generated</span>
-                  <Badge variant="outline">24</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Posts Scheduled</span>
-                  <Badge variant="outline">8</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Competitors</span>
-                  <Badge variant="outline">{competitors.length}</Badge>
-                </div>
-              </div>
+              <QuickStatsContent competitors={competitors} />
             </CardContent>
           </Card>
         </div>

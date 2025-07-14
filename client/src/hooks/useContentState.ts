@@ -76,14 +76,22 @@ export function useContentState() {
     }));
   };
 
-  const saveIdea = (idea: ContentIdea) => {
-    setState(prev => ({
-      ...prev,
-      savedIdeas: [...prev.savedIdeas, idea],
-      generatedIdeas: prev.generatedIdeas.map(g => 
-        g.id === idea.id ? { ...g, isSaved: true } : g
-      )
-    }));
+  const saveIdea = (ideaId: number, saved: boolean) => {
+    setState(prev => {
+      const updatedGeneratedIdeas = prev.generatedIdeas.map(idea => 
+        idea.id === ideaId ? { ...idea, isSaved: saved } : idea
+      );
+      
+      const ideaToSave = updatedGeneratedIdeas.find(idea => idea.id === ideaId);
+      
+      return {
+        ...prev,
+        generatedIdeas: updatedGeneratedIdeas,
+        savedIdeas: saved && ideaToSave
+          ? [...prev.savedIdeas.filter(idea => idea.id !== ideaId), ideaToSave]
+          : prev.savedIdeas.filter(idea => idea.id !== ideaId)
+      };
+    });
   };
 
   const clearGeneratedIdeas = () => {

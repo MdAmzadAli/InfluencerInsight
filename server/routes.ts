@@ -449,12 +449,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
               progress: Math.round(progress) 
             })}\n\n`);
             
-            generatedContent.push(ideaContent);
+            // Save to database and get real ID for date-based content
+            const savedIdea = await storage.createContentIdea({
+              userId: req.user!.id,
+              headline: ideaContent.headline,
+              caption: ideaContent.caption,
+              hashtags: ideaContent.hashtags,
+              ideas: ideaContent.ideas,
+              generationType: generationType,
+              isSaved: false,
+              sourceUrl: null
+            });
             
-            // Stream the generated content immediately
+            // Use the database ID instead of temporary ID
+            const contentWithRealId = {
+              ...ideaContent,
+              id: savedIdea.id,
+              createdAt: savedIdea.createdAt.toISOString(),
+              updatedAt: savedIdea.updatedAt.toISOString()
+            };
+            
+            generatedContent.push(contentWithRealId);
+            
+            // Stream the generated content with real database ID
             res.write(`data: ${JSON.stringify({ 
               type: 'content', 
-              content: ideaContent,
+              content: contentWithRealId,
               sourceUrl: null,
               index: i
             })}\n\n`);
@@ -531,12 +551,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Only send content if it has a valid Instagram URL (for competitor/trending) or is date-based
             if (generationType === 'date' || sourceUrl) {
-              generatedContent.push(content[0]);
+              // Save to database and get real ID
+              const savedIdea = await storage.createContentIdea({
+                userId: req.user!.id,
+                headline: content[0].headline,
+                caption: content[0].caption,
+                hashtags: content[0].hashtags,
+                ideas: content[0].ideas,
+                generationType: generationType,
+                isSaved: false,
+                sourceUrl: sourceUrl
+              });
               
-              // Stream the generated content immediately
+              // Use the database ID instead of temporary ID
+              const contentWithRealId = {
+                ...content[0],
+                id: savedIdea.id,
+                createdAt: savedIdea.createdAt.toISOString(),
+                updatedAt: savedIdea.updatedAt.toISOString()
+              };
+              
+              generatedContent.push(contentWithRealId);
+              
+              // Stream the generated content with real database ID
               res.write(`data: ${JSON.stringify({ 
                 type: 'content', 
-                content: content[0],
+                content: contentWithRealId,
                 sourceUrl: sourceUrl,
                 index: i
               })}\n\n`);
@@ -558,22 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Save all generated content to database
-      for (const content of generatedContent) {
-        try {
-          await storage.createContentIdea({
-            userId: req.user!.id,
-            headline: content.headline,
-            caption: content.caption,
-            hashtags: content.hashtags,
-            ideas: content.ideas,
-            generationType,
-            isSaved: false
-          });
-        } catch (saveError) {
-          console.error("Error saving content idea:", saveError);
-        }
-      }
+      // Content ideas are already saved to database during streaming above
 
       res.write(`data: ${JSON.stringify({ type: 'complete', message: 'Content generation completed!', progress: 100 })}\n\n`);
       res.end();

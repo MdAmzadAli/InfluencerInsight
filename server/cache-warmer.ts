@@ -284,12 +284,78 @@ class CacheWarmer {
       // Clean up existing warming state
       this.cleanup(userId);
 
-      // Start fresh cache warming
-      this.warmCacheOnStartup(userId);
+      // Start selective cache warming based on change type
+      if (changeType === 'niche') {
+        // Only warm trending posts for niche changes
+        this.warmSelectiveCache(userId, 'trending');
+      } else if (changeType === 'competitors') {
+        // Only warm competitor posts for competitor changes
+        this.warmSelectiveCache(userId, 'competitor');
+      } else if (changeType === 'both') {
+        // Warm both for 'both' changes
+        this.warmCacheOnStartup(userId);
+      }
       
     } catch (error) {
       console.error(`❌ Cache rewarming failed for user ${userId}:`, error);
     }
+  }
+
+  // Selective cache warming - only warm specific cache type
+  warmSelectiveCache(userId: string, type: 'competitor' | 'trending'): void {
+    console.log(`🔥 Starting selective cache warming for user ${userId}, type: ${type}`);
+    
+    setImmediate(async () => {
+      try {
+        const user = await storage.getUser(userId);
+        if (!user) {
+          console.log(`❌ User ${userId} not found during selective cache warming`);
+          return;
+        }
+
+        const niche = user.niche || 'general';
+        let competitors: string[] = [];
+        
+        if (user.competitors) {
+          try {
+            competitors = JSON.parse(user.competitors);
+          } catch (e) {
+            console.error('Error parsing competitors during selective warming:', e);
+          }
+        }
+
+        const state: CacheWarmingState = {
+          isWarming: true,
+          userId,
+          competitorPostsReady: type !== 'competitor', // Set to true if not warming this type
+          trendingPostsReady: type !== 'trending', // Set to true if not warming this type
+          niche,
+          competitors,
+          promises: {}
+        };
+
+        this.warmingStates.set(userId, state);
+
+        if (type === 'competitor') {
+          state.promises.competitor = this.warmCompetitorPostsBackground(state);
+        } else if (type === 'trending') {
+          state.promises.trending = this.warmTrendingPostsBackground(state);
+        }
+
+        // Wait for the specific warming to complete
+        const promises = Object.values(state.promises).filter(Boolean);
+        Promise.all(promises).then(() => {
+          state.isWarming = false;
+          console.log(`✅ Selective cache warming completed for user ${userId}, type: ${type}`);
+        }).catch((error) => {
+          console.error(`Selective cache warming failed for user ${userId}:`, error);
+          state.isWarming = false;
+        });
+
+      } catch (error) {
+        console.error(`❌ Error during selective cache warming for user ${userId}:`, error);
+      }
+    });
   }
 }
 
