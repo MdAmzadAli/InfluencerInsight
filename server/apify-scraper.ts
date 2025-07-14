@@ -61,7 +61,7 @@ export class ApifyInstagramScraper {
     this.apiToken = apiToken;
   }
 
-  async searchTrendingPosts(niche: string, limit: number = 10): Promise<ApifyTrendingPost[]> {
+  async searchTrendingPosts(niche: string, limit: number = 1): Promise<ApifyTrendingPost[]> {
     const input: ApifySearchInput = {
       addParentData: false,
       enhanceUserSearchWithFacebookPage: false,
@@ -70,8 +70,8 @@ export class ApifyInstagramScraper {
       onlyPostsNewerThan: "7 days", // Posts from last 7 days
       resultsLimit: limit,
       resultsType: 'posts',
-      search: `#${niche.replace(/\s+/g, '').toLowerCase()}`,
-      searchLimit: 1,
+      search: niche.replace(/\s+/g, '').toLowerCase(),
+      searchLimit: 10,
       searchType: 'hashtag'
     };
 
