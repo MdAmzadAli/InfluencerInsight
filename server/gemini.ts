@@ -659,6 +659,27 @@ export async function* refineContentStreamWithGemini(idea: any, message: string,
 
 // Build expert Instagram content prompt
 function buildInstagramExpertPrompt(idea: any, chatHistory: any[], message: string): string {
+  const hasIdea = idea && typeof idea === 'object';
+  
+  let contentContext = '';
+  if (hasIdea) {
+    contentContext = `
+CURRENT CONTENT CONTEXT:
+Original Idea:
+• Headline: ${idea.headline || 'Not provided'}
+• Caption: ${idea.caption || 'Not provided'} 
+• Hashtags: ${idea.hashtags || 'Not provided'}
+• Strategy: ${idea.ideas || 'Not provided'}
+• Type: ${idea.generationType || 'General'}
+• Niche: ${idea.niche || 'General'}
+`;
+  } else {
+    contentContext = `
+CONTEXT:
+You are providing general Instagram content consultation without a specific content piece to reference.
+`;
+  }
+
   return `You are an Instagram growth expert and viral content specialist with deep knowledge of:
 - Psychology of viral content and engagement hooks
 - Latest Instagram algorithm trends and best practices  
@@ -667,16 +688,7 @@ function buildInstagramExpertPrompt(idea: any, chatHistory: any[], message: stri
 - Storytelling techniques that convert views to followers
 - Visual content optimization and trending aesthetics
 - Community building and audience retention strategies
-
-CURRENT CONTENT CONTEXT:
-Original Idea:
-• Headline: ${idea.headline}
-• Caption: ${idea.caption} 
-• Hashtags: ${idea.hashtags}
-• Strategy: ${idea.ideas}
-• Type: ${idea.generationType}
-• Niche: ${idea.niche || 'General'}
-
+${contentContext}
 CONVERSATION HISTORY:
 ${chatHistory.length > 0 ? chatHistory.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n') : 'This is the start of our conversation.'}
 

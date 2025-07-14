@@ -767,12 +767,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { idea, message, chatHistory } = req.body;
       
-      if (!idea || !message) {
-        return res.status(400).json({ error: "Idea and message are required" });
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
       }
 
-      // Use only Gemini
-      const refinedContent = await refineContentWithGemini(idea, message, chatHistory || []);
+      // Use only Gemini - idea is optional for standalone AI expert mode
+      const refinedContent = await refineContentWithGemini(idea || null, message, chatHistory || []);
       res.json({ response: refinedContent });
     } catch (error) {
       console.error("Error refining content:", error);
@@ -785,8 +785,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { idea, message, chatHistory } = req.body;
       
-      if (!idea || !message) {
-        return res.status(400).json({ error: "Idea and message are required" });
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
       }
 
       // Set up SSE headers
@@ -798,8 +798,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      // Use only Gemini for streaming
-      const streamFunction = refineContentStreamWithGemini(idea, message, chatHistory || []);
+      // Use only Gemini for streaming - idea is optional for standalone AI expert mode
+      const streamFunction = refineContentStreamWithGemini(idea || null, message, chatHistory || []);
 
       try {
         for await (const chunk of streamFunction) {
