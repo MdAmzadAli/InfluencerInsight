@@ -6,13 +6,10 @@ import GenerateIdeas from "@/components/generate-ideas";
 import CreatePost from "@/components/create-post";
 import SavedIdeas from "@/components/saved-ideas";
 import CompetitorsManagement from "@/components/competitors-management";
-import RefineIdea from "@/components/refine-idea";
-import { useContentState, ContentIdea } from "@/hooks/useContentState";
+import { useContentState } from "@/hooks/useContentState";
 import Analytics from "@/components/analytics";
 
 export default function Dashboard() {
-  const [showRefinePanel, setShowRefinePanel] = useState(false);
-  const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const { state } = useContentState();
@@ -32,18 +29,6 @@ export default function Dashboard() {
     }
   }, [user, isLoading, toast]);
 
-  // Listen for refine panel events from sidebar
-  useEffect(() => {
-    const handleShowRefineIdeas = () => {
-      // Show refine panel - can work with or without existing ideas
-      setRefineIdea(state.generatedIdeas.length > 0 ? state.generatedIdeas[0] : null);
-      setShowRefinePanel(true);
-    };
-
-    window.addEventListener('showRefineIdeas', handleShowRefineIdeas);
-    return () => window.removeEventListener('showRefineIdeas', handleShowRefineIdeas);
-  }, [state.generatedIdeas]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -57,18 +42,6 @@ export default function Dashboard() {
 
   if (!user) {
     return null;
-  }
-
-  if (showRefinePanel) {
-    return (
-      <RefineIdea 
-        idea={refineIdea} 
-        onBack={() => {
-          setShowRefinePanel(false);
-          setRefineIdea(null);
-        }} 
-      />
-    );
   }
 
   // Determine which component to render based on the current route

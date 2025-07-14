@@ -11,14 +11,19 @@ import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import PostSchedulingBoard from "@/components/post-scheduling-board";
 import CompetitorPostsView from "@/components/competitor-posts-view";
+import RefineIdea from "@/components/refine-idea";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useContentState, ContentIdea } from "@/hooks/useContentState";
 
 function Router() {
   const { user, isLoading } = useAuth();
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [showRefinePanel, setShowRefinePanel] = useState(false);
+  const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
+  const { state } = useContentState();
   
   // Parse competitors when user data changes
   useEffect(() => {
@@ -38,6 +43,18 @@ function Router() {
     }
   }, [user?.competitors]);
 
+  // Listen for refine panel events from sidebar
+  useEffect(() => {
+    const handleShowRefineIdeas = () => {
+      // Show refine panel - can work with or without existing ideas
+      setRefineIdea(state.generatedIdeas.length > 0 ? state.generatedIdeas[0] : null);
+      setShowRefinePanel(true);
+    };
+
+    window.addEventListener('showRefineIdeas', handleShowRefineIdeas);
+    return () => window.removeEventListener('showRefineIdeas', handleShowRefineIdeas);
+  }, [state.generatedIdeas]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -53,6 +70,21 @@ function Router() {
         <Route path="/signup" component={Auth} />
         <Route path="/" component={Landing} />
       </Switch>
+    );
+  }
+
+  // Show refine panel if active
+  if (showRefinePanel) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <RefineIdea 
+          idea={refineIdea} 
+          onBack={() => {
+            setShowRefinePanel(false);
+            setRefineIdea(null);
+          }} 
+        />
+      </div>
     );
   }
 
