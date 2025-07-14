@@ -13,6 +13,7 @@ import {
 import { apifyScraper } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
+import { competitorPostCache } from "./cache-manager";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -265,12 +266,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } else if (generationType === 'trending') {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching trending posts...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking for cached trending posts...', progress: 0 })}\n\n`);
         
-        if (apifyScraper) {
-          // For trending: use numberOfIdeas as limit
-          scrapedData = await apifyScraper.searchTrendingPosts(niche, numberOfIdeas);
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${scrapedData.length} trending posts`, progress: 20 })}\n\n`);
+        // Check for cached trending posts first
+        const cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
+        
+        if (cachedTrendingPosts.length >= numberOfIdeas) {
+          // Use cached posts - randomly select requested number
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Using cached trending posts...', progress: 10 })}\n\n`);
+          const randomPosts = cachedTrendingPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
+          scrapedData = randomPosts;
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} cached trending posts`, progress: 20 })}\n\n`);
+        } else {
+          // Fetch fresh trending data and cache it
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh trending posts...', progress: 5 })}\n\n`);
+          
+          if (apifyScraper) {
+            // Fetch 20-30 trending posts for caching
+            const allTrendingPosts = await apifyScraper.searchTrendingPosts(niche, 30);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${allTrendingPosts.length} trending posts`, progress: 15 })}\n\n`);
+            
+            // Cache all trending posts for 24 hours
+            await competitorPostCache.setCachedTrendingPosts(niche, allTrendingPosts);
+            
+            // Randomly select posts for this generation
+            const randomPosts = allTrendingPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
+            scrapedData = randomPosts;
+            
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached ${allTrendingPosts.length} trending posts, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
+          }
         }
       }
 
