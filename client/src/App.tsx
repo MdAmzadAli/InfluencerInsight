@@ -24,7 +24,12 @@ function Router() {
   useEffect(() => {
     if (user?.competitors) {
       try {
-        const parsedCompetitors = JSON.parse(user.competitors);
+        let parsedCompetitors = [];
+        if (typeof user.competitors === 'string') {
+          parsedCompetitors = user.competitors.startsWith('[') ? JSON.parse(user.competitors) : user.competitors.split(',').filter(Boolean);
+        } else {
+          parsedCompetitors = Array.isArray(user.competitors) ? user.competitors : JSON.parse(user.competitors);
+        }
         setCompetitors(parsedCompetitors);
         
         // Fetch posts for competitors

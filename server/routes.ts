@@ -205,8 +205,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.competitors) {
         try {
           competitors = JSON.parse(user.competitors);
+          console.log('📋 Parsed competitors:', competitors);
         } catch (e) {
           console.error('Error parsing competitors:', e);
+          console.log('Raw competitors data:', user.competitors);
         }
       }
       
@@ -283,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (apifyScraper) {
             // Fetch 20-30 trending posts for caching
-            const allTrendingPosts = await apifyScraper.searchTrendingPosts(niche, 30);
+            const allTrendingPosts = await apifyScraper.searchTrendingPosts(niche, 1);
             res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${allTrendingPosts.length} trending posts`, progress: 15 })}\n\n`);
             
             // Cache all trending posts for 24 hours

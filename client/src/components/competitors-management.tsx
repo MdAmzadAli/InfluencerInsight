@@ -18,8 +18,10 @@ export default function CompetitorsManagement() {
   });
 
   const competitors = user?.competitors ? 
-    (typeof user.competitors === 'string' ? user.competitors.split(',').filter(Boolean) : JSON.parse(user.competitors)) 
-    : [];
+    (typeof user.competitors === 'string' ? 
+      (user.competitors.startsWith('[') ? JSON.parse(user.competitors) : user.competitors.split(',').filter(Boolean)) : 
+      (Array.isArray(user.competitors) ? user.competitors : JSON.parse(user.competitors))
+    ) : [];
 
   const updateCompetitorsMutation = useMutation({
     mutationFn: async (competitors: string[]) => {

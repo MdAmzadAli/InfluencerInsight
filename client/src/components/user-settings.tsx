@@ -220,11 +220,23 @@ export default function UserSettings() {
                   <div className="flex-1">
                     {user?.competitors ? (
                       <div className="flex flex-wrap gap-2">
-                        {JSON.parse(user.competitors).map((competitor: string, index: number) => (
-                          <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                            @{competitor}
-                          </span>
-                        ))}
+                        {(() => {
+                          let parsedCompetitors = [];
+                          try {
+                            if (typeof user.competitors === 'string') {
+                              parsedCompetitors = user.competitors.startsWith('[') ? JSON.parse(user.competitors) : user.competitors.split(',').filter(Boolean);
+                            } else {
+                              parsedCompetitors = Array.isArray(user.competitors) ? user.competitors : JSON.parse(user.competitors);
+                            }
+                          } catch (e) {
+                            parsedCompetitors = [];
+                          }
+                          return parsedCompetitors.map((competitor: string, index: number) => (
+                            <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                              @{competitor}
+                            </span>
+                          ));
+                        })()}
                       </div>
                     ) : (
                       <p className="font-medium text-gray-500">No competitors set</p>

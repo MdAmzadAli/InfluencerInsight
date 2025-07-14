@@ -212,8 +212,14 @@ export class ApifyInstagramScraper {
 
   // Convert usernames to Instagram URLs for competitor analysis
   convertUsernamesToUrls(usernames: string[]): string[] {
+    console.log('🔍 Converting usernames to URLs:', usernames);
     return usernames.map(username => {
-      const cleanUsername = username.replace(/^@+/, '').trim();
+      // Clean the username by removing @ symbols, quotes, and brackets
+      const cleanUsername = username
+        .replace(/^@+/, '')
+        .replace(/["\[\]]/g, '')
+        .trim();
+      console.log(`📋 Original: "${username}" -> Clean: "${cleanUsername}"`);
       return `https://www.instagram.com/${cleanUsername}`;
     });
   }
