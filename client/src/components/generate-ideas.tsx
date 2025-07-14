@@ -207,14 +207,11 @@ export default function GenerateIdeas() {
                   break;
                   
                 case 'content':
-                  // Add the new idea immediately to the UI
+                  // Add the new idea immediately to the UI using database ID
                   const newIdea = {
                     ...data.content,
-                    id: Date.now() + Math.random(),
                     generationType: generationType,
                     isSaved: false,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
                     sourceUrl: data.sourceUrl || null
                   };
                   newIdeas.push(newIdea);
