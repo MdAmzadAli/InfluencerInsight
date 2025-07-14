@@ -54,15 +54,29 @@ export default function GenerateIdeas() {
 
   const updateNicheMutation = useMutation({
     mutationFn: async (data: { niche: string; competitors?: string }) => {
-      const response = await apiRequest("PATCH", "/api/user/niche", data);
-      return response.json();
+      // If competitors are provided, use the PUT endpoint that handles both
+      if (data.competitors && data.competitors.trim()) {
+        const competitorsArray = data.competitors.split(',').map(c => c.trim().replace(/^@+/, '')).filter(Boolean);
+        const response = await apiRequest("PUT", "/api/user/competitors", { 
+          niche: data.niche, 
+          competitors: competitorsArray 
+        });
+        return response.json();
+      } else {
+        // Otherwise, just update niche using PATCH
+        const response = await apiRequest("PATCH", "/api/user/niche", { niche: data.niche });
+        return response.json();
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setShowOptions(true);
+      const hasCompetitors = variables.competitors && variables.competitors.trim();
       toast({
         title: "Success",
-        description: "Your niche has been updated successfully!",
+        description: hasCompetitors 
+          ? "Your niche and competitors have been updated successfully!" 
+          : "Your niche has been updated successfully!",
       });
     },
     onError: (error) => {
