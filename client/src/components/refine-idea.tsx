@@ -278,79 +278,83 @@ What would you like to work on today?`,
             <p className="text-gray-600 text-sm md:text-base">AI-powered content refinement and optimization</p>
           </div>
         </div>
-        <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
-          {idea.generationType}
-        </Badge>
+        {idea && (
+          <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
+            {idea.generationType}
+          </Badge>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 md:gap-6">
-        {/* Original Content Panel */}
-        <div className="lg:col-span-1">
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 h-fit sticky top-6 rounded-none md:rounded-lg border-l-0 border-r-0 md:border-l md:border-r">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-purple-600" />
-                Original Content
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">HEADLINE</label>
-                  <button 
-                    onClick={() => copyToClipboard(idea.headline, 'Headline')}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
+      <div className={`grid grid-cols-1 ${idea ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-0 md:gap-6`}>
+        {/* Original Content Panel - Only show when idea exists */}
+        {idea && (
+          <div className="lg:col-span-1">
+            <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 h-fit sticky top-6 rounded-none md:rounded-lg border-l-0 border-r-0 md:border-l md:border-r">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-purple-600" />
+                  Original Content
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">HEADLINE</label>
+                    <button 
+                      onClick={() => copyToClipboard(idea.headline, 'Headline')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-gray-900 font-semibold">{idea.headline}</p>
                 </div>
-                <p className="text-gray-900 font-semibold">{idea.headline}</p>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">CAPTION</label>
-                  <button 
-                    onClick={() => copyToClipboard(idea.caption, 'Caption')}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">CAPTION</label>
+                    <button 
+                      onClick={() => copyToClipboard(idea.caption, 'Caption')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-gray-700 bg-white p-3 rounded-lg">{idea.caption}</p>
                 </div>
-                <p className="text-gray-700 bg-white p-3 rounded-lg">{idea.caption}</p>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">HASHTAGS</label>
-                  <button 
-                    onClick={() => copyToClipboard(idea.hashtags, 'Hashtags')}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">HASHTAGS</label>
+                    <button 
+                      onClick={() => copyToClipboard(idea.hashtags, 'Hashtags')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-blue-600 bg-white p-3 rounded-lg break-all">{idea.hashtags}</p>
                 </div>
-                <p className="text-blue-600 bg-white p-3 rounded-lg break-all">{idea.hashtags}</p>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">STRATEGY</label>
-                  <button 
-                    onClick={() => copyToClipboard(idea.ideas, 'Strategy')}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">STRATEGY</label>
+                    <button 
+                      onClick={() => copyToClipboard(idea.ideas, 'Strategy')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-line">{idea.ideas}</p>
                 </div>
-                <p className="text-gray-700 bg-white p-3 rounded-lg whitespace-pre-line">{idea.ideas}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Chat Interface */}
-        <div className="lg:col-span-2">
+        <div className={idea ? "lg:col-span-2" : "lg:col-span-1"}>
           <Card className="h-[600px] flex flex-col relative rounded-none md:rounded-lg border-l-0 border-r-0 md:border-l md:border-r">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
