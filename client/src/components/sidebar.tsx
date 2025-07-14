@@ -33,7 +33,6 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Schedule', href: '/schedule', icon: Calendar },
-    { name: 'Competitors', href: '/competitors', icon: Users },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -43,8 +42,6 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
     { name: 'Generate Ideas', href: '/generate' },
     { name: 'Saved Ideas', href: '/saved' },
     { name: 'Create Post', href: '/create' },
-    { name: 'Analytics', href: '/analytics' },
-    { name: 'Manage Competitors', href: '/manage-competitors' },
   ];
 
   return (

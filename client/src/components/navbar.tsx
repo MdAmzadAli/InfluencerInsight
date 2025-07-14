@@ -31,7 +31,6 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Schedule', href: '/schedule', icon: Calendar },
-    { name: 'Competitors', href: '/competitors', icon: Users },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -39,8 +38,6 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
     { name: 'Generate Ideas', href: '/generate' },
     { name: 'Saved Ideas', href: '/saved' },
     { name: 'Create Post', href: '/create' },
-    { name: 'Analytics', href: '/analytics' },
-    { name: 'Manage Competitors', href: '/manage-competitors' },
   ];
 
   const isActive = (href: string) => location === href;
