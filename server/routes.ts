@@ -252,6 +252,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
+      // Check if competitor generation is requested but no competitors are set
+      if (generationType === 'competitor' && (!competitors || competitors.length === 0)) {
+        res.write(`data: ${JSON.stringify({ type: 'error', message: 'No competitors added. Please add competitors first in the Niche section.' })}\n\n`);
+        res.end();
+        return;
+      }
+
       // Get scraped data based on generation type with proper cache management
       let scrapedData = [];
       if (generationType === 'competitor' && competitors && competitors.length > 0) {
@@ -465,8 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const contentWithRealId = {
               ...ideaContent,
               id: savedIdea.id,
-              createdAt: savedIdea.createdAt.toISOString(),
-              updatedAt: savedIdea.updatedAt.toISOString()
+              createdAt: savedIdea.createdAt.toISOString()
             };
             
             generatedContent.push(contentWithRealId);
@@ -567,8 +573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const contentWithRealId = {
                 ...content[0],
                 id: savedIdea.id,
-                createdAt: savedIdea.createdAt.toISOString(),
-                updatedAt: savedIdea.updatedAt.toISOString()
+                createdAt: savedIdea.createdAt.toISOString()
               };
               
               generatedContent.push(contentWithRealId);
