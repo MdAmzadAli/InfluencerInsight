@@ -170,7 +170,7 @@ class CacheWarmer {
     }
   }
 
-  // Non-blocking cache check - returns immediately if cache not ready
+  // Check if specific cache type is ready - returns warming state for that type only
   isCacheReady(userId: string, type: 'competitor' | 'trending'): boolean {
     const state = this.warmingStates.get(userId);
     if (!state) {
@@ -178,9 +178,27 @@ class CacheWarmer {
     }
 
     if (type === 'competitor') {
+      console.log(`🔍 Checking competitor cache status: ${state.competitorPostsReady ? 'READY' : 'NOT READY'}`);
       return state.competitorPostsReady;
     } else if (type === 'trending') {
+      console.log(`🔍 Checking trending cache status: ${state.trendingPostsReady ? 'READY' : 'NOT READY'}`);
       return state.trendingPostsReady;
+    }
+
+    return false;
+  }
+
+  // Check if specific cache type is currently warming
+  isCacheWarming(userId: string, type: 'competitor' | 'trending'): boolean {
+    const state = this.warmingStates.get(userId);
+    if (!state || !state.isWarming) {
+      return false;
+    }
+
+    if (type === 'competitor') {
+      return !state.competitorPostsReady && !!state.promises.competitor;
+    } else if (type === 'trending') {
+      return !state.trendingPostsReady && !!state.promises.trending;
     }
 
     return false;

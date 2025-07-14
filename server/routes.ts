@@ -257,12 +257,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`✅ Using existing cached competitor posts: ${cachedPosts.length} posts`);
           res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedPosts.length} cached competitor posts`, progress: 15 })}\n\n`);
         } else {
-          // Check if cache is currently warming
-          const isWarming = cacheWarmer.isWarming(req.user!.id);
+          // Check if COMPETITOR cache is currently warming (not all caches)
+          const isCompetitorWarming = cacheWarmer.isCacheWarming(req.user!.id, 'competitor');
+          console.log(`🔍 Competitor cache warming status: ${isCompetitorWarming ? 'WARMING' : 'NOT WARMING'}`);
           
-          if (isWarming) {
+          if (isCompetitorWarming) {
             // Case 1: Cache is warming - wait for it to complete
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Cache warming in progress, waiting for completion...', progress: 5 })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Competitor cache warming in progress, waiting for completion...', progress: 5 })}\n\n`);
             
             // Wait up to 60 seconds for cache warming to complete
             const cacheReady = await cacheWarmer.waitForCache(req.user!.id, 'competitor', 60000);
@@ -338,10 +339,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`✅ Using existing cached trending posts: ${cachedTrendingPosts.length} posts`);
           res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedTrendingPosts.length} cached trending posts`, progress: 15 })}\n\n`);
         } else {
-          // Check if cache is currently warming
-          const isWarming = cacheWarmer.isWarming(req.user!.id);
+          // Check if TRENDING cache is currently warming (not all caches)
+          const isTrendingWarming = cacheWarmer.isCacheWarming(req.user!.id, 'trending');
+          console.log(`🔍 Trending cache warming status: ${isTrendingWarming ? 'WARMING' : 'NOT WARMING'}`);
           
-          if (isWarming) {
+          if (isTrendingWarming) {
             // Case 1: Cache is warming - wait for it to complete
             res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Trending cache warming in progress, waiting for completion...', progress: 5 })}\n\n`);
             
