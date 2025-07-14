@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -6,20 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { User, Settings, Save } from "lucide-react";
+import { Target, Edit3, Save, X } from "lucide-react";
 
 export default function UserSettings() {
   const [niche, setNiche] = useState("");
-  const [competitors, setCompetitors] = useState("");
   const [isEditingNiche, setIsEditingNiche] = useState(false);
-  const [isEditingCompetitors, setIsEditingCompetitors] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
   });
+
+  // Initialize niche value when user data loads
+  useEffect(() => {
+    if (user?.niche) {
+      setNiche(user.niche);
+    }
+  }, [user]);
 
   const updateNicheMutation = useMutation({
     mutationFn: async (data: { niche: string }) => {
@@ -43,28 +47,6 @@ export default function UserSettings() {
     },
   });
 
-  const updateCompetitorsMutation = useMutation({
-    mutationFn: async (data: { niche: string; competitors: string }) => {
-      const response = await apiRequest("PUT", "/api/user/competitors", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setIsEditingCompetitors(false);
-      toast({
-        title: "Success",
-        description: "Your competitors have been updated successfully!",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update competitors. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleSaveNiche = () => {
     if (!niche.trim()) {
       toast({
@@ -77,184 +59,100 @@ export default function UserSettings() {
     updateNicheMutation.mutate({ niche: niche.trim() });
   };
 
-  const handleSaveCompetitors = () => {
-    if (!competitors.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter at least one competitor",
-        variant: "destructive",
-      });
-      return;
-    }
-    updateCompetitorsMutation.mutate({ 
-      niche: user?.niche || "", 
-      competitors: competitors.trim() 
-    });
+  const handleCancelEdit = () => {
+    setNiche(user?.niche || "");
+    setIsEditingNiche(false);
   };
 
   const startEditingNiche = () => {
-    setNiche(user?.niche || "");
     setIsEditingNiche(true);
   };
 
-  const startEditingCompetitors = () => {
-    // Parse competitors from JSON string
-    try {
-      const competitorsArray = user?.competitors ? JSON.parse(user.competitors) : [];
-      setCompetitors(competitorsArray.join(", "));
-    } catch (e) {
-      setCompetitors("");
-    }
-    setIsEditingCompetitors(true);
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Settings className="h-6 w-6 text-gray-600" />
-        <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+    <div className="max-w-2xl mx-auto p-6 space-y-6">
+      <div className="flex items-center space-x-3">
+        <Target className="h-8 w-8 text-purple-600" />
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Your Niche
+          </h2>
+          <p className="text-gray-600">Define your content focus area for personalized AI-generated ideas</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <span>Profile Information</span>
+      <Card className="border-2 border-purple-100">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+          <CardTitle className="flex items-center space-x-2 text-purple-800">
+            <Target className="h-5 w-5" />
+            <span>Content Niche</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Email</p>
-              <p className="font-medium">{user?.email}</p>
+        <CardContent className="space-y-6 p-6">
+          {isEditingNiche ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="niche" className="text-base font-medium text-gray-700">
+                  Your Content Niche
+                </Label>
+                <Input
+                  id="niche"
+                  value={niche}
+                  onChange={(e) => setNiche(e.target.value)}
+                  placeholder="e.g., travel photography, fitness coaching, cooking recipes, tech reviews"
+                  className="mt-2 text-base"
+                  autoFocus
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  This helps our AI generate content ideas specifically tailored to your audience and expertise.
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <Button
+                  onClick={handleSaveNiche}
+                  disabled={updateNicheMutation.isPending}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateNicheMutation.isPending ? "Saving..." : "Save Niche"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={updateNicheMutation.isPending}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Full Name</p>
-              <p className="font-medium">{user?.firstName} {user?.lastName}</p>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-medium text-gray-700">Current Niche</Label>
+                <div className="mt-2 p-4 bg-gray-50 rounded-lg border">
+                  {user?.niche ? (
+                    <p className="text-lg font-medium text-gray-900">{user.niche}</p>
+                  ) : (
+                    <p className="text-gray-500 italic">No niche set yet. Click edit to define your content focus.</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={startEditingNiche}
+                className="border-purple-200 text-purple-600 hover:bg-purple-50"
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                {user?.niche ? "Edit Niche" : "Set Your Niche"}
+              </Button>
             </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm text-gray-600">Niche</p>
-              {isEditingNiche ? (
-                <div className="flex items-center space-x-2 mt-2">
-                  <Input
-                    value={niche}
-                    onChange={(e) => setNiche(e.target.value)}
-                    placeholder="Enter your niche (e.g., fitness, cooking, tech)"
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSaveNiche}
-                    disabled={updateNicheMutation.isPending}
-                    size="sm"
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditingNiche(false)}
-                    size="sm"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between mt-1">
-                  <p className="font-medium">{user?.niche || "Not set"}</p>
-                  <Button
-                    variant="outline"
-                    onClick={startEditingNiche}
-                    size="sm"
-                  >
-                    Edit
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm text-gray-600">Competitors</p>
-              <p className="text-xs text-gray-500 mb-2">Instagram usernames separated by commas</p>
-              {isEditingCompetitors ? (
-                <div className="space-y-2">
-                  <Input
-                    value={competitors}
-                    onChange={(e) => setCompetitors(e.target.value)}
-                    placeholder="Enter competitors (e.g., @user1, @user2, @user3)"
-                    className="flex-1"
-                  />
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={handleSaveCompetitors}
-                      disabled={updateCompetitorsMutation.isPending}
-                      size="sm"
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      Save
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditingCompetitors(false)}
-                      size="sm"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between mt-1">
-                  <div className="flex-1">
-                    {user?.competitors ? (
-                      <div className="flex flex-wrap gap-2">
-                        {(() => {
-                          let parsedCompetitors = [];
-                          try {
-                            if (typeof user.competitors === 'string') {
-                              parsedCompetitors = user.competitors.startsWith('[') ? JSON.parse(user.competitors) : user.competitors.split(',').filter(Boolean);
-                            } else {
-                              parsedCompetitors = Array.isArray(user.competitors) ? user.competitors : JSON.parse(user.competitors);
-                            }
-                          } catch (e) {
-                            parsedCompetitors = [];
-                          }
-                          return parsedCompetitors.map((competitor: string, index: number) => (
-                            <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                              @{competitor}
-                            </span>
-                          ));
-                        })()}
-                      </div>
-                    ) : (
-                      <p className="font-medium text-gray-500">No competitors set</p>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={startEditingCompetitors}
-                    size="sm"
-                  >
-                    Edit
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
+      
+      <div className="text-center text-sm text-gray-500">
+        <p>Your niche helps our AI generate more targeted and relevant content ideas for your audience.</p>
+      </div>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Schedule', href: '/schedule', icon: Calendar },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Niche', href: '/settings', icon: Settings },
   ];
 
   const isActive = (href: string) => location === href;
