@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle, Sparkles } from 'lucide-react';
 import ScheduleModal from "./schedule-modal";
-import RefineIdea from "./refine-idea";
+
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
 import type { ContentIdea as SharedContentIdea } from "@shared/schema";
 
@@ -32,7 +32,7 @@ export default function GenerateIdeas() {
   const [clearIdeas, setClearIdeas] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
+
   const [selectedGenerationType, setSelectedGenerationType] = useState<'date' | 'competitor' | 'trending'>('date');
   const [isMobile, setIsMobile] = useState(false);
   const [numberOfIdeas, setNumberOfIdeas] = useState(3);
@@ -392,7 +392,9 @@ export default function GenerateIdeas() {
   };
 
   const handleRefineIdea = (idea: ContentIdea) => {
-    setRefineIdea(idea);
+    // Dispatch custom event to App level with the specific idea
+    const event = new CustomEvent('showRefineIdeas', { detail: { idea } });
+    window.dispatchEvent(event);
   };
 
   // Initialize with user's existing data
@@ -403,16 +405,6 @@ export default function GenerateIdeas() {
       setShowOptions(true);
     }
   });
-
-  // Show refine interface if refineIdea is set
-  if (refineIdea) {
-    return (
-      <RefineIdea 
-        idea={refineIdea} 
-        onBack={() => setRefineIdea(null)} 
-      />
-    );
-  }
 
   return (
     <div className="p-8">

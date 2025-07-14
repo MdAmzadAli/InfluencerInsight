@@ -43,17 +43,18 @@ function Router() {
     }
   }, [user?.competitors]);
 
-  // Listen for refine panel events from sidebar
+  // Listen for refine panel events from sidebar and idea refine buttons
   useEffect(() => {
-    const handleShowRefineIdeas = () => {
-      // Show refine panel - can work with or without existing ideas
-      setRefineIdea(state.generatedIdeas.length > 0 ? state.generatedIdeas[0] : null);
+    const handleShowRefineIdeas = (event: any) => {
+      // If event has detail with idea, use that idea; otherwise open without idea
+      const ideaFromEvent = event.detail?.idea || null;
+      setRefineIdea(ideaFromEvent);
       setShowRefinePanel(true);
     };
 
     window.addEventListener('showRefineIdeas', handleShowRefineIdeas);
     return () => window.removeEventListener('showRefineIdeas', handleShowRefineIdeas);
-  }, [state.generatedIdeas]);
+  }, []);
 
   if (isLoading) {
     return (
