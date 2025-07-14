@@ -17,8 +17,7 @@ export default function Auth() {
     email: '', 
     password: '', 
     firstName: '', 
-    lastName: '', 
-    niche: '' 
+    lastName: ''
   });
 
   const isSignupPage = location === '/signup';
@@ -175,15 +174,7 @@ export default function Auth() {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="niche">Your Niche (Optional)</Label>
-                    <Input
-                      id="niche"
-                      placeholder="e.g., fitness, food, travel, tech"
-                      value={registerData.niche}
-                      onChange={(e) => setRegisterData(prev => ({ ...prev, niche: e.target.value }))}
-                    />
-                  </div>
+
                   {registerError && (
                     <Alert variant="destructive">
                       <AlertDescription>{registerError.message}</AlertDescription>
