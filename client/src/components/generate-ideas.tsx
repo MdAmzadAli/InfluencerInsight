@@ -230,6 +230,7 @@ export default function GenerateIdeas() {
                   break;
                   
                 case 'error':
+                  console.error('Streaming error received:', data.message);
                   throw new Error(data.message);
               }
             } catch (err) {
@@ -245,17 +246,29 @@ export default function GenerateIdeas() {
       });
 
     } catch (error) {
+      console.error('Stream generation error:', error);
       if (error instanceof Error && error.name === 'AbortError') {
         toast({
           title: "Generation Stopped",
           description: "Content generation was cancelled",
         });
       } else {
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to generate content",
-          variant: "destructive",
-        });
+        // Handle specific error messages
+        const errorMessage = error instanceof Error ? error.message : "Failed to generate content";
+        
+        if (errorMessage.includes("No competitors added")) {
+          toast({
+            title: "No Competitors Added",
+            description: "Please add competitors first in the Niche section to generate competitor analysis content.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       }
     } finally {
       setGenerating(false, generationType);
