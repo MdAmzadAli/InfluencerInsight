@@ -45,23 +45,9 @@ export async function generateInstagramContentWithGemini(request: ContentGenerat
       // Use provided scraped data (from streaming API)
       apifyData = request.scrapedData;
       console.log(`Using provided scraped data: ${apifyData.length} posts`);
-    } else if (apifyScraper && !request.useApifyData) {
-      // Fresh data fetch when no scraped data provided
-      try {
-        console.log('Fetching real Instagram data from Apify...');
-        if (request.generationType === 'trending') {
-          apifyData = await apifyScraper.searchTrendingPosts(request.niche, 10);
-        } else if (request.generationType === 'competitor' && request.competitors) {
-          // Use direct URLs for competitor analysis
-          const instagramUrls = apifyScraper.convertUsernamesToUrls(request.competitors);
-          apifyData = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 3);
-        }
-        console.log(`Fetched ${apifyData.length} posts from Apify`);
-      } catch (error) {
-        console.error('Failed to fetch Apify data:', error);
-        // Continue with fallback generation instead of throwing error
-        apifyData = [];
-      }
+    } else {
+      // No additional API calls - data should be provided via scrapedData
+      apifyData = [];
     }
 
     let prompt = `You are an expert Instagram content creator specializing in ${request.niche}. `;

@@ -90,13 +90,13 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
-### July 14, 2025 - Trending Posts Cache System & Competitor Display Fix
-- **✅ Enhanced Trending Posts Algorithm**: Modified trending posts to fetch 20-30 posts from Apify, cache them for 1 hour, then randomly select requested number for each generation
-- **✅ Trending Posts Cache Manager**: Added dedicated cache system for trending posts by niche with automatic expiration
-- **✅ Competitor Display Fix**: Fixed competitor username display showing malformed data like `@["\"jackmorris\""]` instead of `@jackmorris`
-- **✅ Competitor Deletion Issue**: Fixed deletion functionality that wasn't working properly on first attempt
-- **✅ Enhanced Cache System**: Extended cache manager to support both competitor posts and trending posts with unified cleanup
-- **✅ Cache Duration Optimization**: Updated cache expiry from 24 hours to 1 hour for both competitor and trending posts to ensure fresher content
+### July 14, 2025 - Single API Call Fix & Trending Posts Optimization
+- **✅ Fixed Multiple API Calls Issue**: Eliminated duplicate Apify API calls - now makes only ONE API call per generation session
+- **✅ Optimized Trending Posts Search**: Fixed hashtag format from "Travel photography" to "#travelphotography" for better results
+- **✅ Extended Search Period**: Changed from 1 day to 7 days for trending posts to get more results
+- **✅ Source URL Display Fix**: Instagram post links now show correctly in content cards
+- **✅ Cache Duration Optimization**: Updated cache expiry to 1 hour for both competitor and trending posts
+- **✅ Eliminated Redundant API Calls**: Removed additional API calls from Gemini function to use cached data only
 
 ### July 13, 2025 - JWT Authentication Migration Complete
 - **✅ Replit Auth Removal**: Completely removed Replit Auth and all session-based authentication
