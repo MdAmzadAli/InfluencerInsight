@@ -2,6 +2,7 @@ import { db } from './db';
 import bcrypt from 'bcryptjs';
 import type { User, ContentIdea, ScheduledPost, IndianHoliday } from '../shared/schema';
 import { competitorPostCache } from './cache-manager';
+import { ApifyTrendingPost } from './apify-scraper';
 
 export interface RegisterUser {
   email: string;
@@ -80,8 +81,8 @@ export interface IStorage {
   seedHolidays(): Promise<void>;
   
   // Competitor Post Cache operations
-  getCachedCompetitorPosts(userId: string): Promise<any[]>;
-  setCachedCompetitorPosts(userId: string, posts: any[]): Promise<void>;
+  getCachedCompetitorPosts(userId: string): Promise<ApifyTrendingPost[]>;
+  setCachedCompetitorPosts(userId: string, posts: ApifyTrendingPost[]): Promise<void>;
   clearExpiredCompetitorPosts(userId: string): Promise<void>;
 }
 
@@ -277,11 +278,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Competitor Post Cache operations
-  async getCachedCompetitorPosts(userId: string): Promise<any[]> {
+  async getCachedCompetitorPosts(userId: string): Promise<ApifyTrendingPost[]> {
     return await competitorPostCache.getCachedPosts(userId);
   }
 
-  async setCachedCompetitorPosts(userId: string, posts: any[]): Promise<void> {
+  async setCachedCompetitorPosts(userId: string, posts: ApifyTrendingPost[]): Promise<void> {
     await competitorPostCache.setCachedPosts(userId, posts);
   }
 

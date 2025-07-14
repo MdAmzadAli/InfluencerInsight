@@ -11,7 +11,7 @@ export interface ContentGenerationRequest {
   context?: string;
   competitors?: string[];
   holidays?: Array<{ name: string; date: string; description: string; }>;
-  scrapedData?: any[];
+  scrapedData?: ApifyTrendingPost[];
   useApifyData?: boolean;
   numberOfIdeas?: number;
 }
@@ -27,7 +27,7 @@ export interface SinglePostRequest {
   niche: string;
   generationType: 'date' | 'competitor' | 'trending';
   context?: string;
-  post: any;
+  post: ApifyTrendingPost | null;
   holidays?: Array<{ name: string; date: string; description: string; }>;
   numberOfIdeas?: number;
 }

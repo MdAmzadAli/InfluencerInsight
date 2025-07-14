@@ -1,33 +1,11 @@
 // Temporary in-memory cache for competitor posts
 // This will be replaced with database caching once Prisma is properly configured
 
-interface CachedPost {
-  id: string;
-  shortCode: string;
-  username: string;
-  ownerUsername: string;
-  ownerFullName: string;
-  caption?: string;
-  hashtags?: string[];
-  likes: number;
-  comments: number;
-  likesCount: number;
-  commentsCount: number;
-  imageUrl?: string;
-  displayUrl?: string;
-  imageUrls?: string[];
-  postUrl: string;
-  url: string;
-  profileUrl: string;
-  timestamp: Date | string;
-  engagement: number;
-  location?: string;
-  locationName?: string;
-  type?: string;
-}
+// Use ApifyTrendingPost as the single interface throughout the system
+import { ApifyTrendingPost } from './apify-scraper';
 
 interface UserCache {
-  posts: CachedPost[];
+  posts: ApifyTrendingPost[];
   expiresAt: Date;
 }
 
@@ -36,7 +14,7 @@ class CompetitorPostCacheManager {
   private trendingCache = new Map<string, UserCache>(); // Cache for trending posts by niche
   private readonly CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
-  async getCachedPosts(userId: string): Promise<CachedPost[]> {
+  async getCachedPosts(userId: string): Promise<ApifyTrendingPost[]> {
     const userCache = this.cache.get(userId);
     
     if (!userCache) {
@@ -52,47 +30,22 @@ class CompetitorPostCacheManager {
     return userCache.posts;
   }
 
-  async setCachedPosts(userId: string, posts: any[]): Promise<void> {
+  async setCachedPosts(userId: string, posts: ApifyTrendingPost[]): Promise<void> {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.CACHE_DURATION);
     
-    // Convert raw posts to cached format - preserve ALL fields for consistency
-    const cachedPosts: CachedPost[] = posts.map(post => ({
-      id: post.id || post.shortCode,
-      shortCode: post.shortCode || post.id,
-      username: post.ownerUsername || post.username,
-      ownerUsername: post.ownerUsername || post.username,
-      ownerFullName: post.ownerFullName || '',
-      caption: post.caption || '',
-      hashtags: post.hashtags || [],
-      likes: post.likesCount || post.likes || 0,
-      comments: post.commentsCount || post.comments || 0,
-      likesCount: post.likesCount || post.likes || 0,
-      commentsCount: post.commentsCount || post.comments || 0,
-      imageUrl: post.displayUrl || post.imageUrl,
-      displayUrl: post.displayUrl || post.imageUrl,
-      imageUrls: post.imageUrls || (post.displayUrl ? [post.displayUrl] : []),
-      postUrl: post.url || post.postUrl,
-      url: post.url || post.postUrl,
-      profileUrl: `https://instagram.com/${post.ownerUsername || post.username}`,
-      timestamp: post.timestamp || new Date().toISOString(),
-      engagement: (post.likesCount || post.likes || 0) + (post.commentsCount || post.comments || 0),
-      location: post.locationName || post.location,
-      locationName: post.locationName || post.location,
-      type: post.type || 'Image'
-    }));
-    
+    // No conversion needed - store ApifyTrendingPost directly
     this.cache.set(userId, {
-      posts: cachedPosts,
+      posts: posts,
       expiresAt
     });
     
-    console.log(`✅ Cached ${cachedPosts.length} competitor posts for user ${userId}, expires in 1 hour at ${expiresAt.toISOString()}`);
+    console.log(`✅ Cached ${posts.length} competitor posts for user ${userId}, expires in 1 hour at ${expiresAt.toISOString()}`);
     console.log(`📋 Sample cached post:`, {
-      id: cachedPosts[0]?.id,
-      username: cachedPosts[0]?.ownerUsername,
-      url: cachedPosts[0]?.url,
-      shortCode: cachedPosts[0]?.shortCode
+      id: posts[0]?.id,
+      username: posts[0]?.ownerUsername,
+      url: posts[0]?.url,
+      shortCode: posts[0]?.shortCode
     });
   }
 
@@ -113,7 +66,7 @@ class CompetitorPostCacheManager {
   }
 
   // Trending posts cache methods
-  async getCachedTrendingPosts(niche: string): Promise<CachedPost[]> {
+  async getCachedTrendingPosts(niche: string): Promise<ApifyTrendingPost[]> {
     const trendingCache = this.trendingCache.get(niche);
     
     if (!trendingCache) {
@@ -129,42 +82,17 @@ class CompetitorPostCacheManager {
     return trendingCache.posts;
   }
 
-  async setCachedTrendingPosts(niche: string, posts: any[]): Promise<void> {
+  async setCachedTrendingPosts(niche: string, posts: ApifyTrendingPost[]): Promise<void> {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.CACHE_DURATION);
     
-    // Convert raw posts to cached format - preserve ALL fields for consistency
-    const cachedPosts: CachedPost[] = posts.map(post => ({
-      id: post.id || post.shortCode,
-      shortCode: post.shortCode || post.id,
-      username: post.ownerUsername || post.username,
-      ownerUsername: post.ownerUsername || post.username,
-      ownerFullName: post.ownerFullName || '',
-      caption: post.caption || '',
-      hashtags: post.hashtags || [],
-      likes: post.likesCount || post.likes || 0,
-      comments: post.commentsCount || post.comments || 0,
-      likesCount: post.likesCount || post.likes || 0,
-      commentsCount: post.commentsCount || post.comments || 0,
-      imageUrl: post.displayUrl || post.imageUrl,
-      displayUrl: post.displayUrl || post.imageUrl,
-      imageUrls: post.imageUrls || (post.displayUrl ? [post.displayUrl] : []),
-      postUrl: post.url || post.postUrl,
-      url: post.url || post.postUrl,
-      profileUrl: `https://instagram.com/${post.ownerUsername || post.username}`,
-      timestamp: post.timestamp || new Date().toISOString(),
-      engagement: (post.likesCount || post.likes || 0) + (post.commentsCount || post.comments || 0),
-      location: post.locationName || post.location,
-      locationName: post.locationName || post.location,
-      type: post.type || 'Image'
-    }));
-    
+    // No conversion needed - store ApifyTrendingPost directly
     this.trendingCache.set(niche, {
-      posts: cachedPosts,
+      posts: posts,
       expiresAt
     });
     
-    console.log(`✅ Cached ${cachedPosts.length} trending posts for niche "${niche}", expires in 1 hour at ${expiresAt.toISOString()}`);
+    console.log(`✅ Cached ${posts.length} trending posts for niche "${niche}", expires in 1 hour at ${expiresAt.toISOString()}`);
   }
 
   async clearExpiredTrendingCache(): Promise<void> {

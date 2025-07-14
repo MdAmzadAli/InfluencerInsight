@@ -10,7 +10,7 @@ import {
   refineContentStreamWithGemini,
   generateSinglePostContent
 } from "./gemini";
-import { apifyScraper } from "./apify-scraper";
+import { apifyScraper, ApifyTrendingPost } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
 import { competitorPostCache } from "./cache-manager";
