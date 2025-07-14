@@ -8,6 +8,7 @@ import SavedIdeas from "@/components/saved-ideas";
 import CompetitorsManagement from "@/components/competitors-management";
 import { useContentState } from "@/hooks/useContentState";
 import Analytics from "@/components/analytics";
+import UserSettings from "@/components/user-settings";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -59,6 +60,8 @@ export default function Dashboard() {
         return <Analytics />;
       case '/manage-competitors':
         return <CompetitorsManagement />;
+      case '/settings':
+        return <UserSettings />;
       default:
         return <GenerateIdeas />;
     }

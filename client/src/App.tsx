@@ -110,6 +110,7 @@ function Router() {
             <Route path="/create" component={Dashboard} />
             <Route path="/analytics" component={Dashboard} />
             <Route path="/manage-competitors" component={Dashboard} />
+            <Route path="/settings" component={Dashboard} />
             <Route path="/schedule" component={PostSchedulingBoard} />
             <Route path="/competitors">
               <CompetitorPostsView posts={posts} isLoading={loadingPosts} />
