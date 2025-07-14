@@ -67,11 +67,11 @@ export class ApifyInstagramScraper {
       enhanceUserSearchWithFacebookPage: false,
       isUserReelFeedURL: false,
       isUserTaggedFeedURL: false,
-      onlyPostsNewerThan: "7 days", // Posts from last 7 days
+      onlyPostsNewerThan: "1 day", // Posts from last 1 days
       resultsLimit: limit,
       resultsType: 'posts',
-      search: niche.replace(/\s+/g, '').toLowerCase(),
-      searchLimit: 10,
+      search: niche,
+      searchLimit: 1,
       searchType: 'hashtag'
     };
 
