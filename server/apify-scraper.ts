@@ -90,15 +90,9 @@ export class ApifyInstagramScraper {
       );
 
       console.log('📊 Apify trending response:', {
-        rawResponse: response.data,
-        totalPosts: response.data.topPosts?.length || 0,
-        responseKeys: Object.keys(response.data),
-        samplePost: response.data.topPosts?.[0] ? {
-          shortCode: response.data.topPosts[0].shortCode,
-          caption: response.data.topPosts[0].caption?.substring(0, 100) + '...',
-          likes: response.data.topPosts[0].likesCount,
-          url: response.data.topPosts[0].url
-        } : null
+        
+        totalPosts: response.data[0].topPosts?.length || 0,
+     
       });
 
       // Handle the case where response is in format [{"topPosts":[]}]

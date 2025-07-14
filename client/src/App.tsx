@@ -20,7 +20,7 @@ function Router() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   
-  // Fetch competitor posts when user has competitors
+  // Parse competitors when user data changes
   useEffect(() => {
     if (user?.competitors) {
       try {
@@ -31,24 +31,7 @@ function Router() {
           parsedCompetitors = Array.isArray(user.competitors) ? user.competitors : JSON.parse(user.competitors);
         }
         setCompetitors(parsedCompetitors);
-        
-        // Fetch posts for competitors
-        if (parsedCompetitors.length > 0) {
-          setLoadingPosts(true);
-          const token = localStorage.getItem('token');
-          fetch('/api/competitors/top-posts', {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-          })
-          .then(res => res.json())
-          .then(data => {
-            setPosts(data);
-            setLoadingPosts(false);
-          })
-          .catch(err => {
-            console.error('Error fetching competitor posts:', err);
-            setLoadingPosts(false);
-          });
-        }
+        // Note: Competitor posts will only be fetched when user clicks "Competitor Analysis" button
       } catch (error) {
         console.error('Error parsing competitors:', error);
       }
