@@ -257,14 +257,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return engagementB - engagementA;
             }).slice(0, 10);
             
-            // Cache the top 10 posts for 24 hours
+            // Cache the top 10 posts for 1 hour
             await storage.setCachedCompetitorPosts(req.user!.id, sortedPosts);
             
             // Randomly select posts for this generation
             const randomPosts = sortedPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
             scrapedData = randomPosts;
             
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached top 10 posts, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached top 10 posts for 1 hour, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
           }
         }
       } else if (generationType === 'trending') {
@@ -285,17 +285,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (apifyScraper) {
             // Fetch 20-30 trending posts for caching
-            const allTrendingPosts = await apifyScraper.searchTrendingPosts(niche, 1);
+            const allTrendingPosts = await apifyScraper.searchTrendingPosts(niche, 30);
             res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${allTrendingPosts.length} trending posts`, progress: 15 })}\n\n`);
             
-            // Cache all trending posts for 24 hours
+            // Cache all trending posts for 1 hour
             await competitorPostCache.setCachedTrendingPosts(niche, allTrendingPosts);
             
             // Randomly select posts for this generation
             const randomPosts = allTrendingPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
             scrapedData = randomPosts;
             
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached ${allTrendingPosts.length} trending posts, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached ${allTrendingPosts.length} trending posts for 1 hour, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
           }
         }
       }

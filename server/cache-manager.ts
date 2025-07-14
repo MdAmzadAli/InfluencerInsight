@@ -23,7 +23,7 @@ interface UserCache {
 class CompetitorPostCacheManager {
   private cache = new Map<string, UserCache>();
   private trendingCache = new Map<string, UserCache>(); // Cache for trending posts by niche
-  private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  private readonly CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
   async getCachedPosts(userId: string): Promise<CachedPost[]> {
     const userCache = this.cache.get(userId);
@@ -65,7 +65,7 @@ class CompetitorPostCacheManager {
       expiresAt
     });
     
-    console.log(`✅ Cached ${cachedPosts.length} posts for user ${userId}, expires at ${expiresAt.toISOString()}`);
+    console.log(`✅ Cached ${cachedPosts.length} competitor posts for user ${userId}, expires in 1 hour at ${expiresAt.toISOString()}`);
   }
 
   async clearExpiredCache(): Promise<void> {
@@ -125,7 +125,7 @@ class CompetitorPostCacheManager {
       expiresAt
     });
     
-    console.log(`✅ Cached ${cachedPosts.length} trending posts for niche "${niche}", expires at ${expiresAt.toISOString()}`);
+    console.log(`✅ Cached ${cachedPosts.length} trending posts for niche "${niche}", expires in 1 hour at ${expiresAt.toISOString()}`);
   }
 
   async clearExpiredTrendingCache(): Promise<void> {
