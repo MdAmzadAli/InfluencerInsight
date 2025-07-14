@@ -38,6 +38,7 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
     { name: 'Generate Ideas', href: '/generate' },
     { name: 'Saved Ideas', href: '/saved' },
     { name: 'Create Post', href: '/create' },
+    { name: 'Manage Competitors', href: '/manage-competitors' },
   ];
 
   const isActive = (href: string) => location === href;

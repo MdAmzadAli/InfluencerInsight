@@ -42,6 +42,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
     { name: 'Generate Ideas', href: '/generate' },
     { name: 'Saved Ideas', href: '/saved' },
     { name: 'Create Post', href: '/create' },
+    { name: 'Manage Competitors', href: '/manage-competitors' },
   ];
 
   return (
