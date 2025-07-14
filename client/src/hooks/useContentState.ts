@@ -23,12 +23,31 @@ export interface ContentState {
 
 const STORAGE_KEY = 'instagram-content-state';
 
+// Function to validate and fix content ideas with invalid IDs
+const validateAndFixContentIdeas = (ideas: ContentIdea[]): ContentIdea[] => {
+  return ideas.filter(idea => {
+    // Check if ID is a valid integer that fits in INT4 (32-bit signed integer)
+    if (typeof idea.id !== 'number' || idea.id > 2147483647 || idea.id < -2147483648 || !Number.isInteger(idea.id)) {
+      console.warn('Removing invalid content idea with ID:', idea.id);
+      return false;
+    }
+    return true;
+  });
+};
+
 export function useContentState() {
   const [state, setState] = useState<ContentState>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsedState = JSON.parse(stored);
+        // Validate and fix content ideas with invalid IDs
+        const validatedState = {
+          ...parsedState,
+          generatedIdeas: validateAndFixContentIdeas(parsedState.generatedIdeas || []),
+          savedIdeas: validateAndFixContentIdeas(parsedState.savedIdeas || [])
+        };
+        return validatedState;
       }
     } catch (error) {
       console.error('Failed to load content state:', error);
@@ -102,6 +121,18 @@ export function useContentState() {
     }));
   };
 
+  const clearAllData = () => {
+    // Clear all localStorage data and reset state
+    localStorage.removeItem(STORAGE_KEY);
+    setState({
+      generatedIdeas: [],
+      savedIdeas: [],
+      isGenerating: false,
+      lastGenerationType: null,
+      generationSessions: []
+    });
+  };
+
   const separateIdeasAndLinks = (ideas: string) => {
     // Fallback function for backward compatibility with older content
     console.log('🔍 Frontend fallback: Separating ideas and links from:', ideas);
@@ -138,6 +169,7 @@ export function useContentState() {
     setGenerating,
     saveIdea,
     clearGeneratedIdeas,
+    clearAllData,
     separateIdeasAndLinks
   };
 }

@@ -365,6 +365,11 @@ export default function GenerateIdeas() {
 
   const saveIdeaMutation = useMutation({
     mutationFn: async ({ ideaId, isSaved }: { ideaId: number; isSaved: boolean }) => {
+      // Validate ID before making the request
+      if (!Number.isInteger(ideaId) || ideaId > 2147483647 || ideaId < -2147483648) {
+        throw new Error('Invalid idea ID. Please refresh the page and try again.');
+      }
+      
       const response = await apiRequest("PATCH", `/api/content/ideas/${ideaId}/save`, { isSaved });
       return response.json();
     },
@@ -390,6 +395,17 @@ export default function GenerateIdeas() {
         }, 500);
         return;
       }
+      
+      // Handle invalid ID error specifically
+      if (error.message?.includes('Invalid idea ID')) {
+        toast({
+          title: "Invalid Content",
+          description: "This content idea has an invalid ID. Please refresh the page and generate new ideas.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to save idea. Please try again.",
