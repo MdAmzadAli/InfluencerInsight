@@ -253,6 +253,44 @@ class CacheWarmer {
   cleanup(userId: string): void {
     this.warmingStates.delete(userId);
   }
+
+  // Clear old cache and rewarm with new niche/competitors
+  async rewarmCacheAfterChange(userId: string, changeType: 'niche' | 'competitors' | 'both'): Promise<void> {
+    console.log(`🔄 Cache rewarming triggered for user ${userId}, change type: ${changeType}`);
+    
+    try {
+      const user = await storage.getUser(userId);
+      if (!user?.niche) {
+        console.log(`❌ User ${userId} has no niche, skipping cache rewarming`);
+        return;
+      }
+
+      // Clear existing cache based on change type
+      if (changeType === 'niche' || changeType === 'both') {
+        console.log(`🗑️ Clearing trending posts cache for user ${userId}`);
+        // Clear only the specific user's trending cache (by niche)
+        const oldNiche = this.warmingStates.get(userId)?.niche;
+        if (oldNiche) {
+          await competitorPostCache.clearExpiredTrendingCache();
+        }
+      }
+      
+      if (changeType === 'competitors' || changeType === 'both') {
+        console.log(`🗑️ Clearing competitor posts cache for user ${userId}`);
+        // Clear only the specific user's competitor cache
+        await storage.clearExpiredCompetitorPosts(userId);
+      }
+
+      // Clean up existing warming state
+      this.cleanup(userId);
+
+      // Start fresh cache warming
+      this.warmCacheOnStartup(userId);
+      
+    } catch (error) {
+      console.error(`❌ Cache rewarming failed for user ${userId}:`, error);
+    }
+  }
 }
 
 export const cacheWarmer = new CacheWarmer();

@@ -155,6 +155,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.updateUserNiche(req.user!.id, niche, JSON.stringify(competitors));
+      
+      // Trigger cache rewarming for both niche and competitors change
+      cacheWarmer.rewarmCacheAfterChange(req.user!.id, 'both');
+      
       res.json(user);
     } catch (error) {
       console.error("Error updating user niche:", error);
@@ -199,6 +203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.updateUserNiche(req.user!.id, niche);
+      
+      // Trigger cache rewarming for niche change
+      cacheWarmer.rewarmCacheAfterChange(req.user!.id, 'niche');
+      
       res.json(user);
     } catch (error) {
       console.error("Error updating user niche:", error);
