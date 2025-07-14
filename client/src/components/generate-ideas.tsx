@@ -721,7 +721,10 @@ export default function GenerateIdeas() {
                     components.push(
                       <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {sessionIdeas.map((idea) => {
-                          const { strategy, link } = separateIdeasAndLinks(idea.ideas);
+                          // Use backend-separated fields if available, otherwise fall back to frontend parsing
+                          const strategy = (idea as any).strategy || separateIdeasAndLinks(idea.ideas).strategy;
+                          const sourceUrl = (idea as any).sourceUrl || idea.sourceUrl || separateIdeasAndLinks(idea.ideas).link;
+                          
                           return (
                             <Card key={idea.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
                               <CardContent className="p-3">
@@ -790,11 +793,11 @@ export default function GenerateIdeas() {
                                     <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line line-clamp-4">{strategy}</p>
                                   </div>
                                   
-                                  {(link || idea.sourceUrl) && (
+                                  {sourceUrl && (
                                     <div>
                                       <label className="block text-xs font-medium text-gray-500 mb-1">SOURCE</label>
                                       <a 
-                                        href={idea.sourceUrl || link} 
+                                        href={sourceUrl} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded flex items-center gap-1"

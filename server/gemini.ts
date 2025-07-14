@@ -21,6 +21,8 @@ export interface GeneratedContent {
   caption: string;
   hashtags: string;
   ideas: string;
+  strategy: string;
+  sourceUrl?: string;
 }
 
 export interface SinglePostRequest {
@@ -212,29 +214,47 @@ Make each post unique, viral-worthy, and perfectly formatted according to the re
       }
     }
 
-    // Timer fallback for strategy generation - if ideas field is short, enhance it
-    const enhancedContent = await Promise.all(
+    // Process each content item to separate strategy and source URL
+    const processedContent = await Promise.all(
       generatedContent.map(async (content, index) => {
         try {
-          // If ideas field is less than 30 words, enhance it using hashtags and caption
-          const wordsCount = content.ideas.split(' ').length;
+          // Separate strategy and source URL from ideas field
+          const { strategy, sourceUrl } = separateStrategyAndSource(content.ideas);
+          
+          // If strategy is less than 30 words, enhance it using hashtags and caption
+          let finalStrategy = strategy;
+          const wordsCount = strategy.split(' ').length;
           if (wordsCount < 30) {
             console.log(`Enhancing strategy for content ${index + 1} (${wordsCount} words)`);
             const enhancedStrategy = await generateStrategyFromContent(content.caption, content.hashtags, request.niche);
-            return {
-              ...content,
-              ideas: enhancedStrategy
-            };
+            finalStrategy = enhancedStrategy;
           }
-          return content;
+          
+          console.log(`✅ Content ${index + 1} processed:`, {
+            headline: content.headline,
+            strategy: finalStrategy.substring(0, 50) + '...',
+            sourceUrl: sourceUrl || 'No source'
+          });
+
+          return {
+            ...content,
+            strategy: finalStrategy,
+            sourceUrl: sourceUrl || undefined,
+            ideas: finalStrategy // Keep ideas field for backward compatibility
+          };
         } catch (error) {
-          console.error(`Failed to enhance strategy for content ${index + 1}:`, error);
-          return content; // Return original if enhancement fails
+          console.error(`Failed to process content ${index + 1}:`, error);
+          return {
+            ...content,
+            strategy: content.ideas,
+            sourceUrl: undefined,
+            ideas: content.ideas // Keep original
+          };
         }
       })
     );
 
-    return enhancedContent;
+    return processedContent;
 
   } catch (error) {
     console.error('Gemini content generation error:', error);
@@ -278,6 +298,41 @@ Return only the hashtags string, nothing else.`;
     console.error('Gemini hashtag optimization error:', error);
     throw new Error(`Failed to optimize hashtags with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+// Helper function to separate strategy and source URL from ideas field
+function separateStrategyAndSource(ideas: string): { strategy: string; sourceUrl: string | null } {
+  console.log('🔍 Backend: Separating strategy and source from:', ideas);
+  
+  // Look for "Inspired by:" pattern
+  const inspiredByMatch = ideas.match(/Inspired by:\s*(https?:\/\/[^\s]+)/i);
+  if (inspiredByMatch) {
+    const sourceUrl = inspiredByMatch[1];
+    const strategy = ideas.replace(/Inspired by:\s*https?:\/\/[^\s]+/i, '').trim();
+    console.log('✅ Backend: Found "Inspired by" link:', sourceUrl, 'Strategy:', strategy.substring(0, 50) + '...');
+    return { strategy, sourceUrl };
+  }
+  
+  // Look for "Source:" pattern 
+  const sourceMatch = ideas.match(/Source:\s*(https?:\/\/[^\s]+)/i);
+  if (sourceMatch) {
+    const sourceUrl = sourceMatch[1];
+    const strategy = ideas.replace(/Source:\s*https?:\/\/[^\s]+/i, '').trim();
+    console.log('✅ Backend: Found "Source" link:', sourceUrl, 'Strategy:', strategy.substring(0, 50) + '...');
+    return { strategy, sourceUrl };
+  }
+  
+  // Look for any URL pattern in the text
+  const urlMatch = ideas.match(/(https?:\/\/[^\s]+)/);
+  if (urlMatch) {
+    const sourceUrl = urlMatch[1];
+    const strategy = ideas.replace(urlMatch[0], '').trim();
+    console.log('✅ Backend: Found URL pattern:', sourceUrl, 'Strategy:', strategy.substring(0, 50) + '...');
+    return { strategy, sourceUrl };
+  }
+  
+  console.log('✅ Backend: No URL found, returning full ideas as strategy');
+  return { strategy: ideas, sourceUrl: null };
 }
 
 // Helper function to generate enhanced strategy from content
@@ -464,8 +519,26 @@ ${post ? `- Ideas must include strategy + original post URL with 'Source:' prefi
         }
       }
       
-      console.log(`✅ Gemini: Successfully generated ${generatedContent.length} ideas`);
-      return generatedContent;
+      // Process each content item to separate strategy and source URL
+      const processedContent = generatedContent.map((content: any, index: number) => {
+        const { strategy, sourceUrl } = separateStrategyAndSource(content.ideas);
+        
+        console.log(`✅ Single post content ${index + 1} processed:`, {
+          headline: content.headline,
+          strategy: strategy.substring(0, 50) + '...',
+          sourceUrl: sourceUrl || 'No source'
+        });
+
+        return {
+          ...content,
+          strategy: strategy,
+          sourceUrl: sourceUrl || undefined,
+          ideas: strategy // Keep ideas field for backward compatibility
+        };
+      });
+      
+      console.log(`✅ Gemini: Successfully generated ${processedContent.length} ideas`);
+      return processedContent;
     } else {
       // Validate single object response
       if (!generatedContent.headline || !generatedContent.caption || !generatedContent.hashtags || !generatedContent.ideas) {
@@ -473,8 +546,24 @@ ${post ? `- Ideas must include strategy + original post URL with 'Source:' prefi
         throw new Error('Generated content missing required fields');
       }
       
+      // Process single content item to separate strategy and source URL
+      const { strategy, sourceUrl } = separateStrategyAndSource(generatedContent.ideas);
+      
+      console.log(`✅ Single content processed:`, {
+        headline: generatedContent.headline,
+        strategy: strategy.substring(0, 50) + '...',
+        sourceUrl: sourceUrl || 'No source'
+      });
+
+      const processedContent = {
+        ...generatedContent,
+        strategy: strategy,
+        sourceUrl: sourceUrl || undefined,
+        ideas: strategy // Keep ideas field for backward compatibility
+      };
+      
       console.log(`✅ Gemini: Successfully generated content - ${generatedContent.headline}`);
-      return generatedContent;
+      return processedContent;
     }
   } catch (error) {
     console.error('❌ Error generating content:', error);

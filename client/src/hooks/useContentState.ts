@@ -95,7 +95,8 @@ export function useContentState() {
   };
 
   const separateIdeasAndLinks = (ideas: string) => {
-    console.log('🔍 Separating ideas and links from:', ideas);
+    // Fallback function for backward compatibility with older content
+    console.log('🔍 Frontend fallback: Separating ideas and links from:', ideas);
     
     // Look for "Source:" pattern which is how we format Instagram links
     const sourceMatch = ideas.match(/Source:\s*(https?:\/\/[^\s]+)/i);
@@ -103,7 +104,7 @@ export function useContentState() {
     if (sourceMatch) {
       const link = sourceMatch[1];
       const strategy = ideas.replace(/Source:\s*https?:\/\/[^\s]+/i, '').trim();
-      console.log('✅ Found source link:', link, 'Strategy:', strategy);
+      console.log('✅ Frontend fallback: Found source link:', link, 'Strategy:', strategy.substring(0, 50) + '...');
       return { strategy, link };
     }
     
@@ -115,11 +116,11 @@ export function useContentState() {
     if (linkLine) {
       const linkMatch = linkLine.match(/https?:\/\/[^\s]+/);
       const link = linkMatch ? linkMatch[0] : '';
-      console.log('✅ Found inspired by link:', link, 'Strategy:', strategy);
+      console.log('✅ Frontend fallback: Found inspired by link:', link, 'Strategy:', strategy.substring(0, 50) + '...');
       return { strategy, link };
     }
     
-    console.log('✅ No link found, returning full ideas as strategy:', ideas);
+    console.log('✅ Frontend fallback: No link found, returning full ideas as strategy');
     return { strategy: ideas, link: '' };
   };
 
