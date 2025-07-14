@@ -256,6 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isCacheReady) {
           // Use cached data immediately
           cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
+          console.log(`🔍 Retrieved cached posts:`, cachedPosts.slice(0, 2).map(p => ({ id: p?.id, username: p?.ownerUsername, url: p?.url })));
           res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedPosts.length} cached competitor posts`, progress: 10 })}\n\n`);
         } else {
           // Try waiting for a short time (3 seconds max) for cache

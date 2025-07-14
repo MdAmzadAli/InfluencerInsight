@@ -3,16 +3,27 @@
 
 interface CachedPost {
   id: string;
+  shortCode: string;
   username: string;
+  ownerUsername: string;
+  ownerFullName: string;
   caption?: string;
   hashtags?: string[];
   likes: number;
   comments: number;
+  likesCount: number;
+  commentsCount: number;
   imageUrl?: string;
+  displayUrl?: string;
+  imageUrls?: string[];
   postUrl: string;
+  url: string;
   profileUrl: string;
-  timestamp: Date;
+  timestamp: Date | string;
   engagement: number;
+  location?: string;
+  locationName?: string;
+  type?: string;
 }
 
 interface UserCache {
@@ -45,19 +56,30 @@ class CompetitorPostCacheManager {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.CACHE_DURATION);
     
-    // Convert raw posts to cached format
+    // Convert raw posts to cached format - preserve ALL fields for consistency
     const cachedPosts: CachedPost[] = posts.map(post => ({
       id: post.id || post.shortCode,
+      shortCode: post.shortCode || post.id,
       username: post.ownerUsername || post.username,
+      ownerUsername: post.ownerUsername || post.username,
+      ownerFullName: post.ownerFullName || '',
       caption: post.caption || '',
       hashtags: post.hashtags || [],
       likes: post.likesCount || post.likes || 0,
       comments: post.commentsCount || post.comments || 0,
+      likesCount: post.likesCount || post.likes || 0,
+      commentsCount: post.commentsCount || post.comments || 0,
       imageUrl: post.displayUrl || post.imageUrl,
+      displayUrl: post.displayUrl || post.imageUrl,
+      imageUrls: post.imageUrls || (post.displayUrl ? [post.displayUrl] : []),
       postUrl: post.url || post.postUrl,
+      url: post.url || post.postUrl,
       profileUrl: `https://instagram.com/${post.ownerUsername || post.username}`,
-      timestamp: new Date(post.timestamp || Date.now()),
-      engagement: (post.likesCount || post.likes || 0) + (post.commentsCount || post.comments || 0)
+      timestamp: post.timestamp || new Date().toISOString(),
+      engagement: (post.likesCount || post.likes || 0) + (post.commentsCount || post.comments || 0),
+      location: post.locationName || post.location,
+      locationName: post.locationName || post.location,
+      type: post.type || 'Image'
     }));
     
     this.cache.set(userId, {
@@ -66,6 +88,12 @@ class CompetitorPostCacheManager {
     });
     
     console.log(`✅ Cached ${cachedPosts.length} competitor posts for user ${userId}, expires in 1 hour at ${expiresAt.toISOString()}`);
+    console.log(`📋 Sample cached post:`, {
+      id: cachedPosts[0]?.id,
+      username: cachedPosts[0]?.ownerUsername,
+      url: cachedPosts[0]?.url,
+      shortCode: cachedPosts[0]?.shortCode
+    });
   }
 
   async clearExpiredCache(): Promise<void> {
@@ -105,19 +133,30 @@ class CompetitorPostCacheManager {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.CACHE_DURATION);
     
-    // Convert raw posts to cached format
+    // Convert raw posts to cached format - preserve ALL fields for consistency
     const cachedPosts: CachedPost[] = posts.map(post => ({
       id: post.id || post.shortCode,
+      shortCode: post.shortCode || post.id,
       username: post.ownerUsername || post.username,
+      ownerUsername: post.ownerUsername || post.username,
+      ownerFullName: post.ownerFullName || '',
       caption: post.caption || '',
       hashtags: post.hashtags || [],
       likes: post.likesCount || post.likes || 0,
       comments: post.commentsCount || post.comments || 0,
+      likesCount: post.likesCount || post.likes || 0,
+      commentsCount: post.commentsCount || post.comments || 0,
       imageUrl: post.displayUrl || post.imageUrl,
+      displayUrl: post.displayUrl || post.imageUrl,
+      imageUrls: post.imageUrls || (post.displayUrl ? [post.displayUrl] : []),
       postUrl: post.url || post.postUrl,
+      url: post.url || post.postUrl,
       profileUrl: `https://instagram.com/${post.ownerUsername || post.username}`,
-      timestamp: new Date(post.timestamp || Date.now()),
-      engagement: (post.likesCount || post.likes || 0) + (post.commentsCount || post.comments || 0)
+      timestamp: post.timestamp || new Date().toISOString(),
+      engagement: (post.likesCount || post.likes || 0) + (post.commentsCount || post.comments || 0),
+      location: post.locationName || post.location,
+      locationName: post.locationName || post.location,
+      type: post.type || 'Image'
     }));
     
     this.trendingCache.set(niche, {
