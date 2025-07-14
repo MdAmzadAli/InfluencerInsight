@@ -234,6 +234,15 @@ export default function GenerateIdeas() {
                   throw new Error(data.message);
               }
             } catch (err) {
+              // If it's our intentional error (from error case), re-throw it
+              if (err instanceof Error && (
+                err.message.includes('No competitors added') ||
+                err.message.includes('No trending posts available') ||
+                err.message.includes('Cache warming timed out') ||
+                err.message.includes('Instagram scraper not available')
+              )) {
+                throw err;
+              }
               console.warn('Failed to parse SSE data:', err);
             }
           }
