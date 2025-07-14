@@ -75,6 +75,8 @@ export class ApifyInstagramScraper {
       searchType: 'hashtag'
     };
 
+    console.log('🔍 Apify trending search input:', { niche, limit, input });
+
     try {
       const response = await axios.post<ApifyTrendingResponse>(
         `${this.baseUrl}?token=${this.apiToken}`,
@@ -86,6 +88,17 @@ export class ApifyInstagramScraper {
           timeout: 300000, // 5 minute timeout
         }
       );
+
+      console.log('📊 Apify trending response:', {
+        totalPosts: response.data.topPosts?.length || 0,
+        responseKeys: Object.keys(response.data),
+        samplePost: response.data.topPosts?.[0] ? {
+          shortCode: response.data.topPosts[0].shortCode,
+          caption: response.data.topPosts[0].caption?.substring(0, 100) + '...',
+          likes: response.data.topPosts[0].likesCount,
+          url: response.data.topPosts[0].url
+        } : null
+      });
 
       return response.data.topPosts || [];
     } catch (error) {

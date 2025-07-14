@@ -200,7 +200,8 @@ export default function GenerateIdeas() {
                     generationType: generationType,
                     isSaved: false,
                     createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date().toISOString(),
+                    sourceUrl: data.sourceUrl || null
                   };
                   newIdeas.push(newIdea);
                   addGeneratedIdeas([newIdea], generationType);
@@ -789,17 +790,17 @@ export default function GenerateIdeas() {
                                     <p className="text-xs text-gray-600 bg-green-50 p-2 rounded whitespace-pre-line line-clamp-4">{strategy}</p>
                                   </div>
                                   
-                                  {link && (
+                                  {(link || idea.sourceUrl) && (
                                     <div>
                                       <label className="block text-xs font-medium text-gray-500 mb-1">SOURCE</label>
                                       <a 
-                                        href={link} 
+                                        href={idea.sourceUrl || link} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded flex items-center gap-1"
                                       >
                                         <ExternalLink className="h-3 w-3" />
-                                        View Post
+                                        View Instagram Post
                                       </a>
                                     </div>
                                   )}

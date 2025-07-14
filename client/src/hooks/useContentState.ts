@@ -10,6 +10,7 @@ export interface ContentIdea {
   isSaved: boolean;
   createdAt: string;
   updatedAt: string;
+  sourceUrl?: string;
 }
 
 export interface ContentState {
