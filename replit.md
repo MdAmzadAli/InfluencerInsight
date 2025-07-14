@@ -90,13 +90,15 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
-### July 14, 2025 - Single API Call Fix & Trending Posts Optimization
-- **✅ Fixed Multiple API Calls Issue**: Eliminated duplicate Apify API calls - now makes only ONE API call per generation session
-- **✅ Optimized Trending Posts Search**: Fixed hashtag format from "Travel photography" to "#travelphotography" for better results
-- **✅ Extended Search Period**: Changed from 1 day to 7 days for trending posts to get more results
-- **✅ Source URL Display Fix**: Instagram post links now show correctly in content cards
-- **✅ Cache Duration Optimization**: Updated cache expiry to 1 hour for both competitor and trending posts
-- **✅ Eliminated Redundant API Calls**: Removed additional API calls from Gemini function to use cached data only
+### July 14, 2025 - Comprehensive Cache Warming & Single API Call System
+- **✅ Cache Warming on Startup**: Implemented automatic cache warming for both competitor and trending posts when user logs in
+- **✅ Intelligent Cache Management**: System checks cache status and warms competitor/trending posts based on user's niche and competitors
+- **✅ Wait-for-Cache System**: API calls wait for cache warming to complete instead of making duplicate calls or throwing errors
+- **✅ Post Rotation Logic**: When user requests more ideas than available posts (e.g., 10 ideas from 8 posts), system rotates posts intelligently
+- **✅ Instagram URL Validation**: Ensures all competitor and trending responses have valid Instagram URLs before sending to frontend
+- **✅ Fixed Automatic API Calls**: Removed auto-fetch of competitor posts on app startup - now only occurs when user clicks generation buttons
+- **✅ Apify Response Parsing**: Fixed trending posts parsing to handle `[{"topPosts":[]}]` format correctly
+- **✅ Single API Call Workflow**: Truly single API call per generation type with proper cache utilization and waiting mechanisms
 
 ### July 13, 2025 - JWT Authentication Migration Complete
 - **✅ Replit Auth Removal**: Completely removed Replit Auth and all session-based authentication

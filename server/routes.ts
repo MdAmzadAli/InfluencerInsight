@@ -14,6 +14,7 @@ import { apifyScraper } from "./apify-scraper";
 import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
 import { competitorPostCache } from "./cache-manager";
+import { cacheWarmer } from "./cache-warmer";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -27,6 +28,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Start notification scheduler
   notificationService.startNotificationScheduler();
+  
+  // User authentication route with cache warming
+  app.get('/api/auth/user', authenticateToken, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Start cache warming in background (non-blocking)
+      cacheWarmer.warmCacheOnStartup(user.id).catch(error => {
+        console.error('Cache warming failed:', error);
+      });
+      
+      res.json(user);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
   
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -225,78 +246,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      // Get scraped data based on generation type
+      // Get scraped data based on generation type with cache warming support
       let scrapedData = [];
       if (generationType === 'competitor' && competitors && competitors.length > 0) {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking for cached competitor posts...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking competitor posts cache...', progress: 0 })}\n\n`);
         
-        // Check for cached competitor posts first
+        // Wait for cache warming to complete if in progress
+        await cacheWarmer.waitForCache(req.user!.id, 'competitor');
+        
+        // Get cached competitor posts
         const cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
         
-        if (cachedPosts.length >= 10) {
-          // Use cached posts - randomly select from top 10
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Using cached competitor posts...', progress: 10 })}\n\n`);
-          const randomPosts = cachedPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
-          scrapedData = randomPosts;
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} cached posts`, progress: 20 })}\n\n`);
-        } else {
-          // Fetch fresh data and cache it
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh competitor posts...', progress: 5 })}\n\n`);
+        if (cachedPosts.length > 0) {
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${cachedPosts.length} cached competitor posts`, progress: 10 })}\n\n`);
           
-          if (apifyScraper) {
-            // Fetch 10 posts per competitor
-            const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
-            const allPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 10);
+          // Handle rotation logic - if requested more than available, rotate posts
+          if (numberOfIdeas > cachedPosts.length) {
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 15 })}\n\n`);
             
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${allPosts.length} posts from ${competitors.length} competitors`, progress: 15 })}\n\n`);
-            
-            // Sort by engagement and take top 10
-            const sortedPosts = allPosts.sort((a, b) => {
-              const engagementA = (a.likesCount || 0) + (a.commentsCount || 0);
-              const engagementB = (b.likesCount || 0) + (b.commentsCount || 0);
-              return engagementB - engagementA;
-            }).slice(0, 10);
-            
-            // Cache the top 10 posts for 1 hour
-            await storage.setCachedCompetitorPosts(req.user!.id, sortedPosts);
-            
-            // Randomly select posts for this generation
-            const randomPosts = sortedPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
+            // Create rotated posts array
+            const rotatedPosts = [];
+            for (let i = 0; i < numberOfIdeas; i++) {
+              rotatedPosts.push(cachedPosts[i % cachedPosts.length]);
+            }
+            scrapedData = rotatedPosts;
+          } else {
+            // Randomly select from available posts
+            const randomPosts = cachedPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
             scrapedData = randomPosts;
-            
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached top 10 posts for 1 hour, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
           }
+          
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 20 })}\n\n`);
+        } else {
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'No competitor posts available. Please check your competitors.' })}\n\n`);
+          res.end();
+          return;
         }
       } else if (generationType === 'trending') {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking for cached trending posts...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking trending posts cache...', progress: 0 })}\n\n`);
         
-        // Check for cached trending posts first
+        // Wait for cache warming to complete if in progress
+        await cacheWarmer.waitForCache(req.user!.id, 'trending');
+        
+        // Get cached trending posts
         const cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
         
-        if (cachedTrendingPosts.length >= numberOfIdeas) {
-          // Use cached posts - randomly select requested number
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Using cached trending posts...', progress: 10 })}\n\n`);
-          const randomPosts = cachedTrendingPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
-          scrapedData = randomPosts;
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} cached trending posts`, progress: 20 })}\n\n`);
-        } else {
-          // Fetch fresh trending data and cache it
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh trending posts...', progress: 5 })}\n\n`);
+        if (cachedTrendingPosts.length > 0) {
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${cachedTrendingPosts.length} cached trending posts`, progress: 10 })}\n\n`);
           
-          if (apifyScraper) {
-            // Fetch 20-30 trending posts for caching
-            const allTrendingPosts = await apifyScraper.searchTrendingPosts(niche, 30);
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Found ${allTrendingPosts.length} trending posts`, progress: 15 })}\n\n`);
+          // Handle rotation logic - if requested more than available, rotate posts
+          if (numberOfIdeas > cachedTrendingPosts.length) {
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedTrendingPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 15 })}\n\n`);
             
-            // Cache all trending posts for 1 hour
-            await competitorPostCache.setCachedTrendingPosts(niche, allTrendingPosts);
-            
-            // Randomly select posts for this generation
-            const randomPosts = allTrendingPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
+            // Create rotated posts array
+            const rotatedPosts = [];
+            for (let i = 0; i < numberOfIdeas; i++) {
+              rotatedPosts.push(cachedTrendingPosts[i % cachedTrendingPosts.length]);
+            }
+            scrapedData = rotatedPosts;
+          } else {
+            // Randomly select from available posts
+            const randomPosts = cachedTrendingPosts.sort(() => 0.5 - Math.random()).slice(0, numberOfIdeas);
             scrapedData = randomPosts;
-            
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cached ${allTrendingPosts.length} trending posts for 1 hour, selected ${scrapedData.length} for generation`, progress: 20 })}\n\n`);
           }
+          
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 20 })}\n\n`);
+        } else {
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'No trending posts available. Please try again later.' })}\n\n`);
+          res.end();
+          return;
         }
       }
 
@@ -389,15 +407,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           if (content && content.length > 0) {
-            generatedContent.push(content[0]);
+            // Ensure Instagram URL is present for competitor and trending posts
+            const sourceUrl = post ? (post.url || `https://instagram.com/p/${post.shortCode}`) : null;
             
-            // Stream the generated content immediately
-            res.write(`data: ${JSON.stringify({ 
-              type: 'content', 
-              content: content[0],
-              sourceUrl: post ? (post.url || `https://instagram.com/p/${post.shortCode}`) : null,
-              index: i
-            })}\n\n`);
+            // Only send content if it has a valid Instagram URL (for competitor/trending) or is date-based
+            if (generationType === 'date' || sourceUrl) {
+              generatedContent.push(content[0]);
+              
+              // Stream the generated content immediately
+              res.write(`data: ${JSON.stringify({ 
+                type: 'content', 
+                content: content[0],
+                sourceUrl: sourceUrl,
+                index: i
+              })}\n\n`);
+            } else {
+              console.warn(`Skipping content ${i + 1} - no Instagram URL available`);
+            }
           }
         } catch (contentError) {
           console.error(`Error generating content for post ${i + 1}:`, contentError);
