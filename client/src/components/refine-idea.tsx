@@ -12,7 +12,7 @@ import { Send, Lightbulb, Copy, ArrowLeft, Bot, User, Loader2, ChevronDown } fro
 import type { ContentIdea } from "@/hooks/useContentState";
 
 interface RefineIdeaProps {
-  idea: ContentIdea;
+  idea?: ContentIdea;
   onBack: () => void;
 }
 
@@ -63,11 +63,17 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
   // Add welcome message on first load
   useEffect(() => {
     if (messages.length === 0) {
+      const welcomeMessage = idea 
+        ? `Hi! I'm your Instagram growth expert. I can see you have a ${idea.generationType} idea about "${idea.headline}". 
+
+I'm here to help you refine this content to maximize engagement and viral potential. What would you like to improve or explore about this post?`
+        : `Hi! I'm your Instagram growth expert. I'm here to help you create and refine content to maximize engagement and viral potential.
+
+You can ask me anything about Instagram content strategy, and I'll help you craft compelling posts that drive results.`;
+
       setMessages([{
         role: 'assistant',
-        content: `Hi! I'm your Instagram growth expert. I can see you have a ${idea.generationType} idea about "${idea.headline}". 
-
-I'm here to help you refine this content to maximize engagement and viral potential. What would you like to improve or explore about this post?
+        content: `${welcomeMessage}
 
 💡 **I can help you with:**
 • Hook optimization for better engagement
@@ -77,7 +83,7 @@ I'm here to help you refine this content to maximize engagement and viral potent
 • Call-to-action improvements
 • Trending topics integration
 
-What's your biggest challenge with this content?`,
+What would you like to work on today?`,
         timestamp: new Date()
       }]);
     }

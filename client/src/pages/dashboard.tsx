@@ -35,22 +35,14 @@ export default function Dashboard() {
   // Listen for refine panel events from sidebar
   useEffect(() => {
     const handleShowRefineIdeas = () => {
-      // Get the first available idea from the content state
-      if (state.generatedIdeas.length > 0) {
-        setRefineIdea(state.generatedIdeas[0]);
-        setShowRefinePanel(true);
-      } else {
-        toast({
-          title: "No Ideas Available",
-          description: "Generate some content ideas first to use the refine feature.",
-          variant: "destructive",
-        });
-      }
+      // Show refine panel - can work with or without existing ideas
+      setRefineIdea(state.generatedIdeas.length > 0 ? state.generatedIdeas[0] : null);
+      setShowRefinePanel(true);
     };
 
     window.addEventListener('showRefineIdeas', handleShowRefineIdeas);
     return () => window.removeEventListener('showRefineIdeas', handleShowRefineIdeas);
-  }, [state.generatedIdeas, toast]);
+  }, [state.generatedIdeas]);
 
   if (isLoading) {
     return (
@@ -67,7 +59,7 @@ export default function Dashboard() {
     return null;
   }
 
-  if (showRefinePanel && refineIdea) {
+  if (showRefinePanel) {
     return (
       <RefineIdea 
         idea={refineIdea} 
