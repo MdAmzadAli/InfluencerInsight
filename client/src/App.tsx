@@ -70,6 +70,10 @@ function Router() {
         <Route path="/login" component={Auth} />
         <Route path="/signup" component={Auth} />
         <Route path="/" component={Landing} />
+        {/* Redirect all other routes to landing if not authenticated */}
+        <Route>
+          <Landing />
+        </Route>
       </Switch>
     );
   }

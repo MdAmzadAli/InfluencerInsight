@@ -179,14 +179,6 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
                   </p>
                 </div>
               </div>
-              <DropdownMenuItem className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
