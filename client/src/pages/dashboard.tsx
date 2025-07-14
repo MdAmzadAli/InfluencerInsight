@@ -46,10 +46,10 @@ export default function Dashboard() {
   }
 
   // Determine which component to render based on the current route
+  // Default to Generate Ideas when on root dashboard
   const renderContent = () => {
     switch (location) {
       case '/':
-        return <GenerateIdeas />;
       case '/generate':
         return <GenerateIdeas />;
       case '/saved':

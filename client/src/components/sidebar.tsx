@@ -64,7 +64,13 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
     { name: 'Niche', href: '/settings', icon: Settings },
   ];
 
-  const isActive = (href: string) => location === href;
+  const isActive = (href: string) => {
+    if (href === '/generate' && location === '/') {
+      // Default to generate ideas when on root dashboard
+      return true;
+    }
+    return location === href;
+  };
 
   const dashboardOptions = [
     { name: 'Generate Ideas', href: '/generate' },
@@ -115,7 +121,7 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
                       {dashboardOptions.map((option) => (
                         <Link key={option.name} href={option.href}>
                           <Button
-                            variant="ghost"
+                            variant={isActive(option.href) ? "default" : "ghost"}
                             size="sm"
                             className="w-full justify-start text-sm"
                           >
