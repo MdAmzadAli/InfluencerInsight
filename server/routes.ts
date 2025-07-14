@@ -244,40 +244,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      // Get scraped data based on generation type with non-blocking approach
+      // Get scraped data based on generation type with proper cache management
       let scrapedData = [];
       if (generationType === 'competitor' && competitors && competitors.length > 0) {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking competitor posts...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking competitor posts cache...', progress: 0 })}\n\n`);
         
-        // Check if cache is ready (non-blocking)
-        const isCacheReady = cacheWarmer.isCacheReady(req.user!.id, 'competitor');
-        let cachedPosts = [];
+        // First, check if we have cached data already
+        let cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
         
-        if (isCacheReady) {
-          // Use cached data immediately
-          cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
-          console.log(`🔍 Retrieved cached posts:`, cachedPosts.slice(0, 2).map(p => ({ id: p?.id, username: p?.ownerUsername, url: p?.url })));
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedPosts.length} cached competitor posts`, progress: 10 })}\n\n`);
+        if (cachedPosts.length > 0) {
+          // Case 2: Cache already filled - use cached data
+          console.log(`✅ Using existing cached competitor posts: ${cachedPosts.length} posts`);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedPosts.length} cached competitor posts`, progress: 15 })}\n\n`);
         } else {
-          // Try waiting for a short time (3 seconds max) for cache
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Cache warming in progress, waiting briefly...', progress: 5 })}\n\n`);
-          const cacheReady = await cacheWarmer.waitForCache(req.user!.id, 'competitor', 3000);
+          // Check if cache is currently warming
+          const isWarming = cacheWarmer.isWarming(req.user!.id);
           
-          if (cacheReady) {
-            cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cache ready! Using ${cachedPosts.length} posts`, progress: 10 })}\n\n`);
+          if (isWarming) {
+            // Case 1: Cache is warming - wait for it to complete
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Cache warming in progress, waiting for completion...', progress: 5 })}\n\n`);
+            
+            // Wait up to 60 seconds for cache warming to complete
+            const cacheReady = await cacheWarmer.waitForCache(req.user!.id, 'competitor', 60000);
+            
+            if (cacheReady) {
+              cachedPosts = await storage.getCachedCompetitorPosts(req.user!.id);
+              console.log(`✅ Cache warmed successfully: ${cachedPosts.length} posts`);
+              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cache ready! Using ${cachedPosts.length} posts`, progress: 15 })}\n\n`);
+            } else {
+              res.write(`data: ${JSON.stringify({ type: 'error', message: 'Cache warming timed out. Please try again.' })}\n\n`);
+              res.end();
+              return;
+            }
           } else {
-            // Fetch fresh data immediately instead of waiting
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh competitor posts...', progress: 15 })}\n\n`);
+            // Case 3: No cache data and not warming - make fresh API call
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'No cached data found, fetching fresh competitor posts...', progress: 5 })}\n\n`);
+            
             if (apifyScraper) {
               const instagramUrls = apifyScraper.convertUsernamesToUrls(competitors);
               const freshPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, Math.max(numberOfIdeas, 10));
+              
+              // Sort by engagement and cache the results
               cachedPosts = freshPosts.sort((a, b) => {
                 const engagementA = (a.likesCount || 0) + (a.commentsCount || 0);
                 const engagementB = (b.likesCount || 0) + (b.commentsCount || 0);
                 return engagementB - engagementA;
               });
-              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Fetched ${cachedPosts.length} fresh posts`, progress: 20 })}\n\n`);
+              
+              // Cache the fresh data for future use
+              await storage.setCachedCompetitorPosts(req.user!.id, cachedPosts);
+              
+              console.log(`✅ Fresh competitor posts fetched and cached: ${cachedPosts.length} posts`);
+              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Fetched and cached ${cachedPosts.length} fresh posts`, progress: 15 })}\n\n`);
+            } else {
+              res.write(`data: ${JSON.stringify({ type: 'error', message: 'Instagram scraper not available. Please try again later.' })}\n\n`);
+              res.end();
+              return;
             }
           }
         }
@@ -306,31 +328,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
       } else if (generationType === 'trending') {
-        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking trending posts...', progress: 0 })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Checking trending posts cache...', progress: 0 })}\n\n`);
         
-        // Check if cache is ready (non-blocking)
-        const isTrendingCacheReady = cacheWarmer.isCacheReady(req.user!.id, 'trending');
-        let cachedTrendingPosts = [];
+        // First, check if we have cached trending data
+        let cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
         
-        if (isTrendingCacheReady) {
-          // Use cached data immediately
-          cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedTrendingPosts.length} cached trending posts`, progress: 10 })}\n\n`);
+        if (cachedTrendingPosts.length > 0) {
+          // Case 2: Cache already filled - use cached data
+          console.log(`✅ Using existing cached trending posts: ${cachedTrendingPosts.length} posts`);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Using ${cachedTrendingPosts.length} cached trending posts`, progress: 15 })}\n\n`);
         } else {
-          // Try waiting for a short time (3 seconds max) for cache
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Cache warming in progress, waiting briefly...', progress: 5 })}\n\n`);
-          const trendingCacheReady = await cacheWarmer.waitForCache(req.user!.id, 'trending', 3000);
+          // Check if cache is currently warming
+          const isWarming = cacheWarmer.isWarming(req.user!.id);
           
-          if (trendingCacheReady) {
-            cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Cache ready! Using ${cachedTrendingPosts.length} posts`, progress: 10 })}\n\n`);
+          if (isWarming) {
+            // Case 1: Cache is warming - wait for it to complete
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Trending cache warming in progress, waiting for completion...', progress: 5 })}\n\n`);
+            
+            // Wait up to 60 seconds for cache warming to complete
+            const cacheReady = await cacheWarmer.waitForCache(req.user!.id, 'trending', 60000);
+            
+            if (cacheReady) {
+              cachedTrendingPosts = await competitorPostCache.getCachedTrendingPosts(niche);
+              console.log(`✅ Trending cache warmed successfully: ${cachedTrendingPosts.length} posts`);
+              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Trending cache ready! Using ${cachedTrendingPosts.length} posts`, progress: 15 })}\n\n`);
+            } else {
+              res.write(`data: ${JSON.stringify({ type: 'error', message: 'Trending cache warming timed out. Please try again.' })}\n\n`);
+              res.end();
+              return;
+            }
           } else {
-            // Fetch fresh trending data immediately
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'Fetching fresh trending posts...', progress: 15 })}\n\n`);
+            // Case 3: No cache data and not warming - make fresh API call
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: 'No cached trending data found, fetching fresh posts...', progress: 5 })}\n\n`);
+            
             if (apifyScraper) {
-              const freshTrendingPosts = await apifyScraper.searchTrendingPosts(niche, Math.max(numberOfIdeas, 20));
+              const freshTrendingPosts = await apifyScraper.searchTrendingPosts(niche, Math.max(numberOfIdeas, 30));
+              
+              // Cache the fresh data for future use
+              await competitorPostCache.setCachedTrendingPosts(niche, freshTrendingPosts);
               cachedTrendingPosts = freshTrendingPosts;
-              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Fetched ${cachedTrendingPosts.length} fresh trending posts`, progress: 20 })}\n\n`);
+              
+              console.log(`✅ Fresh trending posts fetched and cached: ${cachedTrendingPosts.length} posts`);
+              res.write(`data: ${JSON.stringify({ type: 'progress', message: `Fetched and cached ${cachedTrendingPosts.length} fresh trending posts`, progress: 15 })}\n\n`);
+            } else {
+              res.write(`data: ${JSON.stringify({ type: 'error', message: 'Instagram scraper not available. Please try again later.' })}\n\n`);
+              res.end();
+              return;
             }
           }
         }
@@ -338,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (cachedTrendingPosts.length > 0) {
           // Handle rotation logic - if requested more than available, rotate posts
           if (numberOfIdeas > cachedTrendingPosts.length) {
-            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedTrendingPosts.length} posts to generate ${numberOfIdeas} ideas`, progress: 25 })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'progress', message: `Rotating ${cachedTrendingPosts.length} trending posts to generate ${numberOfIdeas} ideas`, progress: 25 })}\n\n`);
             
             // Create rotated posts array
             const rotatedPosts = [];
@@ -352,9 +395,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             scrapedData = randomPosts;
           }
           
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 30 })}\n\n`);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} trending posts for generation`, progress: 30 })}\n\n`);
         } else {
-          res.write(`data: ${JSON.stringify({ type: 'error', message: 'No trending posts available. Please try again later.' })}\n\n`);
+          res.write(`data: ${JSON.stringify({ type: 'error', message: 'No trending posts available for your niche. Please try again later.' })}\n\n`);
           res.end();
           return;
         }
