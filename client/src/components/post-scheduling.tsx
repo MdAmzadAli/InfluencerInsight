@@ -17,14 +17,19 @@ import {
   ArrowRight,
   Users,
   MessageSquare,
-  Heart
+  Heart,
+  Edit3
 } from "lucide-react";
 import { format } from "date-fns";
+import { useState } from "react";
+import ContentEditor from "./content-editor";
 import type { ScheduledPost } from "@shared/schema";
 
 export default function PostScheduling() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingPost, setEditingPost] = useState<ScheduledPost | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
 
   const { data: scheduledPosts = [], isLoading } = useQuery({
     queryKey: ["/api/posts/scheduled"],
@@ -103,6 +108,21 @@ export default function PostScheduling() {
 
   const handleUpdateStatus = (postId: number, status: string) => {
     updatePostMutation.mutate({ postId, status });
+  };
+
+  const handleEditPost = (post: ScheduledPost) => {
+    setEditingPost(post);
+    setShowEditor(true);
+  };
+
+  const handleEditorClose = () => {
+    setEditingPost(null);
+    setShowEditor(false);
+  };
+
+  const handleEditorSave = (updatedPost: ScheduledPost) => {
+    setEditingPost(null);
+    setShowEditor(false);
   };
 
   const getStatusColor = (status: string) => {
@@ -212,8 +232,9 @@ export default function PostScheduling() {
                         size="sm"
                         variant="outline"
                         className="text-gray-400 hover:text-gray-600"
+                        onClick={() => handleEditPost(post)}
                       >
-                        <i className="fas fa-edit"></i>
+                        <Edit3 className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -245,6 +266,17 @@ export default function PostScheduling() {
           )}
         </CardContent>
       </Card>
+
+      {showEditor && editingPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ContentEditor
+            content={editingPost}
+            type="scheduled"
+            onClose={handleEditorClose}
+            onSave={handleEditorSave}
+          />
+        </div>
+      )}
     </div>
   );
 }

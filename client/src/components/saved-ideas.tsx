@@ -5,12 +5,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ScheduleModal from "./schedule-modal";
+import ContentEditor from "./content-editor";
 import { useState } from "react";
+import { Edit3 } from "lucide-react";
 import type { ContentIdea } from "@shared/schema";
 
 export default function SavedIdeas() {
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editingIdea, setEditingIdea] = useState<ContentIdea | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -59,6 +63,21 @@ export default function SavedIdeas() {
 
   const handleUnsaveIdea = (ideaId: number) => {
     unsaveIdeaMutation.mutate(ideaId);
+  };
+
+  const handleEditIdea = (idea: ContentIdea) => {
+    setEditingIdea(idea);
+    setShowEditor(true);
+  };
+
+  const handleEditorClose = () => {
+    setEditingIdea(null);
+    setShowEditor(false);
+  };
+
+  const handleEditorSave = (updatedIdea: ContentIdea) => {
+    setEditingIdea(null);
+    setShowEditor(false);
   };
 
   if (isLoading) {
@@ -139,7 +158,9 @@ export default function SavedIdeas() {
                   <Button 
                     variant="outline"
                     className="flex-1 text-sm"
+                    onClick={() => handleEditIdea(idea)}
                   >
+                    <Edit3 className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
                 </div>
@@ -159,6 +180,17 @@ export default function SavedIdeas() {
           onClose={() => setShowScheduleModal(false)}
           idea={selectedIdea}
         />
+      )}
+
+      {showEditor && editingIdea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ContentEditor
+            content={editingIdea}
+            type="idea"
+            onClose={handleEditorClose}
+            onSave={handleEditorSave}
+          />
+        </div>
       )}
     </div>
   );

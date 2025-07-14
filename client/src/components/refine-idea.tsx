@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Send, Lightbulb, Copy, ArrowLeft, Bot, User, Loader2, ChevronDown } from 'lucide-react';
+import { Send, Lightbulb, Copy, ArrowLeft, Bot, User, Loader2, ChevronDown, Edit3 } from 'lucide-react';
+import ContentEditor from "./content-editor";
 import type { ContentIdea } from "@/hooks/useContentState";
 
 interface RefineIdeaProps {
@@ -28,6 +29,7 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -262,6 +264,21 @@ What would you like to work on today?`,
     }
   };
 
+  const handleEditIdea = () => {
+    if (idea) {
+      setShowEditor(true);
+    }
+  };
+
+  const handleEditorClose = () => {
+    setShowEditor(false);
+  };
+
+  const handleEditorSave = (updatedIdea: ContentIdea) => {
+    setShowEditor(false);
+    // The ContentEditor handles the API call internally
+  };
+
   return (
     <div className="max-w-6xl mx-auto md:p-6 space-y-0 md:space-y-6">
       {/* Header */}
@@ -278,11 +295,24 @@ What would you like to work on today?`,
             <p className="text-gray-600 text-sm md:text-base">AI-powered content refinement and optimization</p>
           </div>
         </div>
-        {idea && (
-          <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
-            {idea.generationType}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {idea && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleEditIdea}
+              className="flex items-center gap-2"
+            >
+              <Edit3 className="h-4 w-4" />
+              Edit Content
+            </Button>
+          )}
+          {idea && (
+            <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
+              {idea.generationType}
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className={`grid grid-cols-1 ${idea ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-0 md:gap-6`}>
@@ -477,6 +507,17 @@ What would you like to work on today?`,
           </Card>
         </div>
       </div>
+
+      {showEditor && idea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ContentEditor
+            content={idea}
+            type="idea"
+            onClose={handleEditorClose}
+            onSave={handleEditorSave}
+          />
+        </div>
+      )}
     </div>
   );
 }

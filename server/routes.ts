@@ -710,6 +710,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update content idea
+  app.patch('/api/content/ideas/:id', authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const updatedIdea = await storage.updateContentIdea(parseInt(id), updates);
+      res.json(updatedIdea);
+    } catch (error) {
+      console.error("Error updating content idea:", error);
+      res.status(500).json({ error: "Failed to update content idea" });
+    }
+  });
+
   // Schedule a post
   app.post('/api/posts/schedule', authenticateToken, async (req, res) => {
     try {

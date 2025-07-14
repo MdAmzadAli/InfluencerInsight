@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle, Sparkles } from 'lucide-react';
 import ScheduleModal from "./schedule-modal";
+import ContentEditor from "./content-editor";
 
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
 import type { ContentIdea as SharedContentIdea } from "@shared/schema";
@@ -32,6 +33,8 @@ export default function GenerateIdeas() {
   const [clearIdeas, setClearIdeas] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editingIdea, setEditingIdea] = useState<ContentIdea | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
 
   const [selectedGenerationType, setSelectedGenerationType] = useState<'date' | 'competitor' | 'trending'>('date');
   const [isMobile, setIsMobile] = useState(false);
@@ -447,6 +450,28 @@ export default function GenerateIdeas() {
     // Dispatch custom event to App level with the specific idea
     const event = new CustomEvent('showRefineIdeas', { detail: { idea } });
     window.dispatchEvent(event);
+  };
+
+  const handleEditIdea = (idea: ContentIdea) => {
+    setEditingIdea(idea);
+    setShowEditor(true);
+  };
+
+  const handleEditorClose = () => {
+    setEditingIdea(null);
+    setShowEditor(false);
+  };
+
+  const handleEditorSave = (updatedIdea: ContentIdea) => {
+    // Update the local state with the edited idea
+    const updatedIdeas = state.generatedIdeas.map(idea => 
+      idea.id === updatedIdea.id ? updatedIdea : idea
+    );
+    
+    // This would require updating the content state hook to support updating ideas
+    // For now, we'll just close the editor and let the query invalidation handle the update
+    setEditingIdea(null);
+    setShowEditor(false);
   };
 
   // Initialize with user's existing data
@@ -867,6 +892,13 @@ export default function GenerateIdeas() {
                                   >
                                     Refine
                                   </Button>
+                                  <Button 
+                                    variant="outline"
+                                    className="flex-1 text-xs py-1"
+                                    onClick={() => handleEditIdea(idea)}
+                                  >
+                                    Edit
+                                  </Button>
                                 </div>
                               </CardContent>
                             </Card>
@@ -894,6 +926,17 @@ export default function GenerateIdeas() {
           onClose={() => setShowScheduleModal(false)}
           idea={selectedIdea}
         />
+      )}
+
+      {showEditor && editingIdea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ContentEditor
+            content={editingIdea}
+            type="idea"
+            onClose={handleEditorClose}
+            onSave={handleEditorSave}
+          />
+        </div>
       )}
     </div>
   );

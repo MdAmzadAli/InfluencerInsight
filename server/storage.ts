@@ -69,6 +69,7 @@ export interface IStorage {
   getUserContentIdeas(userId: string): Promise<ContentIdea[]>;
   getSavedContentIdeas(userId: string): Promise<ContentIdea[]>;
   updateContentIdeaSaved(ideaId: number, isSaved: boolean): Promise<void>;
+  updateContentIdea(ideaId: number, updates: Partial<InsertContentIdea>): Promise<ContentIdea>;
   
   // Scheduled Posts operations
   createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost>;
@@ -194,6 +195,13 @@ export class DatabaseStorage implements IStorage {
     await db.contentIdea.update({
       where: { id: ideaId },
       data: { isSaved }
+    });
+  }
+
+  async updateContentIdea(ideaId: number, updates: Partial<InsertContentIdea>): Promise<ContentIdea> {
+    return await db.contentIdea.update({
+      where: { id: ideaId },
+      data: updates
     });
   }
 
