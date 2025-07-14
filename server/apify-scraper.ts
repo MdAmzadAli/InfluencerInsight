@@ -90,6 +90,7 @@ export class ApifyInstagramScraper {
       );
 
       console.log('📊 Apify trending response:', {
+        rawResponse: response.data,
         totalPosts: response.data.topPosts?.length || 0,
         responseKeys: Object.keys(response.data),
         samplePost: response.data.topPosts?.[0] ? {
@@ -99,6 +100,11 @@ export class ApifyInstagramScraper {
           url: response.data.topPosts[0].url
         } : null
       });
+
+      // Handle the case where response is in format [{"topPosts":[]}]
+      if (Array.isArray(response.data) && response.data.length > 0 && response.data[0].topPosts) {
+        return response.data[0].topPosts || [];
+      }
 
       return response.data.topPosts || [];
     } catch (error) {
