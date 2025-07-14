@@ -95,12 +95,15 @@ export function useContentState() {
   };
 
   const separateIdeasAndLinks = (ideas: string) => {
+    console.log('🔍 Separating ideas and links from:', ideas);
+    
     // Look for "Source:" pattern which is how we format Instagram links
     const sourceMatch = ideas.match(/Source:\s*(https?:\/\/[^\s]+)/i);
     
     if (sourceMatch) {
       const link = sourceMatch[1];
       const strategy = ideas.replace(/Source:\s*https?:\/\/[^\s]+/i, '').trim();
+      console.log('✅ Found source link:', link, 'Strategy:', strategy);
       return { strategy, link };
     }
     
@@ -112,9 +115,11 @@ export function useContentState() {
     if (linkLine) {
       const linkMatch = linkLine.match(/https?:\/\/[^\s]+/);
       const link = linkMatch ? linkMatch[0] : '';
+      console.log('✅ Found inspired by link:', link, 'Strategy:', strategy);
       return { strategy, link };
     }
     
+    console.log('✅ No link found, returning full ideas as strategy:', ideas);
     return { strategy: ideas, link: '' };
   };
 
