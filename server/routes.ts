@@ -298,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             scrapedData = randomPosts;
           }
           
-          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 20 })}\n\n`);
+          res.write(`data: ${JSON.stringify({ type: 'progress', message: `Selected ${scrapedData.length} posts for generation`, progress: 30 })}\n\n`);
         } else {
           res.write(`data: ${JSON.stringify({ type: 'error', message: 'No competitor posts available. Please check your competitors.' })}\n\n`);
           res.end();
@@ -418,9 +418,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      console.log(`🎯 Starting content generation for ${numberOfPosts} posts, generationType: ${generationType}`);
+      console.log(`📊 ScrapedData sample:`, scrapedData.slice(0, 2).map(p => ({ id: p?.id, username: p?.ownerUsername, url: p?.url })));
+      
       for (let i = 0; i < numberOfPosts; i++) {
         const post = scrapedData[i] || null;
-        const progress = 20 + ((i + 1) / numberOfPosts) * 70;
+        const progress = 30 + ((i + 1) / numberOfPosts) * 60;
         
         if (post) {
           res.write(`data: ${JSON.stringify({ 
@@ -437,19 +440,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         try {
+          console.log(`🤖 Generating content for post ${i + 1}:`, {
+            hasPost: !!post,
+            postId: post?.id,
+            postUsername: post?.ownerUsername,
+            postUrl: post?.url,
+            generationType,
+            niche
+          });
+          
           const content = await generateInstagramContentWithGemini({
             niche,
             generationType,
-            context: "Generated from streaming API",
+            context: `Generated from streaming API - Post ${i + 1}/${numberOfPosts}`,
             competitors,
             scrapedData: post ? [post] : [], // Pass individual post or empty array
             useApifyData: !!post,
             numberOfIdeas: 1 // Always generate 1 idea per iteration for streaming
           });
+          
+          console.log(`✅ Generated content for post ${i + 1}:`, content?.[0]?.headline || 'No content');
 
           if (content && content.length > 0) {
             // Ensure Instagram URL is present for competitor and trending posts
-            const sourceUrl = post ? (post.url || `https://instagram.com/p/${post.shortCode}`) : null;
+            let sourceUrl = null;
+            if (post) {
+              if (post.url) {
+                sourceUrl = post.url;
+              } else if (post.shortCode) {
+                sourceUrl = `https://instagram.com/p/${post.shortCode}`;
+              } else if (post.id) {
+                // Fallback to Instagram post URL using ID if shortCode is missing
+                sourceUrl = `https://instagram.com/p/${post.id}`;
+              }
+            }
             
             // Only send content if it has a valid Instagram URL (for competitor/trending) or is date-based
             if (generationType === 'date' || sourceUrl) {
@@ -463,7 +487,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 index: i
               })}\n\n`);
             } else {
-              console.warn(`Skipping content ${i + 1} - no Instagram URL available`);
+              console.warn(`Skipping content ${i + 1} - no Instagram URL available. Post data:`, {
+                hasPost: !!post,
+                postUrl: post?.url,
+                postShortCode: post?.shortCode,
+                postId: post?.id
+              });
             }
           }
         } catch (contentError) {

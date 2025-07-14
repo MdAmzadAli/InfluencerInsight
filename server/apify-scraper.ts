@@ -96,11 +96,20 @@ export class ApifyInstagramScraper {
       });
 
       // Handle the case where response is in format [{"topPosts":[]}]
+      let posts: ApifyTrendingPost[] = [];
       if (Array.isArray(response.data) && response.data.length > 0 && response.data[0].topPosts) {
-        return response.data[0].topPosts || [];
+        posts = response.data[0].topPosts || [];
+      } else if (response.data.topPosts) {
+        posts = response.data.topPosts || [];
+      } else if (Array.isArray(response.data)) {
+        // Sometimes it's just an array of posts
+        posts = response.data;
       }
 
-      return response.data.topPosts || [];
+      // Format posts to ensure proper URL structure
+      const formattedPosts = this.formatPostsForAI(posts);
+      
+      return formattedPosts;
     } catch (error) {
       console.error('Apify Instagram scraper error:', error);
       if (axios.isAxiosError(error)) {
@@ -208,7 +217,10 @@ export class ApifyInstagramScraper {
       
       console.log(`📊 Posts distribution:`, postsByCompetitor);
       
-      return posts;
+      // Format posts to ensure proper URL structure
+      const formattedPosts = this.formatPostsForAI(posts);
+      
+      return formattedPosts;
     } catch (error) {
       console.error('❌ Apify competitor scraper error:', error);
       if (axios.isAxiosError(error)) {
@@ -260,19 +272,37 @@ export class ApifyInstagramScraper {
 
   // Helper method to format posts for content generation
   formatPostsForAI(posts: ApifyTrendingPost[]): any[] {
-    return posts.map(post => ({
-      id: post.id,
-      username: post.ownerUsername,
-      caption: post.caption,
-      hashtags: post.hashtags,
-      likes: post.likesCount,
-      comments: post.commentsCount,
-      imageUrls: this.getPostImages(post),
-      url: post.url,
-      timestamp: post.timestamp,
-      engagement: post.likesCount + post.commentsCount,
-      location: post.locationName
-    }));
+    return posts.map(post => {
+      // Ensure we have a valid Instagram URL
+      let instagramUrl = post.url;
+      if (!instagramUrl && post.shortCode) {
+        instagramUrl = `https://instagram.com/p/${post.shortCode}`;
+      } else if (!instagramUrl && post.id) {
+        instagramUrl = `https://instagram.com/p/${post.id}`;
+      }
+      
+      return {
+        id: post.id,
+        shortCode: post.shortCode,
+        username: post.ownerUsername,
+        ownerUsername: post.ownerUsername,
+        ownerFullName: post.ownerFullName,
+        caption: post.caption,
+        hashtags: post.hashtags,
+        likes: post.likesCount,
+        comments: post.commentsCount,
+        likesCount: post.likesCount,
+        commentsCount: post.commentsCount,
+        imageUrls: this.getPostImages(post),
+        displayUrl: post.displayUrl,
+        url: instagramUrl,
+        timestamp: post.timestamp,
+        engagement: post.likesCount + post.commentsCount,
+        location: post.locationName,
+        locationName: post.locationName,
+        type: post.type || 'Image'
+      };
+    });
   }
 }
 

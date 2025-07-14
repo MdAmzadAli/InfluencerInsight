@@ -78,15 +78,13 @@ class CacheWarmer {
     // Warm competitor posts if competitors exist
     if (competitors.length > 0) {
       const cachedCompetitorPosts = await storage.getCachedCompetitorPosts(userId);
-      if (cachedCompetitorPosts.length < 10) {
-        console.log(`🔥 Warming competitor posts cache for ${competitors.length} competitors`);
-        const competitorTask = this.warmCompetitorPostsBackground(state);
-        state.promises.competitor = competitorTask;
-        warmingTasks.push(competitorTask);
-      } else {
-        console.log(`✅ Competitor posts cache already warmed (${cachedCompetitorPosts.length} posts)`);
-        state.competitorPostsReady = true;
-      }
+      console.log(`🔍 Found ${cachedCompetitorPosts.length} cached competitor posts for ${competitors.length} competitors`);
+      
+      // Always warm competitor cache to ensure fresh data
+      console.log(`🔥 Warming competitor posts cache for ${competitors.length} competitors: ${competitors.join(', ')}`);
+      const competitorTask = this.warmCompetitorPostsBackground(state);
+      state.promises.competitor = competitorTask;
+      warmingTasks.push(competitorTask);
     } else {
       console.log(`⚠️ No competitors found for user ${userId}, skipping competitor cache warming`);
       state.competitorPostsReady = true;
@@ -117,12 +115,24 @@ class CacheWarmer {
   private async warmCompetitorPostsBackground(state: CacheWarmingState): Promise<void> {
     try {
       if (!apifyScraper || state.competitors.length === 0) {
+        console.log('❌ Apify scraper not available or no competitors');
         state.competitorPostsReady = true;
         return;
       }
 
+      console.log(`🚀 Starting competitor scraping for: ${state.competitors.join(', ')}`);
+      
       const instagramUrls = apifyScraper.convertUsernamesToUrls(state.competitors);
+      console.log(`📱 Instagram URLs: ${instagramUrls.join(', ')}`);
+      
       const allPosts = await apifyScraper.scrapeCompetitorProfiles(instagramUrls, 10);
+      console.log(`📊 Raw posts fetched: ${allPosts.length}`);
+      
+      if (allPosts.length === 0) {
+        console.log('⚠️ No posts fetched from competitors');
+        state.competitorPostsReady = true;
+        return;
+      }
       
       // Sort by engagement and take top 10
       const sortedPosts = allPosts.sort((a, b) => {
@@ -134,10 +144,10 @@ class CacheWarmer {
       // Cache the posts
       await storage.setCachedCompetitorPosts(state.userId, sortedPosts);
       
-      console.log(`✅ Competitor posts cache warmed: ${sortedPosts.length} posts cached`);
+      console.log(`✅ Competitor posts cache warmed: ${sortedPosts.length} posts cached from ${state.competitors.join(', ')}`);
       state.competitorPostsReady = true;
     } catch (error) {
-      console.error('Error warming competitor posts cache:', error);
+      console.error('❌ Error warming competitor posts cache:', error);
       state.competitorPostsReady = true; // Set to true to prevent blocking
     }
   }
