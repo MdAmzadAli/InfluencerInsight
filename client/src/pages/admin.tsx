@@ -46,17 +46,20 @@ export default function AdminPage() {
 
   const sendOTP = useMutation({
     mutationFn: async (email: string) => {
+      console.log('Sending OTP for:', email);
       return apiRequest('POST', '/api/admin/send-otp', { email });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('OTP sent successfully:', data);
       toast({
         title: "OTP sent!",
-        description: "Check your email for the verification code.",
+        description: "Check the server console for the verification code.",
       });
       setShowOTPForm(true);
       setEmail(form.getValues('email'));
     },
     onError: (error: any) => {
+      console.error('OTP send error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to send OTP. Please try again.",
@@ -87,9 +90,13 @@ export default function AdminPage() {
   });
 
   const onSubmit = (data: OTPFormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('showOTPForm:', showOTPForm);
     if (!showOTPForm) {
+      console.log('Sending OTP...');
       sendOTP.mutate(data.email);
     } else {
+      console.log('Verifying OTP...');
       verifyOTP.mutate(data);
     }
   };
