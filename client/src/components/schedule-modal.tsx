@@ -25,7 +25,7 @@ interface ScheduleModalProps {
 export default function ScheduleModal({ isOpen, onClose, idea, customPost }: ScheduleModalProps) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [repeat, setRepeat] = useState("no-repeat");
+
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -138,20 +138,7 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
             />
           </div>
           
-          <div>
-            <Label htmlFor="repeat">Repeat</Label>
-            <Select value={repeat} onValueChange={setRepeat}>
-              <SelectTrigger className="mt-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-repeat">No repeat</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
 
           {/* Post preview */}
           <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
