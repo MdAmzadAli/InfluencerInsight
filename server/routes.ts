@@ -778,6 +778,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'scheduled'
       });
 
+      // Send immediate notification about the scheduled post
+      notificationService.sendImmediateScheduleNotification(req.user!.id, scheduledPost);
+      
+      // Schedule a reminder notification for when the post should be published
+      notificationService.schedulePostNotification(scheduledPost.id, new Date(scheduledDate), req.user!.id);
+
       res.json(scheduledPost);
     } catch (error) {
       console.error("Error scheduling post:", error);

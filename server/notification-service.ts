@@ -1,8 +1,10 @@
 import { storage } from './storage';
 import cron from 'node-cron';
+import type { ScheduledPost } from '@shared/schema';
 
 export interface NotificationService {
-  schedulePostNotification(postId: number, scheduledDate: Date): void;
+  schedulePostNotification(postId: number, scheduledDate: Date, userId?: string): void;
+  sendImmediateScheduleNotification(userId: string, post: ScheduledPost): void;
   startNotificationScheduler(): void;
   stopNotificationScheduler(): void;
 }
@@ -10,7 +12,37 @@ export interface NotificationService {
 class BasicNotificationService implements NotificationService {
   private scheduledTasks: Map<number, any> = new Map();
 
-  schedulePostNotification(postId: number, scheduledDate: Date): void {
+  // Send immediate notification when a post is scheduled
+  sendImmediateScheduleNotification(userId: string, post: ScheduledPost): void {
+    const scheduledTime = new Date(post.scheduledDate).toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    console.log('\n🔔 POST SCHEDULED NOTIFICATION');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`👤 User: ${userId}`);
+    console.log(`📅 Scheduled for: ${scheduledTime}`);
+    console.log(`📝 Headline: ${post.headline}`);
+    console.log(`📄 Caption: ${post.caption}`);
+    console.log(`🏷️  Hashtags: ${post.hashtags}`);
+    if (post.ideas) {
+      console.log(`💡 Strategy: ${post.ideas}`);
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    // TODO: In a real application, you would:
+    // - Send push notification to user's device
+    // - Send email notification
+    // - Store notification in database for in-app display
+    // - Send webhook to external services
+  }
+
+  schedulePostNotification(postId: number, scheduledDate: Date, userId?: string): void {
     // Cancel existing notification if any
     if (this.scheduledTasks.has(postId)) {
       this.scheduledTasks.get(postId)?.destroy();
@@ -24,13 +56,26 @@ class BasicNotificationService implements NotificationService {
     if (timeDiff > 0) {
       const timeoutId = setTimeout(async () => {
         try {
-          const scheduledPosts = await storage.getUserScheduledPosts('demo-user-123');
+          // Get the specific user's scheduled posts
+          if (!userId) {
+            console.error('No user ID provided for post notification');
+            return;
+          }
+          
+          const scheduledPosts = await storage.getUserScheduledPosts(userId);
           const post = scheduledPosts.find(p => p.id === postId);
           
           if (post && post.status === 'scheduled') {
-            console.log(`🔔 POST REMINDER: It's time to post "${post.headline}"!`);
-            console.log(`Caption: ${post.caption.substring(0, 100)}...`);
-            console.log(`Hashtags: ${post.hashtags}`);
+            console.log('\n🚨 POST PUBLISHING REMINDER');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log(`👤 User: ${userId}`);
+            console.log(`⏰ Time to publish: "${post.headline}"`);
+            console.log(`📄 Caption: ${post.caption}`);
+            console.log(`🏷️  Hashtags: ${post.hashtags}`);
+            if (post.ideas) {
+              console.log(`💡 Strategy: ${post.ideas}`);
+            }
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
             
             // Update post status to 'reminded'
             await storage.updateScheduledPost(postId, { status: 'reminded' });
@@ -42,7 +87,11 @@ class BasicNotificationService implements NotificationService {
         this.scheduledTasks.delete(postId);
       }, timeDiff);
       
-      this.scheduledTasks.set(postId, { destroy: () => clearTimeout(timeoutId) });
+      this.scheduledTasks.set(postId, { 
+        destroy: () => clearTimeout(timeoutId),
+        userId,
+        scheduledDate 
+      });
     }
   }
 
@@ -53,19 +102,49 @@ class BasicNotificationService implements NotificationService {
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
         
-        // Get all scheduled posts (this is a simplified version for demo)
-        const scheduledPosts = await storage.getUserScheduledPosts('demo-user-123');
+        // TODO: In a real production app, you'd get all active users
+        // For this demo, we'll check if we have any scheduled tasks with user info
+        // and also handle the dynamic user system
         
-        for (const post of scheduledPosts) {
-          if (post.status === 'scheduled' && 
-              post.scheduledDate <= fiveMinutesFromNow && 
-              post.scheduledDate > now) {
+        console.log(`🔍 Notification scheduler checking at ${now.toLocaleTimeString()}`);
+        
+        // Check existing scheduled tasks for ones that are ready
+        for (const [postId, task] of this.scheduledTasks.entries()) {
+          if (task.userId && task.scheduledDate <= now) {
+            // This task should have already fired, but let's double check
+            const scheduledPosts = await storage.getUserScheduledPosts(task.userId);
+            const post = scheduledPosts.find(p => p.id === postId);
             
-            if (!this.scheduledTasks.has(post.id)) {
-              this.schedulePostNotification(post.id, post.scheduledDate);
+            if (post && post.status === 'scheduled') {
+              console.log(`⚠️ Found overdue post ${postId} for user ${task.userId}, firing notification now`);
+              
+              // Fire the notification immediately
+              try {
+                task.destroy(); // Clear the timeout
+                this.scheduledTasks.delete(postId);
+                
+                // Send the notification
+                console.log('\n🚨 POST PUBLISHING REMINDER (OVERDUE)');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log(`👤 User: ${task.userId}`);
+                console.log(`⏰ Was scheduled for: ${task.scheduledDate.toLocaleString()}`);
+                console.log(`📝 Headline: "${post.headline}"`);
+                console.log(`📄 Caption: ${post.caption}`);
+                console.log(`🏷️  Hashtags: ${post.hashtags}`);
+                if (post.ideas) {
+                  console.log(`💡 Strategy: ${post.ideas}`);
+                }
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+                
+                // Update post status
+                await storage.updateScheduledPost(postId, { status: 'reminded' });
+              } catch (error) {
+                console.error('Error handling overdue notification:', error);
+              }
             }
           }
         }
+        
       } catch (error) {
         console.error('Error in notification scheduler:', error);
       }
