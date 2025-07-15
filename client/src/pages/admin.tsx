@@ -46,10 +46,7 @@ export default function AdminPage() {
 
   const sendOTP = useMutation({
     mutationFn: async (email: string) => {
-      return apiRequest('/api/admin/send-otp', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
+      return apiRequest('POST', '/api/admin/send-otp', { email });
     },
     onSuccess: () => {
       toast({
@@ -70,10 +67,7 @@ export default function AdminPage() {
 
   const verifyOTP = useMutation({
     mutationFn: async (data: OTPFormData) => {
-      return apiRequest('/api/admin/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/admin/verify-otp', data);
     },
     onSuccess: () => {
       toast({
