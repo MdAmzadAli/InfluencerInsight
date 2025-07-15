@@ -33,11 +33,37 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
 
   const schedulePostMutation = useMutation({
     mutationFn: async (scheduleData: any) => {
-      const response = await apiRequest("POST", "/api/posts/schedule", scheduleData);
-      return response;
+      // If this is a custom post (no existing idea), save it first
+      if (customPost && !idea) {
+        // First save the custom post as a content idea
+        const savedIdea = await apiRequest("POST", "/api/content/ideas", {
+          headline: scheduleData.headline,
+          caption: scheduleData.caption,
+          hashtags: scheduleData.hashtags,
+          ideas: scheduleData.ideas,
+          generationType: "custom",
+          isSaved: false
+        });
+        
+        // Then schedule the post using the saved idea ID
+        const response = await apiRequest("POST", "/api/posts/schedule", {
+          ...scheduleData,
+          contentIdeaId: savedIdea.id,
+          isCustom: true
+        });
+        return response;
+      } else {
+        // For existing ideas, schedule directly
+        const response = await apiRequest("POST", "/api/posts/schedule", scheduleData);
+        return response;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts/scheduled"] });
+      // Also invalidate content ideas if we created a new one
+      if (customPost && !idea) {
+        queryClient.invalidateQueries({ queryKey: ['/api/content/ideas'] });
+      }
       toast({
         title: "Success",
         description: "Post scheduled successfully!",

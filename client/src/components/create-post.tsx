@@ -29,63 +29,7 @@ export default function CreatePost() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const schedulePostMutation = useMutation({
-    mutationFn: async (postData: any) => {
-      // First save the post as a content idea
-      const savedIdea = await apiRequest("POST", "/api/content/ideas", {
-        headline: postData.headline,
-        caption: postData.caption,
-        hashtags: postData.hashtags,
-        ideas: postData.ideas,
-        generationType: "custom",
-        isSaved: false
-      });
-      
-      // Then schedule the post using the saved idea ID
-      const scheduledPost = await apiRequest("POST", "/api/posts/schedule", {
-        ...postData,
-        contentIdeaId: savedIdea.id,
-        isCustom: true
-      });
-      
-      return scheduledPost;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Post scheduled successfully!",
-      });
-      setShowScheduleModal(false);
-      // Reset form
-      setPost({
-        headline: "",
-        caption: "",
-        hashtags: "",
-        ideas: ""
-      });
-      // Invalidate queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['/api/content/ideas'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/posts/scheduled'] });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to schedule post. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const handleInputChange = (field: keyof CustomPost, value: string) => {
     setPost(prev => ({
