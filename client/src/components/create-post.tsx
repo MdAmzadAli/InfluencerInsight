@@ -91,7 +91,13 @@ export default function CreatePost() {
   const saveIdeaMutation = useMutation({
     mutationFn: async (ideaData: CustomPost) => {
       const response = await apiRequest("POST", "/api/content/ideas", ideaData);
-      return response.json();
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('Failed to parse JSON response:', text);
+        throw new Error('Invalid response format from server');
+      }
     },
     onSuccess: () => {
       toast({
