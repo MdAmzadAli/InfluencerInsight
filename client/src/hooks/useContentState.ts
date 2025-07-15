@@ -121,6 +121,18 @@ export function useContentState() {
     }));
   };
 
+  const updateIdea = (ideaId: number, updates: Partial<ContentIdea>) => {
+    setState(prev => ({
+      ...prev,
+      generatedIdeas: prev.generatedIdeas.map(idea => 
+        idea.id === ideaId ? { ...idea, ...updates } : idea
+      ),
+      savedIdeas: prev.savedIdeas.map(idea => 
+        idea.id === ideaId ? { ...idea, ...updates } : idea
+      )
+    }));
+  };
+
   const clearAllData = () => {
     // Clear all localStorage data and reset state
     localStorage.removeItem(STORAGE_KEY);
@@ -168,6 +180,7 @@ export function useContentState() {
     addGeneratedIdeas,
     setGenerating,
     saveIdea,
+    updateIdea,
     clearGeneratedIdeas,
     clearAllData,
     separateIdeasAndLinks

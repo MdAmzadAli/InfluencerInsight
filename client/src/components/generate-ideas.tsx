@@ -43,7 +43,7 @@ export default function GenerateIdeas() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { state, addGeneratedIdeas, setGenerating, saveIdea, clearGeneratedIdeas, separateIdeasAndLinks } = useContentState();
+  const { state, addGeneratedIdeas, setGenerating, saveIdea, updateIdea, clearGeneratedIdeas, separateIdeasAndLinks } = useContentState();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -464,12 +464,9 @@ export default function GenerateIdeas() {
 
   const handleEditorSave = (updatedIdea: ContentIdea) => {
     // Update the local state with the edited idea
-    const updatedIdeas = state.generatedIdeas.map(idea => 
-      idea.id === updatedIdea.id ? updatedIdea : idea
-    );
+    updateIdea(updatedIdea.id, updatedIdea);
     
-    // This would require updating the content state hook to support updating ideas
-    // For now, we'll just close the editor and let the query invalidation handle the update
+    // Close the editor
     setEditingIdea(null);
     setShowEditor(false);
   };
