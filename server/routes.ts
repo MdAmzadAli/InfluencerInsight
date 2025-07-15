@@ -971,10 +971,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin routes
   app.post('/api/admin/send-otp', async (req, res) => {
+    console.log('🔥 Admin send-otp endpoint hit!');
+    console.log('Request body:', req.body);
+    console.log('Request headers:', req.headers);
     try {
       const { email } = req.body;
+      console.log('Email received:', email);
       
       if (email !== 'amzad4620@gmail.com') {
+        console.log('❌ Unauthorized email:', email);
         return res.status(403).json({ error: "Unauthorized email address" });
       }
 
