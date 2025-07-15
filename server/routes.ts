@@ -674,6 +674,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create a content idea manually
+  app.post('/api/content/ideas', authenticateToken, async (req, res) => {
+    try {
+      const { headline, caption, hashtags, ideas } = req.body;
+      
+      if (!headline || !caption) {
+        return res.status(400).json({ error: "Headline and caption are required" });
+      }
+
+      const contentIdea = await storage.createContentIdea({
+        userId: req.user!.id,
+        headline,
+        caption,
+        hashtags: hashtags || '',
+        ideas: ideas || '',
+        generationType: 'custom',
+        isSaved: true, // Save manually created ideas by default
+      });
+
+      res.json(contentIdea);
+    } catch (error) {
+      console.error("Error creating content idea:", error);
+      res.status(500).json({ error: "Failed to create content idea" });
+    }
+  });
+
   // Get user's content ideas
   app.get('/api/content/ideas', authenticateToken, async (req, res) => {
     try {

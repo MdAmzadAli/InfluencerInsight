@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,6 +27,7 @@ export default function CreatePost() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const schedulePostMutation = useMutation({
     mutationFn: async (postData: any) => {
@@ -87,13 +88,58 @@ export default function CreatePost() {
     setShowScheduleModal(true);
   };
 
-  const handleSaveDraft = () => {
-    // Save to local storage or implement draft functionality
-    localStorage.setItem('contentcraft_draft', JSON.stringify(post));
-    toast({
-      title: "Success",
-      description: "Draft saved successfully!",
-    });
+  const saveIdeaMutation = useMutation({
+    mutationFn: async (ideaData: CustomPost) => {
+      const response = await apiRequest("POST", "/api/content/ideas", ideaData);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Idea saved successfully!",
+      });
+      // Invalidate and refetch content ideas to update saved ideas section
+      queryClient.invalidateQueries({ queryKey: ['/api/content/ideas'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/content/ideas/saved'] });
+      // Reset form
+      setPost({
+        headline: "",
+        caption: "",
+        hashtags: "",
+        ideas: ""
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to save idea. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveIdea = () => {
+    if (!post.headline.trim() || !post.caption.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in at least the headline and caption.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveIdeaMutation.mutate(post);
   };
 
   return (
