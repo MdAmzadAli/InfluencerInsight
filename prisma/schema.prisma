@@ -38,6 +38,8 @@ model User {
   contentIdeas         ContentIdea[]
   scheduledPosts       ScheduledPost[]
   competitorPostCache  CompetitorPostCache[]
+  feedback             Feedback[]
+  ratings              Rating[]
 
   @@map("users")
 }
@@ -111,4 +113,43 @@ model CompetitorPostCache {
   user User @relation(fields: [userId], references: [id])
 
   @@map("competitor_post_cache")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  userId    String?  @map("user_id") @db.VarChar
+  email     String?  @db.VarChar
+  message   String
+  category  String?  @db.VarChar(50) // 'bug', 'feature', 'general', etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("feedback")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.VarChar
+  rating    Int      // 1-5 stars
+  comment   String?
+  context   String?  @db.VarChar(50) // 'post_scheduled', 'content_generated', etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("ratings")
+}
+
+model AdminOTP {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar
+  otp       String   @db.VarChar(6)
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("admin_otp")
 }

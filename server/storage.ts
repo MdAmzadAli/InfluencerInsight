@@ -1,6 +1,6 @@
 import { db } from './db';
 import bcrypt from 'bcryptjs';
-import type { User, ContentIdea, ScheduledPost, IndianHoliday } from '../shared/schema';
+import type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, InsertFeedback, InsertRating, InsertAdminOTP } from '../shared/schema';
 import { competitorPostCache } from './cache-manager';
 import { ApifyTrendingPost } from './apify-scraper';
 
@@ -85,6 +85,18 @@ export interface IStorage {
   getCachedCompetitorPosts(userId: string): Promise<ApifyTrendingPost[]>;
   setCachedCompetitorPosts(userId: string, posts: ApifyTrendingPost[]): Promise<void>;
   clearExpiredCompetitorPosts(userId: string): Promise<void>;
+  
+  // Feedback operations
+  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
+  getAllFeedback(): Promise<Feedback[]>;
+  
+  // Rating operations
+  createRating(rating: InsertRating): Promise<Rating>;
+  getAllRatings(): Promise<Rating[]>;
+  
+  // Admin OTP operations
+  createAdminOTP(otp: InsertAdminOTP): Promise<AdminOTP>;
+  verifyAdminOTP(email: string, otp: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -296,6 +308,62 @@ export class DatabaseStorage implements IStorage {
 
   async clearExpiredCompetitorPosts(userId: string): Promise<void> {
     await competitorPostCache.clearExpiredCache();
+  }
+
+  // Feedback operations
+  async createFeedback(feedback: InsertFeedback): Promise<Feedback> {
+    return await db.feedback.create({
+      data: feedback
+    });
+  }
+
+  async getAllFeedback(): Promise<Feedback[]> {
+    return await db.feedback.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  // Rating operations
+  async createRating(rating: InsertRating): Promise<Rating> {
+    return await db.rating.create({
+      data: rating
+    });
+  }
+
+  async getAllRatings(): Promise<Rating[]> {
+    return await db.rating.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  // Admin OTP operations
+  async createAdminOTP(otp: InsertAdminOTP): Promise<AdminOTP> {
+    return await db.adminOTP.create({
+      data: otp
+    });
+  }
+
+  async verifyAdminOTP(email: string, otp: string): Promise<boolean> {
+    const record = await db.adminOTP.findFirst({
+      where: {
+        email,
+        otp,
+        isUsed: false,
+        expiresAt: {
+          gt: new Date()
+        }
+      }
+    });
+
+    if (record) {
+      await db.adminOTP.update({
+        where: { id: record.id },
+        data: { isUsed: true }
+      });
+      return true;
+    }
+
+    return false;
   }
 }
 

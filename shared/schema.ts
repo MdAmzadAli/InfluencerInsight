@@ -1,7 +1,7 @@
-import { User, ContentIdea, ScheduledPost, IndianHoliday } from '@prisma/client';
+import { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP } from '@prisma/client';
 
 // Export Prisma types
-export type { User, ContentIdea, ScheduledPost, IndianHoliday };
+export type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP };
 
 // Custom insert types for forms and API
 export type InsertUser = {
@@ -74,5 +74,25 @@ export type CompetitorPostCache = {
   timestamp: Date;
   engagement: number;
   cachedAt: Date;
+  expiresAt: Date;
+};
+
+export type InsertFeedback = {
+  userId?: string;
+  email?: string;
+  message: string;
+  category?: string;
+};
+
+export type InsertRating = {
+  userId: string;
+  rating: number;
+  comment?: string;
+  context?: string;
+};
+
+export type InsertAdminOTP = {
+  email: string;
+  otp: string;
   expiresAt: Date;
 };

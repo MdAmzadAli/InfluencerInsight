@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Auth from "@/pages/auth";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
+import AdminPage from "@/pages/admin";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import PostSchedulingBoard from "@/components/post-scheduling-board";
@@ -62,6 +63,11 @@ function Router() {
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
+  }
+
+  // Admin route should be accessible without authentication
+  if (window.location.pathname === '/admin') {
+    return <AdminPage />;
   }
 
   if (!user) {

@@ -923,6 +923,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Feedback routes
+  app.post('/api/feedback', async (req, res) => {
+    try {
+      const { userId, email, message, category } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const feedback = await storage.createFeedback({
+        userId,
+        email,
+        message,
+        category
+      });
+
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      res.status(500).json({ error: "Failed to create feedback" });
+    }
+  });
+
+  // Rating routes
+  app.post('/api/ratings', authenticateToken, async (req, res) => {
+    try {
+      const { rating, comment, context } = req.body;
+      
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Rating must be between 1 and 5" });
+      }
+
+      const ratingRecord = await storage.createRating({
+        userId: req.user!.id,
+        rating,
+        comment,
+        context
+      });
+
+      res.json(ratingRecord);
+    } catch (error) {
+      console.error("Error creating rating:", error);
+      res.status(500).json({ error: "Failed to create rating" });
+    }
+  });
+
+  // Admin routes
+  app.post('/api/admin/send-otp', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (email !== 'amzad4620@gmail.com') {
+        return res.status(403).json({ error: "Unauthorized email address" });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      await storage.createAdminOTP({
+        email,
+        otp,
+        expiresAt
+      });
+
+      // In a real app, you would send this via email
+      // For now, we'll just log it to the console
+      console.log(`🔐 Admin OTP for ${email}: ${otp}`);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      res.status(500).json({ error: "Failed to send OTP" });
+    }
+  });
+
+  app.post('/api/admin/verify-otp', async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      
+      if (email !== 'amzad4620@gmail.com') {
+        return res.status(403).json({ error: "Unauthorized email address" });
+      }
+
+      const isValid = await storage.verifyAdminOTP(email, otp);
+      
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid or expired OTP" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json({ error: "Failed to verify OTP" });
+    }
+  });
+
+  app.get('/api/admin/feedback', async (req, res) => {
+    try {
+      const feedback = await storage.getAllFeedback();
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  });
+
+  app.get('/api/admin/ratings', async (req, res) => {
+    try {
+      const ratings = await storage.getAllRatings();
+      res.json(ratings);
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+      res.status(500).json({ error: "Failed to fetch ratings" });
+    }
+  });
+
+  app.get('/api/admin/analytics', async (req, res) => {
+    try {
+      const feedback = await storage.getAllFeedback();
+      const ratings = await storage.getAllRatings();
+      
+      const analytics = {
+        totalFeedback: feedback.length,
+        totalRatings: ratings.length,
+        averageRating: ratings.length > 0 
+          ? ratings.reduce((acc, r) => acc + r.rating, 0) / ratings.length 
+          : 0,
+        feedbackByCategory: feedback.reduce((acc, f) => {
+          acc[f.category || 'general'] = (acc[f.category || 'general'] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        ratingDistribution: ratings.reduce((acc, r) => {
+          acc[r.rating] = (acc[r.rating] || 0) + 1;
+          return acc;
+        }, {} as Record<number, number>)
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
   // Test Apify competitor analysis
   app.post('/api/apify/test-competitors', authenticateToken, async (req, res) => {
     try {

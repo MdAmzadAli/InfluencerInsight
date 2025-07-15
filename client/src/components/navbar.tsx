@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Instagram, User, LogOut, Settings, Sparkles, Menu, Home, Calendar, Users } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { FeedbackForm } from '@/components/feedback-form';
 import { useState } from 'react';
 
 interface NavbarProps {
@@ -156,6 +157,8 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
             <span>Welcome back,</span>
             <span className="font-medium">{user?.firstName || user?.email}</span>
           </div>
+          
+          <FeedbackForm />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

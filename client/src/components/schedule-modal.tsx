@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RatingPopup, useRatingPopup } from "@/components/rating-popup";
 import type { ContentIdea } from "@shared/schema";
 
 interface ScheduleModalProps {
@@ -25,10 +26,10 @@ interface ScheduleModalProps {
 export default function ScheduleModal({ isOpen, onClose, idea, customPost }: ScheduleModalProps) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isOpen: ratingOpen, setIsOpen: setRatingOpen, showRating, context, title, description } = useRatingPopup();
 
   const schedulePostMutation = useMutation({
     mutationFn: async (scheduleData: any) => {
@@ -42,6 +43,15 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
         description: "Post scheduled successfully!",
       });
       onClose();
+      
+      // Show rating popup after successful scheduling
+      setTimeout(() => {
+        showRating(
+          'post_scheduled',
+          'How was your scheduling experience?',
+          'We would love to hear your feedback on scheduling posts!'
+        );
+      }, 500);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -170,6 +180,14 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
           </Button>
         </div>
       </DialogContent>
+      
+      <RatingPopup
+        open={ratingOpen}
+        onOpenChange={setRatingOpen}
+        context={context}
+        title={title}
+        description={description}
+      />
     </Dialog>
   );
 }
