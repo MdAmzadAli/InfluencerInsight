@@ -207,10 +207,11 @@ export default function CreatePost() {
                 Schedule Post
               </Button>
               <Button 
-                onClick={handleSaveDraft}
+                onClick={handleSaveIdea}
                 variant="outline"
+                disabled={saveIdeaMutation.isPending}
               >
-                Save as Draft
+                {saveIdeaMutation.isPending ? "Saving..." : "Save Idea"}
               </Button>
             </div>
           </div>
