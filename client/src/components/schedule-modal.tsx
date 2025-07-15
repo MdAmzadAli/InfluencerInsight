@@ -33,11 +33,8 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
 
   const schedulePostMutation = useMutation({
     mutationFn: async (scheduleData: any) => {
-      const response = await apiRequest("/api/posts/schedule", {
-        method: "POST",
-        body: JSON.stringify(scheduleData)
-      });
-      return response.json();
+      const response = await apiRequest("POST", "/api/posts/schedule", scheduleData);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts/scheduled"] });

@@ -48,14 +48,11 @@ export function RatingPopup({
 
   const submitRating = useMutation({
     mutationFn: async (data: RatingFormData) => {
-      return apiRequest('/api/ratings', {
-        method: 'POST',
-        body: JSON.stringify({
-          userId: user?.id,
-          rating: data.rating,
-          comment: data.comment,
-          context,
-        }),
+      return apiRequest('POST', '/api/ratings', {
+        userId: user?.id,
+        rating: data.rating,
+        comment: data.comment,
+        context,
       });
     },
     onSuccess: () => {

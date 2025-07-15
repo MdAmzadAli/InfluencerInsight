@@ -26,11 +26,8 @@ export default function SavedIdeas() {
 
   const unsaveIdeaMutation = useMutation({
     mutationFn: async (ideaId: number) => {
-      const response = await apiRequest(`/api/content/ideas/${ideaId}/save`, { 
-        method: "PATCH",
-        body: JSON.stringify({ isSaved: false })
-      });
-      return response.json();
+      const response = await apiRequest("PATCH", `/api/content/ideas/${ideaId}/save`, { isSaved: false });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/content/ideas/saved"] });

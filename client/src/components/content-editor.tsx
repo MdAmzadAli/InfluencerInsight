@@ -44,11 +44,8 @@ export default function ContentEditor({ content, type, onClose, onSave }: Conten
         ? `/api/content/ideas/${content.id}` 
         : `/api/posts/scheduled/${content.id}`;
       
-      const response = await apiRequest(endpoint, {
-        method: "PATCH",
-        body: JSON.stringify(updates)
-      });
-      return response.json();
+      const response = await apiRequest("PATCH", endpoint, updates);
+      return response;
     },
     onSuccess: (updatedContent) => {
       // Invalidate relevant queries

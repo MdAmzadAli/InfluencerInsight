@@ -31,11 +31,8 @@ export default function CreatePost() {
 
   const schedulePostMutation = useMutation({
     mutationFn: async (postData: any) => {
-      const response = await apiRequest("/api/posts/schedule", {
-        method: "POST",
-        body: JSON.stringify(postData)
-      });
-      return response.json();
+      const response = await apiRequest("POST", "/api/posts/schedule", postData);
+      return response;
     },
     onSuccess: () => {
       toast({
@@ -93,17 +90,8 @@ export default function CreatePost() {
 
   const saveIdeaMutation = useMutation({
     mutationFn: async (ideaData: CustomPost) => {
-      const response = await apiRequest("/api/content/ideas", {
-        method: "POST",
-        body: JSON.stringify(ideaData)
-      });
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        console.error('Failed to parse JSON response:', text);
-        throw new Error('Invalid response format from server');
-      }
+      const response = await apiRequest("POST", "/api/content/ideas", ideaData);
+      return response;
     },
     onSuccess: () => {
       toast({

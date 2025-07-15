@@ -38,14 +38,11 @@ export function FeedbackForm() {
 
   const submitFeedback = useMutation({
     mutationFn: async (data: FeedbackFormData) => {
-      return apiRequest('/api/feedback', {
-        method: 'POST',
-        body: JSON.stringify({
-          userId: user?.id,
-          email: data.email || user?.email,
-          message: data.message,
-          category: data.category,
-        }),
+      return apiRequest('POST', '/api/feedback', {
+        userId: user?.id,
+        email: data.email || user?.email,
+        message: data.message,
+        category: data.category,
       });
     },
     onSuccess: () => {

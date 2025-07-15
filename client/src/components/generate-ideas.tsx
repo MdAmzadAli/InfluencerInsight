@@ -60,21 +60,15 @@ export default function GenerateIdeas() {
       // If competitors are provided, use the PUT endpoint that handles both
       if (data.competitors && data.competitors.trim()) {
         const competitorsArray = data.competitors.split(',').map(c => c.trim().replace(/^@+/, '')).filter(Boolean);
-        const response = await apiRequest("/api/user/competitors", { 
-          method: "PUT",
-          body: JSON.stringify({
-            niche: data.niche, 
-            competitors: competitorsArray 
-          })
+        const response = await apiRequest("PUT", "/api/user/competitors", {
+          niche: data.niche, 
+          competitors: competitorsArray 
         });
-        return response.json();
+        return response;
       } else {
         // Otherwise, just update niche using PATCH
-        const response = await apiRequest("/api/user/niche", { 
-          method: "PATCH",
-          body: JSON.stringify({ niche: data.niche })
-        });
-        return response.json();
+        const response = await apiRequest("PATCH", "/api/user/niche", { niche: data.niche });
+        return response;
       }
     },
     onSuccess: (data, variables) => {
@@ -147,6 +141,8 @@ export default function GenerateIdeas() {
   };
 
   const generateContentWithStream = async (generationType: 'date' | 'competitor' | 'trending', numberOfIdeas: number = 3) => {
+    // Limit numberOfIdeas to maximum 5
+    const limitedIdeas = Math.min(numberOfIdeas, 5);
     setGenerating(true, generationType);
     setStreamingStatus({
       isStreaming: true,
@@ -168,7 +164,7 @@ export default function GenerateIdeas() {
         body: JSON.stringify({ 
           generationType,
           context: generationType,
-          numberOfIdeas
+          numberOfIdeas: limitedIdeas
         }),
         signal: abortController.signal
       });
@@ -320,14 +316,11 @@ export default function GenerateIdeas() {
   const generateContentLegacyMutation = useMutation({
     mutationFn: async (generationType: 'date' | 'competitor' | 'trending') => {
       setGenerating(true, generationType);
-      const response = await apiRequest("/api/content/generate", {
-        method: "POST",
-        body: JSON.stringify({
-          generationType,
-          context: generationType
-        })
+      const response = await apiRequest("POST", "/api/content/generate", {
+        generationType,
+        context: generationType
       });
-      return response.json();
+      return response;
     },
     onSuccess: (data: ContentIdea[], variables: 'date' | 'competitor' | 'trending') => {
       if (clearIdeas) {
@@ -382,11 +375,8 @@ export default function GenerateIdeas() {
         throw new Error('Invalid idea ID. Please refresh the page and try again.');
       }
       
-      const response = await apiRequest(`/api/content/ideas/${ideaId}/save`, { 
-        method: "PATCH",
-        body: JSON.stringify({ isSaved })
-      });
-      return response.json();
+      const response = await apiRequest("PATCH", `/api/content/ideas/${ideaId}/save`, { isSaved });
+      return response;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/content/ideas/saved"] });
