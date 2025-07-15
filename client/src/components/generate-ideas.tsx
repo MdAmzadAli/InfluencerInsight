@@ -590,9 +590,6 @@ export default function GenerateIdeas() {
                           <SelectItem value="3">3 ideas</SelectItem>
                           <SelectItem value="4">4 ideas</SelectItem>
                           <SelectItem value="5">5 ideas</SelectItem>
-                          <SelectItem value="6">6 ideas</SelectItem>
-                          <SelectItem value="8">8 ideas</SelectItem>
-                          <SelectItem value="10">10 ideas</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -631,9 +628,6 @@ export default function GenerateIdeas() {
                         <SelectItem value="3">3 ideas</SelectItem>
                         <SelectItem value="4">4 ideas</SelectItem>
                         <SelectItem value="5">5 ideas</SelectItem>
-                        <SelectItem value="6">6 ideas</SelectItem>
-                        <SelectItem value="8">8 ideas</SelectItem>
-                        <SelectItem value="10">10 ideas</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
