@@ -27,7 +27,10 @@ export default function UserSettings() {
 
   const updateNicheMutation = useMutation({
     mutationFn: async (data: { niche: string }) => {
-      const response = await apiRequest("PATCH", "/api/user/niche", data);
+      const response = await apiRequest("/api/user/niche", {
+        method: "PATCH",
+        body: JSON.stringify(data)
+      });
       return response.json();
     },
     onSuccess: () => {

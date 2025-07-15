@@ -8,14 +8,17 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
+  options: {
+    method: string;
+    body?: string;
+    headers?: Record<string, string>;
+  } = { method: 'GET' }
 ): Promise<Response> {
-  const headers: Record<string, string> = {};
-  if (data) {
-    headers["Content-Type"] = "application/json";
-  }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
 
   const token = localStorage.getItem('token');
   if (token) {
@@ -23,9 +26,9 @@ export async function apiRequest(
   }
 
   const res = await fetch(url, {
-    method,
+    method: options.method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: options.body,
     credentials: "include",
   });
 

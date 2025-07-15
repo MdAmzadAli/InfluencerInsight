@@ -25,9 +25,12 @@ export default function CompetitorsManagement() {
 
   const updateCompetitorsMutation = useMutation({
     mutationFn: async (competitors: string[]) => {
-      return apiRequest('PUT', '/api/user/competitors', { 
-        niche: user?.niche || 'general', 
-        competitors: competitors 
+      return apiRequest('/api/user/competitors', { 
+        method: 'PUT',
+        body: JSON.stringify({
+          niche: user?.niche || 'general', 
+          competitors: competitors 
+        })
       });
     },
     onSuccess: () => {

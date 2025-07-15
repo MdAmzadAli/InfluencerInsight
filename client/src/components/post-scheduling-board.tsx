@@ -50,7 +50,10 @@ export default function PostSchedulingBoard() {
 
   const updatePostMutation = useMutation({
     mutationFn: async ({ postId, status }: { postId: number; status: string }) => {
-      const response = await apiRequest("PATCH", `/api/posts/scheduled/${postId}`, { status });
+      const response = await apiRequest(`/api/posts/scheduled/${postId}`, { 
+        method: "PATCH",
+        body: JSON.stringify({ status })
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -82,7 +85,9 @@ export default function PostSchedulingBoard() {
 
   const deletePostMutation = useMutation({
     mutationFn: async (postId: number) => {
-      const response = await apiRequest("DELETE", `/api/posts/scheduled/${postId}`);
+      const response = await apiRequest(`/api/posts/scheduled/${postId}`, { 
+        method: "DELETE"
+      });
       return response.json();
     },
     onSuccess: () => {

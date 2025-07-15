@@ -33,7 +33,10 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
 
   const schedulePostMutation = useMutation({
     mutationFn: async (scheduleData: any) => {
-      const response = await apiRequest("POST", "/api/posts/schedule", scheduleData);
+      const response = await apiRequest("/api/posts/schedule", {
+        method: "POST",
+        body: JSON.stringify(scheduleData)
+      });
       return response.json();
     },
     onSuccess: () => {

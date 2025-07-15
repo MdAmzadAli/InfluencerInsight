@@ -60,14 +60,20 @@ export default function GenerateIdeas() {
       // If competitors are provided, use the PUT endpoint that handles both
       if (data.competitors && data.competitors.trim()) {
         const competitorsArray = data.competitors.split(',').map(c => c.trim().replace(/^@+/, '')).filter(Boolean);
-        const response = await apiRequest("PUT", "/api/user/competitors", { 
-          niche: data.niche, 
-          competitors: competitorsArray 
+        const response = await apiRequest("/api/user/competitors", { 
+          method: "PUT",
+          body: JSON.stringify({
+            niche: data.niche, 
+            competitors: competitorsArray 
+          })
         });
         return response.json();
       } else {
         // Otherwise, just update niche using PATCH
-        const response = await apiRequest("PATCH", "/api/user/niche", { niche: data.niche });
+        const response = await apiRequest("/api/user/niche", { 
+          method: "PATCH",
+          body: JSON.stringify({ niche: data.niche })
+        });
         return response.json();
       }
     },
@@ -314,9 +320,12 @@ export default function GenerateIdeas() {
   const generateContentLegacyMutation = useMutation({
     mutationFn: async (generationType: 'date' | 'competitor' | 'trending') => {
       setGenerating(true, generationType);
-      const response = await apiRequest("POST", "/api/content/generate", {
-        generationType,
-        context: generationType
+      const response = await apiRequest("/api/content/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          generationType,
+          context: generationType
+        })
       });
       return response.json();
     },
@@ -373,7 +382,10 @@ export default function GenerateIdeas() {
         throw new Error('Invalid idea ID. Please refresh the page and try again.');
       }
       
-      const response = await apiRequest("PATCH", `/api/content/ideas/${ideaId}/save`, { isSaved });
+      const response = await apiRequest(`/api/content/ideas/${ideaId}/save`, { 
+        method: "PATCH",
+        body: JSON.stringify({ isSaved })
+      });
       return response.json();
     },
     onSuccess: (_, variables) => {

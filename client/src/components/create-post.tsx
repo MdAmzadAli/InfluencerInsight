@@ -31,7 +31,10 @@ export default function CreatePost() {
 
   const schedulePostMutation = useMutation({
     mutationFn: async (postData: any) => {
-      const response = await apiRequest("POST", "/api/posts/schedule", postData);
+      const response = await apiRequest("/api/posts/schedule", {
+        method: "POST",
+        body: JSON.stringify(postData)
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -90,7 +93,10 @@ export default function CreatePost() {
 
   const saveIdeaMutation = useMutation({
     mutationFn: async (ideaData: CustomPost) => {
-      const response = await apiRequest("POST", "/api/content/ideas", ideaData);
+      const response = await apiRequest("/api/content/ideas", {
+        method: "POST",
+        body: JSON.stringify(ideaData)
+      });
       const text = await response.text();
       try {
         return JSON.parse(text);

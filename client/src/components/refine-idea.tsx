@@ -192,10 +192,13 @@ What would you like to work on today?`,
       
       // Fallback to non-streaming
       try {
-        const response = await apiRequest("POST", "/api/content/refine", {
-          idea,
-          message,
-          chatHistory: messages
+        const response = await apiRequest("/api/content/refine", {
+          method: "POST",
+          body: JSON.stringify({
+            idea,
+            message,
+            chatHistory: messages
+          })
         });
         const data = await response.json();
         setMessages(prev => [...prev, {
