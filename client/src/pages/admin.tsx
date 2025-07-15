@@ -90,13 +90,14 @@ export default function AdminPage() {
   });
 
   const onSubmit = (data: OTPFormData) => {
-    console.log('Form submitted with data:', data);
-    console.log('showOTPForm:', showOTPForm);
+    console.log('🚀 Form submitted with data:', data);
+    console.log('🚀 showOTPForm:', showOTPForm);
+    console.log('🚀 Form errors:', form.formState.errors);
     if (!showOTPForm) {
-      console.log('Sending OTP...');
+      console.log('🚀 Sending OTP...');
       sendOTP.mutate(data.email);
     } else {
-      console.log('Verifying OTP...');
+      console.log('🚀 Verifying OTP...');
       verifyOTP.mutate(data);
     }
   };
@@ -180,6 +181,7 @@ export default function AdminPage() {
                   type="submit"
                   className="w-full"
                   disabled={sendOTP.isPending || verifyOTP.isPending}
+                  onClick={() => console.log('🔥 Button clicked!')}
                 >
                   {sendOTP.isPending || verifyOTP.isPending ? (
                     "Processing..."
