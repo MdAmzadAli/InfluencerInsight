@@ -31,8 +31,24 @@ export default function CreatePost() {
 
   const schedulePostMutation = useMutation({
     mutationFn: async (postData: any) => {
-      const response = await apiRequest("POST", "/api/posts/schedule", postData);
-      return response;
+      // First save the post as a content idea
+      const savedIdea = await apiRequest("POST", "/api/content/ideas", {
+        headline: postData.headline,
+        caption: postData.caption,
+        hashtags: postData.hashtags,
+        ideas: postData.ideas,
+        generationType: "custom",
+        isSaved: false
+      });
+      
+      // Then schedule the post using the saved idea ID
+      const scheduledPost = await apiRequest("POST", "/api/posts/schedule", {
+        ...postData,
+        contentIdeaId: savedIdea.id,
+        isCustom: true
+      });
+      
+      return scheduledPost;
     },
     onSuccess: () => {
       toast({
@@ -47,6 +63,9 @@ export default function CreatePost() {
         hashtags: "",
         ideas: ""
       });
+      // Invalidate queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/content/ideas'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts/scheduled'] });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
