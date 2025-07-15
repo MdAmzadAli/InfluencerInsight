@@ -17,7 +17,7 @@ import { Feedback, Rating } from '@/shared/schema';
 
 const otpSchema = z.object({
   email: z.string().email('Please enter a valid email'),
-  otp: z.string().length(6, 'OTP must be 6 digits'),
+  otp: z.string().optional(),
 });
 
 type OTPFormData = z.infer<typeof otpSchema>;
