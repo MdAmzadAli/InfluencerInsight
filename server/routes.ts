@@ -755,7 +755,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { contentIdeaId, headline, caption, hashtags, ideas, scheduledDate, isCustom } = req.body;
       
+      // Debug logging
+      console.log('📋 Schedule post request body:', JSON.stringify(req.body, null, 2));
+      console.log('🔍 Validation check:', {
+        headline: !!headline,
+        caption: !!caption,
+        hashtags: !!hashtags,
+        scheduledDate: !!scheduledDate,
+        headlineType: typeof headline,
+        captionType: typeof caption,
+        hashtagsType: typeof hashtags,
+        scheduledDateType: typeof scheduledDate
+      });
+      
       if (!headline || !caption || !hashtags || !scheduledDate) {
+        console.log('❌ Validation failed - missing required fields');
         return res.status(400).json({ error: "All fields are required" });
       }
 
