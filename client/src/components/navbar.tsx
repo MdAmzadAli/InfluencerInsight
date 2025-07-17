@@ -33,7 +33,7 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Schedule', href: '/schedule', icon: Calendar },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Niche', href: '/settings', icon: Settings },
   ];
 
   const dashboardOptions = [
