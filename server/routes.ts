@@ -166,6 +166,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update only competitors without triggering cache warming
+  app.put('/api/user/competitors-only', authenticateToken, async (req, res) => {
+    try {
+      const { niche, competitors } = req.body;
+      
+      if (!niche || !competitors) {
+        return res.status(400).json({ error: "Niche and competitors are required" });
+      }
+
+      const user = await storage.updateUserNiche(req.user!.id, niche, JSON.stringify(competitors));
+      
+      // Do not trigger cache warming - user will manually refresh
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user competitors:", error);
+      res.status(500).json({ error: "Failed to update user competitors" });
+    }
+  });
+
+  // Refresh competitors cache manually
+  app.post('/api/user/competitors/refresh', authenticateToken, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.competitors) {
+        return res.status(400).json({ error: "No competitors found to refresh" });
+      }
+
+      // Trigger cache rewarming for competitors only
+      cacheWarmer.rewarmCacheAfterChange(req.user!.id, 'competitors');
+      
+      res.json({ message: "Competitor cache refresh initiated" });
+    } catch (error) {
+      console.error("Error refreshing competitors cache:", error);
+      res.status(500).json({ error: "Failed to refresh competitors cache" });
+    }
+  });
+
   // Get competitor top posts
   app.get('/api/competitors/top-posts', authenticateToken, async (req, res) => {
     try {

@@ -12,7 +12,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle, Sparkles } from 'lucide-react';
+import { Calendar, TrendingUp, Users, Lightbulb, BookmarkPlus, Clock, ExternalLink, Copy, StopCircle, Sparkles, HelpCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ScheduleModal from "./schedule-modal";
 import ContentEditor from "./content-editor";
 
@@ -508,7 +514,22 @@ export default function GenerateIdeas() {
               </div>
               
               <div>
-                <Label htmlFor="competitors">Competitor usernames (optional)</Label>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor="competitors">Competitor usernames</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Add up to 3 competitor Instagram usernames for better content analysis and variety. 
+                          More competitors = more diverse content ideas!
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Input
                   id="competitors"
                   placeholder="@competitor1, @competitor2, @competitor3..."
@@ -516,6 +537,9 @@ export default function GenerateIdeas() {
                   onChange={(e) => setCompetitors(e.target.value)}
                   className="mt-2"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recommended: Add all 3 competitors for optimal content analysis
+                </p>
               </div>
               
               <Button 
