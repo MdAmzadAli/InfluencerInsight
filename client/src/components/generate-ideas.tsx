@@ -589,7 +589,7 @@ export default function GenerateIdeas() {
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8 max-w-full overflow-hidden">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Generate Content Ideas</h2>
         <p className="text-gray-600">AI-powered content suggestions tailored to your niche and audience</p>
@@ -934,7 +934,7 @@ export default function GenerateIdeas() {
                     
                     // Add ideas grid for this session
                     components.push(
-                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      <div key={`session-${sessionIndex}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-hidden">
                         {sessionIdeas.map((idea) => {
                           // Use backend-separated fields if available, otherwise fall back to frontend parsing
                           const strategy = (idea as any).strategy || separateIdeasAndLinks(idea.ideas).strategy;

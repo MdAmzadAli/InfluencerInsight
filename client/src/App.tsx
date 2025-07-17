@@ -119,7 +119,7 @@ function Router() {
             loadingPosts={loadingPosts}
             onUsageClick={() => setShowTips(true)}
           />
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1 p-4 md:p-6 max-w-full overflow-hidden">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tips & Guidelines</h1>
@@ -140,7 +140,7 @@ function Router() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 max-w-full overflow-x-hidden">
       <Navbar 
         competitors={competitors}
         posts={posts}
@@ -153,7 +153,7 @@ function Router() {
           loadingPosts={loadingPosts}
           onUsageClick={() => setShowTips(true)}
         />
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 p-4 md:p-6 max-w-full overflow-hidden">
           <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/generate" component={Dashboard} />
