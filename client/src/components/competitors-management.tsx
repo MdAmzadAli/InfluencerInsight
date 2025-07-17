@@ -127,6 +127,10 @@ export default function CompetitorsManagement() {
   const saveCompetitors = () => {
     if (hasChanges) {
       updateCompetitorsMutation.mutate(allCompetitors);
+      // After saving, refresh the cache
+      setTimeout(() => {
+        refreshCompetitorsMutation.mutate();
+      }, 1000);
     }
   };
 
@@ -231,7 +235,7 @@ export default function CompetitorsManagement() {
               className="flex-1"
               variant="outline"
             >
-              {updateCompetitorsMutation.isPending ? "Saving..." : "Save Competitors"}
+              {updateCompetitorsMutation.isPending ? "Saving..." : "Save & Refresh"}
             </Button>
           </div>
         )}
@@ -247,12 +251,12 @@ export default function CompetitorsManagement() {
               {refreshCompetitorsMutation.isPending ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Refreshing...
+                  Saving...
                 </>
               ) : (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Competitors
+                  Save Competitors
                 </>
               )}
             </Button>

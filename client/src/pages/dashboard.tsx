@@ -51,6 +51,7 @@ export default function Dashboard() {
     switch (location) {
       case '/':
       case '/generate':
+      case '/dashboard':
         return <GenerateIdeas />;
       case '/saved':
         return <SavedIdeas />;

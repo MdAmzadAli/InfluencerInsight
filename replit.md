@@ -207,13 +207,19 @@ InstaGenIdeas is a modern AI-powered Instagram content generation platform that 
 - **✅ Mobile Avatar Fix**: Reduced avatar size and adjusted spacing to prevent cutoff in mobile view
 - **✅ Responsive Design**: Enhanced mobile responsiveness with proper spacing and element sizing across all screen sizes
 
-### July 17, 2025 - Mobile Heading Responsiveness Complete
+### July 17, 2025 - Mobile UX Fixes & Competitor Management Complete
 - **✅ Mobile-First Heading Sizes**: Applied responsive sizing to all headings throughout the app for better mobile experience
 - **✅ Component-Wide Updates**: Updated headings in all major components (generate-ideas, analytics, create-post, post-scheduling, etc.)
 - **✅ Responsive Text Classes**: Changed from fixed sizes to responsive classes (text-xl md:text-3xl, text-lg md:text-2xl, etc.)
 - **✅ Page-Wide Coverage**: Applied mobile-friendly heading sizes to all pages (admin, auth, landing, dashboard components)
 - **✅ Consistent Mobile Experience**: All headings now scale appropriately on mobile devices while maintaining desktop appearance
 - **✅ Improved Readability**: Smaller heading sizes on mobile prevent text overflow and improve content accessibility
+- **✅ Competitor Management Fix**: Fixed save & refresh functionality - "Save & Refresh" button now saves competitors and refreshes cache
+- **✅ Button Naming**: Changed "Refresh Competitors" to "Save Competitors" for better UX clarity
+- **✅ Dashboard Default View**: Fixed dashboard to show "Generate Ideas" as default on signup/login including /dashboard route
+- **✅ Toast Close Buttons**: Added visible close buttons (X) to all toast notifications for instant dismissal
+- **✅ Token Button Disabling**: Confirmed generation buttons and refine panel input/send are properly disabled when tokens exhausted
+- **✅ 24-Hour Restriction Display**: Competitor management properly shows 24-hour restriction warnings when applicable
 
 ### July 17, 2025 - Previous Migration to Replit Environment Complete
 - **✅ Project Migration**: Successfully migrated Instagram Content Generator from Replit Agent to Replit environment
