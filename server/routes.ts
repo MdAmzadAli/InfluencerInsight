@@ -204,6 +204,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check niche change eligibility
+  app.get('/api/user/niche/eligibility', authenticateToken, async (req, res) => {
+    try {
+      const eligibility = await storage.canChangeNiche(req.user!.id);
+      res.json(eligibility);
+    } catch (error) {
+      console.error("Error checking niche eligibility:", error);
+      res.status(500).json({ error: "Failed to check niche eligibility" });
+    }
+  });
+
+  // Get token usage status
+  app.get('/api/user/tokens', authenticateToken, async (req, res) => {
+    try {
+      const tokenCheck = await storage.canUseTokens(req.user!.id, 0);
+      const ideasCheck = await storage.canGenerateIdeas(req.user!.id);
+      
+      res.json({
+        tokens: tokenCheck,
+        ideas: ideasCheck
+      });
+    } catch (error) {
+      console.error("Error fetching token usage:", error);
+      res.status(500).json({ error: "Failed to fetch token usage" });
+    }
+  });
+
   // Get competitor top posts
   app.get('/api/competitors/top-posts', authenticateToken, async (req, res) => {
     try {
@@ -263,20 +290,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user token status
+  app.get('/api/user/tokens', authenticateToken, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Get token status
+      const tokenStatus = await storage.canUseTokens(userId, 0);
+      
+      // Get idea generation status
+      const ideaStatus = await storage.canGenerateIdeas(userId);
+      
+      res.json({
+        tokens: {
+          canUse: tokenStatus.canUse,
+          tokensRemaining: tokenStatus.tokensRemaining,
+          tokensUsed: 100 - tokenStatus.tokensRemaining,
+          dailyLimit: 100
+        },
+        ideas: {
+          canGenerate: ideaStatus.canGenerate,
+          ideasRemaining: ideaStatus.remaining,
+          ideasGenerated: 20 - ideaStatus.remaining,
+          dailyLimit: 20
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching token status:", error);
+      res.status(500).json({ error: "Failed to fetch token status" });
+    }
+  });
+
   // Streaming content generation endpoint
   app.post('/api/content/generate/stream', authenticateToken, async (req, res) => {
     try {
       const { generationType, numberOfIdeas = 3 } = req.body;
+      const userId = req.user!.id;
       
-      // Check if user can generate content
-      const canGenerate = await storage.canGenerateContent(req.user!.id);
-      if (!canGenerate.canGenerate) {
+      // Calculate tokens needed based on generation type
+      const tokensPerIdea = generationType === 'date' ? 2 : 5; // date: 2 tokens, competitor/trending: 5 tokens
+      const tokensNeeded = tokensPerIdea * numberOfIdeas;
+      
+      // Check token usage limits
+      const tokenCheck = await storage.canUseTokens(userId, tokensNeeded);
+      if (!tokenCheck.canUse) {
         return res.status(429).json({ 
-          error: "Daily generation limit reached", 
-          message: `You've reached your daily limit of 2 content generations. Please try again tomorrow.`,
-          remaining: canGenerate.remaining
+          error: "Insufficient tokens", 
+          message: `Need ${tokensNeeded} tokens, but only ${tokenCheck.tokensRemaining} remaining today.`,
+          tokensNeeded,
+          tokensRemaining: tokenCheck.tokensRemaining
         });
       }
+      
+      // Check daily ideas limit
+      const ideasCheck = await storage.canGenerateIdeas(userId);
+      if (!ideasCheck.canGenerate) {
+        return res.status(429).json({ 
+          error: "Daily ideas limit reached", 
+          message: `You have generated ${ideasCheck.ideasGenerated}/${ideasCheck.dailyLimit} ideas today.`,
+          ideasGenerated: ideasCheck.ideasGenerated,
+          dailyLimit: ideasCheck.dailyLimit
+        });
+      }
+      
+      const ideasToGenerate = Math.min(numberOfIdeas, ideasCheck.ideasRemaining);
+      const actualTokensNeeded = tokensPerIdea * ideasToGenerate;
       
       // Get user details and use their niche
       const user = await storage.getUser(req.user!.id);
@@ -664,10 +742,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Content ideas are already saved to database during streaming above
 
-      // Increment usage counter after successful generation
-      await storage.incrementGenerations(req.user!.id);
+      // Track successful generation with tokens
+      await storage.trackTokenUsage(userId, actualTokensNeeded, ideasToGenerate);
 
-      res.write(`data: ${JSON.stringify({ type: 'complete', message: 'Content generation completed!', progress: 100 })}\n\n`);
+      res.write(`data: ${JSON.stringify({ 
+        type: 'complete', 
+        message: `Content generation completed! Used ${actualTokensNeeded} tokens for ${ideasToGenerate} ideas.`, 
+        progress: 100,
+        tokensUsed: actualTokensNeeded,
+        ideasGenerated: ideasToGenerate
+      })}\n\n`);
       res.end();
 
     } catch (error) {
@@ -930,23 +1014,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      // Check if user can refine content
-      const canRefine = await storage.canRefineContent(req.user!.id);
-      if (!canRefine.canRefine) {
+      // Check token usage for refine (3 tokens per refine message)
+      const tokensNeeded = 3;
+      const tokenCheck = await storage.canUseTokens(req.user!.id, tokensNeeded);
+      if (!tokenCheck.canUse) {
         return res.status(429).json({ 
-          error: "Monthly refine limit reached", 
-          message: `You've reached your monthly limit of 30 refine messages. Please upgrade your plan.`,
-          remaining: canRefine.remaining
+          error: "Insufficient tokens for refine", 
+          message: `Need ${tokensNeeded} tokens, but only ${tokenCheck.tokensRemaining} remaining today.`,
+          tokensNeeded,
+          tokensRemaining: tokenCheck.tokensRemaining
         });
       }
 
       // Use only Gemini - idea is optional for standalone AI expert mode
       const refinedContent = await refineContentWithGemini(idea || null, message, chatHistory || []);
       
-      // Increment usage counter after successful refine
-      await storage.incrementRefineMessages(req.user!.id);
+      // Track token usage after successful refine
+      await storage.trackTokenUsage(req.user!.id, tokensNeeded);
       
-      res.json({ response: refinedContent });
+      res.json({ response: refinedContent, tokensUsed: tokensNeeded });
     } catch (error) {
       console.error("Error refining content:", error);
       res.status(500).json({ error: "Failed to refine content" });

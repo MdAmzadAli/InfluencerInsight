@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useQuery } from '@tanstack/react-query';
+import TipsSection from './tips-section';
 
 
 interface SidebarProps {
@@ -155,7 +156,7 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
           );
         })}
         
-        {/* Usage Button */}
+        {/* Tips Button */}
         <Button
           variant="ghost"
           className={cn(
@@ -165,7 +166,7 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
           onClick={onUsageClick}
         >
           <BarChart3 className="h-4 w-4" />
-          {!collapsed && <span className="ml-2">Usage</span>}
+          {!collapsed && <span className="ml-2">Tips</span>}
         </Button>
       </nav>
 

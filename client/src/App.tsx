@@ -13,9 +13,10 @@ import { Sidebar } from "@/components/sidebar";
 import PostSchedulingBoard from "@/components/post-scheduling-board";
 import CompetitorPostsView from "@/components/competitor-posts-view";
 import RefineIdea from "@/components/refine-idea";
-import UsageDashboard from "@/components/usage-dashboard";
+import TipsSection from "@/components/tips-section";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
 
 function Router() {
@@ -25,7 +26,7 @@ function Router() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [showRefinePanel, setShowRefinePanel] = useState(false);
   const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
-  const [showUsage, setShowUsage] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const { state } = useContentState();
   
   // Parse competitors when user data changes
@@ -101,8 +102,8 @@ function Router() {
     );
   }
 
-  // Show usage dashboard if active
-  if (showUsage) {
+  // Show tips section if active
+  if (showTips) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar 
@@ -115,10 +116,22 @@ function Router() {
             competitors={competitors}
             posts={posts}
             loadingPosts={loadingPosts}
-            onUsageClick={() => setShowUsage(true)}
+            onUsageClick={() => setShowTips(true)}
           />
           <main className="flex-1 p-4 md:p-6">
-            <UsageDashboard onBack={() => setShowUsage(false)} />
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tips & Guidelines</h1>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowTips(false)}
+                  className="flex items-center gap-2"
+                >
+                  ← Back to Dashboard
+                </Button>
+              </div>
+              <TipsSection />
+            </div>
           </main>
         </div>
       </div>
@@ -137,7 +150,7 @@ function Router() {
           competitors={competitors}
           posts={posts}
           loadingPosts={loadingPosts}
-          onUsageClick={() => setShowUsage(true)}
+          onUsageClick={() => setShowTips(true)}
         />
         <main className="flex-1 p-4 md:p-6">
           <Switch>

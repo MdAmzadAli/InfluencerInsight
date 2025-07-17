@@ -1,6 +1,6 @@
 import { db } from './db';
 import bcrypt from 'bcryptjs';
-import type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking, InsertFeedback, InsertRating, InsertAdminOTP, InsertUsageTracking } from '../shared/schema';
+import type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking, TokenUsage, InsertFeedback, InsertRating, InsertAdminOTP, InsertUsageTracking, InsertTokenUsage } from '../shared/schema';
 import { competitorPostCache } from './cache-manager';
 import { ApifyTrendingPost } from './apify-scraper';
 
@@ -61,6 +61,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | null>;
   updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
   canChangeCompetitors(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
+  canChangeNiche(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
   registerUser(user: RegisterUser): Promise<User>;
   loginUser(credentials: LoginUser): Promise<User | null>;
   upsertUser(user: UpsertUser): Promise<User>;
@@ -106,6 +107,12 @@ export interface IStorage {
   canGenerateContent(userId: string): Promise<{ canGenerate: boolean; remaining: number }>;
   canRefineContent(userId: string): Promise<{ canRefine: boolean; remaining: number }>;
   resetDailyUsage(userId: string): Promise<UsageTracking>;
+  
+  // Token usage operations
+  getUserTokenUsage(userId: string, date?: Date): Promise<TokenUsage | null>;
+  canUseTokens(userId: string, tokensNeeded: number): Promise<{ canUse: boolean; tokensRemaining: number; tokensUsed: number; dailyLimit: number }>;
+  canGenerateIdeas(userId: string): Promise<{ canGenerate: boolean; ideasRemaining: number; ideasGenerated: number; dailyLimit: number }>;
+  trackTokenUsage(userId: string, tokensUsed: number, ideasGenerated?: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -221,6 +228,28 @@ export class DatabaseStorage implements IStorage {
     return { 
       canChange: false, 
       hoursRemaining: Math.ceil(24 - hoursSinceLastChange) 
+    };
+  }
+
+  async canChangeNiche(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }> {
+    const user = await db.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!user?.nicheLastChanged) {
+      return { canChange: true };
+    }
+    
+    const now = new Date();
+    const hoursSinceLastChange = (now.getTime() - user.nicheLastChanged.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceLastChange >= 6) {
+      return { canChange: true };
+    }
+    
+    return { 
+      canChange: false, 
+      hoursRemaining: Math.ceil(6 - hoursSinceLastChange) 
     };
   }
 
@@ -539,6 +568,80 @@ export class DatabaseStorage implements IStorage {
         generationsUsed: 0,
         refineMessagesUsed: 0,
         resetAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  // Token usage operations
+  async getUserTokenUsage(userId: string, date?: Date): Promise<TokenUsage | null> {
+    const targetDate = date || new Date();
+    targetDate.setHours(0, 0, 0, 0);
+    
+    return await db.tokenUsage.findUnique({
+      where: {
+        userId_usageDate: {
+          userId,
+          usageDate: targetDate
+        }
+      }
+    });
+  }
+
+  async canUseTokens(userId: string, tokensNeeded: number): Promise<{ canUse: boolean; tokensRemaining: number; tokensUsed: number; dailyLimit: number }> {
+    const dailyLimit = 100; // 100 tokens per day
+    const usage = await this.getUserTokenUsage(userId);
+    
+    const tokensUsed = usage?.tokensUsed || 0;
+    const tokensRemaining = dailyLimit - tokensUsed;
+    
+    return {
+      canUse: tokensRemaining >= tokensNeeded,
+      tokensRemaining,
+      tokensUsed,
+      dailyLimit
+    };
+  }
+
+  async canGenerateIdeas(userId: string): Promise<{ canGenerate: boolean; ideasRemaining: number; ideasGenerated: number; dailyLimit: number }> {
+    const dailyLimit = 20; // 20 ideas per day
+    const usage = await this.getUserTokenUsage(userId);
+    
+    const ideasGenerated = usage?.ideasGenerated || 0;
+    const ideasRemaining = dailyLimit - ideasGenerated;
+    
+    return {
+      canGenerate: ideasRemaining > 0,
+      ideasRemaining,
+      ideasGenerated,
+      dailyLimit
+    };
+  }
+
+  async trackTokenUsage(userId: string, tokensUsed: number, ideasGenerated?: number): Promise<void> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    await db.tokenUsage.upsert({
+      where: {
+        userId_usageDate: {
+          userId,
+          usageDate: today
+        }
+      },
+      create: {
+        userId,
+        usageDate: today,
+        tokensUsed,
+        ideasGenerated: ideasGenerated || 0
+      },
+      update: {
+        tokensUsed: {
+          increment: tokensUsed
+        },
+        ideasGenerated: {
+          increment: ideasGenerated || 0
+        },
         updatedAt: new Date()
       }
     });

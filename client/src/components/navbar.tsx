@@ -11,6 +11,7 @@ import { Instagram, User, LogOut, Settings, Sparkles, Menu, Home, Calendar, User
 import { Link, useLocation } from 'wouter';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { FeedbackForm } from '@/components/feedback-form';
+import TokenTracker from './token-tracker';
 import { useState } from 'react';
 
 interface NavbarProps {
@@ -153,6 +154,11 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Token Tracker */}
+          <div className="hidden md:block">
+            <TokenTracker />
+          </div>
+          
           <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
             <span>Welcome back,</span>
             <span className="font-medium">{user?.firstName || user?.email}</span>

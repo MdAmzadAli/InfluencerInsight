@@ -100,20 +100,21 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ API Integration**: Both Apify and Gemini APIs properly configured and authenticated
 - **✅ Migration Complete**: Ready for continued development and deployment
 
-### July 17, 2025 - Complete Beta Launch System with Usage Tracking
-- **✅ Usage Tracking Database**: Added comprehensive UsageTracking model with unique composite keys
-- **✅ Beta Plan Implementation**: 2 content generations per day, 30 refine messages per month
-- **✅ Cost Control System**: Extended cache durations (24h competitors, 12h trending) for optimal API usage
-- **✅ Usage Validation**: Integrated rate limiting into all content generation and refine endpoints
-- **✅ Smart Post Distribution**: Apify fetches max 10 posts evenly across all competitors
-- **✅ Competitor Change Restrictions**: Users can only change competitors once per 24 hours
-- **✅ Usage Tracking API**: Added /api/usage endpoint for real-time usage monitoring
-- **✅ Storage Layer Methods**: Complete CRUD operations for usage tracking with proper validation
-- **✅ Usage Tracker UI**: Created responsive usage tracker component with progress bars and limits
-- **✅ Sidebar Integration**: Added usage tracker to sidebar for constant visibility
-- **✅ Error Handling**: Proper 429 responses with clear limit messages for users
-- **✅ Database Schema**: Pushed usage tracking schema to production database
-- **✅ Ready for Beta Launch**: Complete system ready for controlled beta with 5 users at $9/month cost
+### July 17, 2025 - Complete Token System Implementation for Beta Launch
+- **✅ Token System Database**: Added TokenUsage model with composite unique keys for tracking daily usage
+- **✅ 100 Tokens/Day System**: Comprehensive token tracking with different consumption rates per generation type
+- **✅ Token Consumption Rates**: Date-specific (2 tokens), Competitor/Trending (5 tokens), Refine (3 tokens)
+- **✅ 20 Ideas/Day Limit**: Separate daily idea generation limit regardless of token usage
+- **✅ Real-time Token Tracker**: Created token tracker component with progress bars for tokens and ideas
+- **✅ Navbar Integration**: Token tracker displays in navbar (desktop) and mobile sections with live updates
+- **✅ Usage Validation**: All generation and refine endpoints validate token availability before processing
+- **✅ Tips Section**: Converted usage tracking section to comprehensive tips and guidelines for users
+- **✅ Token Status API**: Added /api/user/tokens endpoint for real-time status monitoring
+- **✅ Refine Endpoint Update**: Updated refine functionality to use token system instead of monthly limits
+- **✅ Smart Cache Management**: 6-hour niche restrictions and 24-hour competitor restrictions
+- **✅ User Onboarding**: Tips section provides clear guidance on token optimization and best practices
+- **✅ Error Handling**: Clear error messages with token requirements and remaining counts
+- **✅ Ready for Beta Launch**: Complete token system ready for controlled beta deployment
 
 ### July 14, 2025 - Universal Content Editing System Complete
 - **✅ Content Editor Component**: Created reusable ContentEditor modal with real-time streaming editing

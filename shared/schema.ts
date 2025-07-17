@@ -1,7 +1,7 @@
-import { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking } from '@prisma/client';
+import { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking, TokenUsage } from '@prisma/client';
 
 // Export Prisma types
-export type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking };
+export type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking, TokenUsage };
 
 // Custom insert types for forms and API
 export type InsertUser = {
@@ -11,7 +11,16 @@ export type InsertUser = {
   lastName?: string | null;
   profileImageUrl?: string | null;
   niche?: string | null;
+  nicheLastChanged?: Date | null;
   competitors?: string | null;
+  competitorsLastChanged?: Date | null;
+};
+
+export type InsertTokenUsage = {
+  userId: string;
+  usageDate: Date;
+  tokensUsed?: number;
+  ideasGenerated?: number;
 };
 
 export type InsertContentIdea = {

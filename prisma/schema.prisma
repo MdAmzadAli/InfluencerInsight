@@ -30,6 +30,7 @@ model User {
   lastName        String?   @map("last_name") @db.VarChar
   profileImageUrl String?   @map("profile_image_url") @db.VarChar
   niche           String?
+  nicheLastChanged DateTime? @map("niche_last_changed")
   competitors     String?
   competitorsLastChanged DateTime? @map("competitors_last_changed")
   planType        String    @default("free") @map("plan_type") @db.VarChar(20)
@@ -43,6 +44,7 @@ model User {
   feedback             Feedback[]
   ratings              Rating[]
   usageTracking        UsageTracking[]
+  tokenUsage           TokenUsage[]
 
   @@map("users")
 }
@@ -174,4 +176,20 @@ model UsageTracking {
 
   @@unique([userId, date])
   @@map("usage_tracking")
+}
+
+model TokenUsage {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id") @db.VarChar
+  usageDate    DateTime @map("usage_date") @db.Date
+  tokensUsed   Int      @default(0) @map("tokens_used")
+  ideasGenerated Int    @default(0) @map("ideas_generated")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, usageDate])
+  @@map("token_usage")
 }

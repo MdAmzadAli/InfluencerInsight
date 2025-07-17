@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import ScheduleModal from "./schedule-modal";
 import ContentEditor from "./content-editor";
+import TokenTracker from "./token-tracker";
 
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
 import type { ContentIdea as SharedContentIdea } from "@shared/schema";
@@ -559,6 +560,11 @@ export default function GenerateIdeas() {
             <Card className="mb-8">
               <CardContent className="p-6">
                 <div className="space-y-6">
+                  {/* Token Tracker for Mobile */}
+                  <div className="md:hidden">
+                    <TokenTracker />
+                  </div>
+                  
                   <div className="space-y-5">
                     <div>
                       <Label htmlFor="generation-type" className="text-base font-medium text-gray-900 mb-3 block">
