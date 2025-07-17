@@ -12,7 +12,8 @@ interface UserCache {
 class CompetitorPostCacheManager {
   private cache = new Map<string, UserCache>();
   private trendingCache = new Map<string, UserCache>(); // Cache for trending posts by niche
-  private readonly CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+  private readonly COMPETITOR_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  private readonly TRENDING_CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours in milliseconds (2 sessions per day)
 
   async getCachedPosts(userId: string): Promise<ApifyTrendingPost[]> {
     const userCache = this.cache.get(userId);
@@ -32,7 +33,7 @@ class CompetitorPostCacheManager {
 
   async setCachedPosts(userId: string, posts: ApifyTrendingPost[]): Promise<void> {
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.CACHE_DURATION);
+    const expiresAt = new Date(now.getTime() + this.COMPETITOR_CACHE_DURATION);
     
     // No conversion needed - store ApifyTrendingPost directly
     this.cache.set(userId, {
@@ -40,7 +41,7 @@ class CompetitorPostCacheManager {
       expiresAt
     });
     
-    console.log(`✅ Cached ${posts.length} competitor posts for user ${userId}, expires in 1 hour at ${expiresAt.toISOString()}`);
+    console.log(`✅ Cached ${posts.length} competitor posts for user ${userId}, expires in 24 hours at ${expiresAt.toISOString()}`);
     console.log(`📋 Sample cached post:`, {
       id: posts[0]?.id,
       username: posts[0]?.ownerUsername,
@@ -84,7 +85,7 @@ class CompetitorPostCacheManager {
 
   async setCachedTrendingPosts(niche: string, posts: ApifyTrendingPost[]): Promise<void> {
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.CACHE_DURATION);
+    const expiresAt = new Date(now.getTime() + this.TRENDING_CACHE_DURATION);
     
     // No conversion needed - store ApifyTrendingPost directly
     this.trendingCache.set(niche, {
@@ -92,7 +93,7 @@ class CompetitorPostCacheManager {
       expiresAt
     });
     
-    console.log(`✅ Cached ${posts.length} trending posts for niche "${niche}", expires in 1 hour at ${expiresAt.toISOString()}`);
+    console.log(`✅ Cached ${posts.length} trending posts for niche "${niche}", expires in 12 hours at ${expiresAt.toISOString()}`);
   }
 
   async clearExpiredTrendingCache(): Promise<void> {

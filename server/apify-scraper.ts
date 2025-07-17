@@ -183,13 +183,20 @@ export class ApifyInstagramScraper {
     console.log(`🔄 Apify: Making single API call for ${instagramUrls.length} competitors`);
     console.log(`📋 URLs: ${instagramUrls.join(', ')}`);
     
+    // Calculate posts per competitor to ensure max 10 total posts
+    const maxTotalPosts = 10;
+    const actualPostsPerProfile = Math.floor(maxTotalPosts / instagramUrls.length);
+    const finalPostsPerProfile = Math.max(1, actualPostsPerProfile); // Ensure at least 1 post per competitor
+    
+    console.log(`📊 Posts distribution: ${finalPostsPerProfile} posts per competitor (${instagramUrls.length} competitors, max ${maxTotalPosts} total)`);
+    
     const input: ApifyCompetitorInput = {
       addParentData: false,
       directUrls: instagramUrls,
       enhanceUserSearchWithFacebookPage: false,
       isUserReelFeedURL: false,
       isUserTaggedFeedURL: false,
-      resultsLimit: postsPerProfile,
+      resultsLimit: finalPostsPerProfile,
       resultsType: 'posts'
     };
 

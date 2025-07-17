@@ -17,6 +17,11 @@ export default function CompetitorsManagement() {
     queryKey: ["/api/auth/user"],
   });
 
+  const { data: eligibility } = useQuery({
+    queryKey: ["/api/user/competitors/eligibility"],
+    refetchOnWindowFocus: false,
+  });
+
   const competitors = user?.competitors ? 
     (typeof user.competitors === 'string' ? 
       (user.competitors.startsWith('[') ? JSON.parse(user.competitors) : user.competitors.split(',').filter(Boolean)) : 
@@ -56,6 +61,15 @@ export default function CompetitorsManagement() {
       return;
     }
 
+    if (!eligibility?.canChange) {
+      toast({
+        title: "Cannot Change Competitors",
+        description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (competitors.length >= 5) {
       toast({
         title: "Limit Reached",
@@ -82,6 +96,15 @@ export default function CompetitorsManagement() {
   };
 
   const removeCompetitor = (username: string) => {
+    if (!eligibility?.canChange) {
+      toast({
+        title: "Cannot Change Competitors",
+        description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const updatedCompetitors = competitors.filter(comp => comp !== username);
     updateCompetitorsMutation.mutate(updatedCompetitors);
   };
@@ -101,18 +124,25 @@ export default function CompetitorsManagement() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!eligibility?.canChange && (
+          <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            <strong>24-hour restriction:</strong> You can only change competitors once per 24 hours. 
+            Please wait {eligibility?.hoursRemaining} more hours.
+          </div>
+        )}
+        
         <div className="flex gap-2">
           <Input
             placeholder="@username"
             value={newCompetitor}
             onChange={(e) => setNewCompetitor(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={updateCompetitorsMutation.isPending}
+            disabled={updateCompetitorsMutation.isPending || !eligibility?.canChange}
             className="flex-1"
           />
           <Button
             onClick={addCompetitor}
-            disabled={updateCompetitorsMutation.isPending || competitors.length >= 5}
+            disabled={updateCompetitorsMutation.isPending || competitors.length >= 5 || !eligibility?.canChange}
             size="sm"
           >
             <Plus className="h-4 w-4" />
@@ -137,7 +167,7 @@ export default function CompetitorsManagement() {
                   variant="ghost"
                   size="sm"
                   onClick={() => removeCompetitor(competitor)}
-                  disabled={updateCompetitorsMutation.isPending}
+                  disabled={updateCompetitorsMutation.isPending || !eligibility?.canChange}
                   className="h-6 w-6 p-0 text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-3 w-3" />

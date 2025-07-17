@@ -1,6 +1,6 @@
 import { db } from './db';
 import bcrypt from 'bcryptjs';
-import type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, InsertFeedback, InsertRating, InsertAdminOTP } from '../shared/schema';
+import type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking, InsertFeedback, InsertRating, InsertAdminOTP, InsertUsageTracking } from '../shared/schema';
 import { competitorPostCache } from './cache-manager';
 import { ApifyTrendingPost } from './apify-scraper';
 
@@ -60,6 +60,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
+  canChangeCompetitors(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
   registerUser(user: RegisterUser): Promise<User>;
   loginUser(credentials: LoginUser): Promise<User | null>;
   upsertUser(user: UpsertUser): Promise<User>;
@@ -97,6 +98,14 @@ export interface IStorage {
   // Admin OTP operations
   createAdminOTP(otp: InsertAdminOTP): Promise<AdminOTP>;
   verifyAdminOTP(email: string, otp: string): Promise<boolean>;
+
+  // Usage Tracking operations
+  getTodayUsage(userId: string): Promise<UsageTracking | null>;
+  incrementGenerations(userId: string): Promise<UsageTracking>;
+  incrementRefineMessages(userId: string): Promise<UsageTracking>;
+  canGenerateContent(userId: string): Promise<{ canGenerate: boolean; remaining: number }>;
+  canRefineContent(userId: string): Promise<{ canRefine: boolean; remaining: number }>;
+  resetDailyUsage(userId: string): Promise<UsageTracking>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -114,13 +123,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {
+    const user = await db.user.findUnique({
+      where: { id: userId }
+    });
+    
+    const updateData: any = { 
+      niche, 
+      updatedAt: new Date() 
+    };
+    
+    // If competitors are being updated, check 24-hour restriction
+    if (competitors !== undefined && competitors !== user?.competitors) {
+      const now = new Date();
+      const lastChanged = user?.competitorsLastChanged;
+      
+      if (lastChanged) {
+        const hoursSinceLastChange = (now.getTime() - lastChanged.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastChange < 24) {
+          const hoursRemaining = Math.ceil(24 - hoursSinceLastChange);
+          throw new Error(`You can only change competitors once per 24 hours. Please wait ${hoursRemaining} more hours.`);
+        }
+      }
+      
+      updateData.competitors = competitors;
+      updateData.competitorsLastChanged = now;
+    }
+    
     return await db.user.update({
       where: { id: userId },
-      data: { 
-        niche, 
-        competitors,
-        updatedAt: new Date() 
-      }
+      data: updateData
     });
   }
 
@@ -169,6 +200,28 @@ export class DatabaseStorage implements IStorage {
         profileImageUrl: userData.profileImageUrl,
       }
     });
+  }
+
+  async canChangeCompetitors(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }> {
+    const user = await db.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!user?.competitorsLastChanged) {
+      return { canChange: true };
+    }
+    
+    const now = new Date();
+    const hoursSinceLastChange = (now.getTime() - user.competitorsLastChanged.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceLastChange >= 24) {
+      return { canChange: true };
+    }
+    
+    return { 
+      canChange: false, 
+      hoursRemaining: Math.ceil(24 - hoursSinceLastChange) 
+    };
   }
 
   // Content Ideas operations
@@ -364,6 +417,131 @@ export class DatabaseStorage implements IStorage {
     }
 
     return false;
+  }
+
+  // Usage Tracking operations
+  async getTodayUsage(userId: string): Promise<UsageTracking | null> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db.usageTracking.findFirst({
+      where: {
+        userId,
+        date: today
+      }
+    });
+  }
+
+  async incrementGenerations(userId: string): Promise<UsageTracking> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db.usageTracking.upsert({
+      where: {
+        userId_date: {
+          userId,
+          date: today
+        }
+      },
+      create: {
+        userId,
+        date: today,
+        generationsUsed: 1,
+        refineMessagesUsed: 0,
+        generationLimit: 2,
+        refineMessageLimit: 30
+      },
+      update: {
+        generationsUsed: {
+          increment: 1
+        },
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  async incrementRefineMessages(userId: string): Promise<UsageTracking> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db.usageTracking.upsert({
+      where: {
+        userId_date: {
+          userId,
+          date: today
+        }
+      },
+      create: {
+        userId,
+        date: today,
+        generationsUsed: 0,
+        refineMessagesUsed: 1,
+        generationLimit: 2,
+        refineMessageLimit: 30
+      },
+      update: {
+        refineMessagesUsed: {
+          increment: 1
+        },
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  async canGenerateContent(userId: string): Promise<{ canGenerate: boolean; remaining: number }> {
+    const usage = await this.getTodayUsage(userId);
+    
+    if (!usage) {
+      return { canGenerate: true, remaining: 2 };
+    }
+    
+    const remaining = usage.generationLimit - usage.generationsUsed;
+    return { 
+      canGenerate: remaining > 0, 
+      remaining: Math.max(0, remaining) 
+    };
+  }
+
+  async canRefineContent(userId: string): Promise<{ canRefine: boolean; remaining: number }> {
+    const usage = await this.getTodayUsage(userId);
+    
+    if (!usage) {
+      return { canRefine: true, remaining: 30 };
+    }
+    
+    const remaining = usage.refineMessageLimit - usage.refineMessagesUsed;
+    return { 
+      canRefine: remaining > 0, 
+      remaining: Math.max(0, remaining) 
+    };
+  }
+
+  async resetDailyUsage(userId: string): Promise<UsageTracking> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db.usageTracking.upsert({
+      where: {
+        userId_date: {
+          userId,
+          date: today
+        }
+      },
+      create: {
+        userId,
+        date: today,
+        generationsUsed: 0,
+        refineMessagesUsed: 0,
+        generationLimit: 2,
+        refineMessageLimit: 30
+      },
+      update: {
+        generationsUsed: 0,
+        refineMessagesUsed: 0,
+        resetAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
   }
 }
 

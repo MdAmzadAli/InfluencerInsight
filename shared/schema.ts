@@ -1,7 +1,7 @@
-import { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP } from '@prisma/client';
+import { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking } from '@prisma/client';
 
 // Export Prisma types
-export type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP };
+export type { User, ContentIdea, ScheduledPost, IndianHoliday, Feedback, Rating, AdminOTP, UsageTracking };
 
 // Custom insert types for forms and API
 export type InsertUser = {
@@ -95,4 +95,13 @@ export type InsertAdminOTP = {
   email: string;
   otp: string;
   expiresAt: Date;
+};
+
+export type InsertUsageTracking = {
+  userId: string;
+  date: Date;
+  generationsUsed?: number;
+  refineMessagesUsed?: number;
+  generationLimit?: number;
+  refineMessageLimit?: number;
 };

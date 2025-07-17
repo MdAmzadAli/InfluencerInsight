@@ -193,6 +193,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check competitor change eligibility
+  app.get('/api/user/competitors/eligibility', authenticateToken, async (req, res) => {
+    try {
+      const eligibility = await storage.canChangeCompetitors(req.user!.id);
+      res.json(eligibility);
+    } catch (error) {
+      console.error("Error checking competitor change eligibility:", error);
+      res.status(500).json({ error: "Failed to check competitor change eligibility" });
+    }
+  });
+
   // Update user's niche
   app.patch('/api/user/niche', authenticateToken, async (req, res) => {
     try {
