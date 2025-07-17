@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
+import { StreamingBanner } from "@/components/streaming-banner";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -177,6 +178,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Router />
+        <StreamingBanner />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

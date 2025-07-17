@@ -19,6 +19,13 @@ export interface ContentState {
   isGenerating: boolean;
   lastGenerationType: string | null;
   generationSessions: { type: string; timestamp: number; count: number }[];
+  streamingSession: {
+    isActive: boolean;
+    generationType: string | null;
+    startTime: number | null;
+    expectedIdeas: number;
+    currentProgress: string;
+  };
 }
 
 const STORAGE_KEY = 'instagram-content-state';
@@ -57,7 +64,14 @@ export function useContentState() {
       savedIdeas: [],
       isGenerating: false,
       lastGenerationType: null,
-      generationSessions: []
+      generationSessions: [],
+      streamingSession: {
+        isActive: false,
+        generationType: null,
+        startTime: null,
+        expectedIdeas: 0,
+        currentProgress: ''
+      }
     };
   });
 
@@ -92,6 +106,42 @@ export function useContentState() {
       ...prev,
       isGenerating,
       lastGenerationType: generationType || prev.lastGenerationType
+    }));
+  };
+
+  const setStreamingSession = (updates: Partial<ContentState['streamingSession']>) => {
+    setState(prev => ({
+      ...prev,
+      streamingSession: {
+        ...prev.streamingSession,
+        ...updates
+      }
+    }));
+  };
+
+  const startStreamingSession = (generationType: string, expectedIdeas: number) => {
+    setState(prev => ({
+      ...prev,
+      streamingSession: {
+        isActive: true,
+        generationType,
+        startTime: Date.now(),
+        expectedIdeas,
+        currentProgress: 'Starting content generation...'
+      }
+    }));
+  };
+
+  const endStreamingSession = () => {
+    setState(prev => ({
+      ...prev,
+      streamingSession: {
+        isActive: false,
+        generationType: null,
+        startTime: null,
+        expectedIdeas: 0,
+        currentProgress: ''
+      }
     }));
   };
 
@@ -141,7 +191,14 @@ export function useContentState() {
       savedIdeas: [],
       isGenerating: false,
       lastGenerationType: null,
-      generationSessions: []
+      generationSessions: [],
+      streamingSession: {
+        isActive: false,
+        generationType: null,
+        startTime: null,
+        expectedIdeas: 0,
+        currentProgress: ''
+      }
     });
   };
 
@@ -183,6 +240,9 @@ export function useContentState() {
     updateIdea,
     clearGeneratedIdeas,
     clearAllData,
-    separateIdeasAndLinks
+    separateIdeasAndLinks,
+    setStreamingSession,
+    startStreamingSession,
+    endStreamingSession
   };
 }

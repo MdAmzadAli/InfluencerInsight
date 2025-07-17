@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, Edit3, Save, X } from "lucide-react";
+import { Target, Edit3, Save, X, Clock } from "lucide-react";
 
 export default function UserSettings() {
   const [niche, setNiche] = useState("");
@@ -16,6 +16,11 @@ export default function UserSettings() {
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
+  });
+
+  const { data: nicheEligibility } = useQuery({
+    queryKey: ["/api/user/niche/eligibility"],
+    enabled: !!user,
   });
 
   // Initialize niche value when user data loads
@@ -38,10 +43,11 @@ export default function UserSettings() {
         description: "Your niche has been updated successfully!",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Failed to update niche. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to update niche. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -88,6 +94,16 @@ export default function UserSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 p-6">
+          {!nicheEligibility?.canChange && (
+            <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <strong>12-hour restriction:</strong> You can only change your niche once every 12 hours. 
+                Please wait {nicheEligibility?.hoursRemaining} more hours.
+              </div>
+            </div>
+          )}
+          
           {isEditingNiche ? (
             <div className="space-y-4">
               <div>
@@ -101,6 +117,7 @@ export default function UserSettings() {
                   placeholder="e.g., travel photography, fitness coaching, cooking recipes, tech reviews"
                   className="mt-2 text-base"
                   autoFocus
+                  disabled={!nicheEligibility?.canChange}
                 />
                 <p className="text-sm text-gray-500 mt-1">
                   This helps our AI generate content ideas specifically tailored to your audience and expertise.
@@ -109,7 +126,7 @@ export default function UserSettings() {
               <div className="flex space-x-3">
                 <Button
                   onClick={handleSaveNiche}
-                  disabled={updateNicheMutation.isPending}
+                  disabled={updateNicheMutation.isPending || !nicheEligibility?.canChange}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                 >
                   <Save className="h-4 w-4 mr-2" />
@@ -140,7 +157,8 @@ export default function UserSettings() {
               <Button
                 variant="outline"
                 onClick={startEditingNiche}
-                className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                disabled={!nicheEligibility?.canChange}
+                className="border-purple-200 text-purple-600 hover:bg-purple-50 disabled:opacity-50"
               >
                 <Edit3 className="h-4 w-4 mr-2" />
                 {user?.niche ? "Edit Niche" : "Set Your Niche"}

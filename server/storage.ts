@@ -139,10 +139,29 @@ export class DatabaseStorage implements IStorage {
       where: { id: userId }
     });
     
+    // Check 12-hour restriction for niche changes
+    if (niche !== user?.niche) {
+      const now = new Date();
+      const lastChanged = user?.nicheLastChanged;
+      
+      if (lastChanged) {
+        const hoursSinceLastChange = (now.getTime() - lastChanged.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastChange < 12) {
+          const hoursRemaining = Math.ceil(12 - hoursSinceLastChange);
+          throw new Error(`You can only change your niche once every 12 hours. Please wait ${hoursRemaining} more hours.`);
+        }
+      }
+    }
+    
     const updateData: any = { 
       niche, 
       updatedAt: new Date() 
     };
+    
+    // Set niche last changed timestamp if niche is actually changing
+    if (niche !== user?.niche) {
+      updateData.nicheLastChanged = new Date();
+    }
     
     // If competitors are being updated, check 24-hour restriction
     if (competitors !== undefined && competitors !== user?.competitors) {
@@ -248,13 +267,13 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const hoursSinceLastChange = (now.getTime() - user.nicheLastChanged.getTime()) / (1000 * 60 * 60);
     
-    if (hoursSinceLastChange >= 6) {
+    if (hoursSinceLastChange >= 12) {
       return { canChange: true };
     }
     
     return { 
       canChange: false, 
-      hoursRemaining: Math.ceil(6 - hoursSinceLastChange) 
+      hoursRemaining: Math.ceil(12 - hoursSinceLastChange) 
     };
   }
 

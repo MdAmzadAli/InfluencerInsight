@@ -286,7 +286,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(user);
     } catch (error) {
       console.error("Error updating user niche:", error);
-      res.status(500).json({ error: "Failed to update user niche" });
+      // Check if it's a restriction error
+      if (error instanceof Error && error.message.includes('12 hours')) {
+        res.status(429).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to update user niche" });
+      }
     }
   });
 
