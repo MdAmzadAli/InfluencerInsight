@@ -230,7 +230,17 @@ export default function GenerateIdeas() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = "Something went wrong. Please try again.";
+        
+        if (response.status === 429) {
+          errorMessage = "You don't have enough tokens remaining today. Please try again tomorrow.";
+        } else if (response.status === 401 || response.status === 403) {
+          errorMessage = "Your session has expired. Please log in again.";
+        } else if (response.status === 500) {
+          errorMessage = "Our servers are having issues. Please try again in a few minutes.";
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -325,7 +335,7 @@ export default function GenerateIdeas() {
         });
       } else {
         // Handle specific error messages
-        const errorMessage = error instanceof Error ? error.message : "Failed to generate content";
+        const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
         
         if (errorMessage.includes("No competitors added")) {
           toast({
@@ -333,10 +343,28 @@ export default function GenerateIdeas() {
             description: "Please add competitors first in the Niche section to generate competitor analysis content.",
             variant: "destructive",
           });
+        } else if (errorMessage.includes("tokens remaining") || errorMessage.includes("token limit")) {
+          toast({
+            title: "Not Enough Tokens",
+            description: "You've used all your tokens for today. Please try again tomorrow.",
+            variant: "destructive",
+          });
+        } else if (errorMessage.includes("session has expired") || errorMessage.includes("log in again")) {
+          toast({
+            title: "Session Expired",
+            description: "Please log in again to continue.",
+            variant: "destructive",
+          });
         } else if (errorMessage.includes("NetworkError") || errorMessage.includes("fetch")) {
           toast({
             title: "Connection Lost",
             description: "The connection was lost during generation. Please try again.",
+            variant: "destructive",
+          });
+        } else if (errorMessage.includes("servers are having issues")) {
+          toast({
+            title: "Server Issues",
+            description: "Our servers are having issues. Please try again in a few minutes.",
             variant: "destructive",
           });
         } else {
@@ -367,8 +395,8 @@ export default function GenerateIdeas() {
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Session Expired",
+          description: "Please log in again to continue.",
           variant: "destructive",
         });
         setTimeout(() => {
@@ -459,8 +487,8 @@ export default function GenerateIdeas() {
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Session Expired",
+          description: "Please log in again to continue.",
           variant: "destructive",
         });
         setTimeout(() => {
@@ -507,8 +535,8 @@ export default function GenerateIdeas() {
     // Check if tokens are available
     if (!tokenStatus?.tokens.canUse) {
       toast({
-        title: "Token limit reached",
-        description: "Daily token limit exceeded. Please try again tomorrow.",
+        title: "Not Enough Tokens",
+        description: "You've used all your tokens for today. Please try again tomorrow.",
         variant: "destructive",
       });
       return;

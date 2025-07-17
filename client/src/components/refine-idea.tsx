@@ -145,10 +145,17 @@ What would you like to work on today?`,
       });
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('Authentication failed');
+        let errorMessage = "Something went wrong. Please try again.";
+        
+        if (response.status === 429) {
+          errorMessage = "You don't have enough tokens remaining today. Please try again tomorrow.";
+        } else if (response.status === 401 || response.status === 403) {
+          errorMessage = "Your session has expired. Please log in again.";
+        } else if (response.status === 500) {
+          errorMessage = "Our servers are having issues. Please try again in a few minutes.";
         }
-        throw new Error('Stream request failed');
+        
+        throw new Error(errorMessage);
       }
 
       const reader = response.body?.getReader();
@@ -201,10 +208,10 @@ What would you like to work on today?`,
       setStreamingMessage("");
       
       // Handle authentication errors
-      if (error.message === 'Authentication failed') {
+      if (error.message.includes('session has expired') || error.message.includes('log in again')) {
         toast({
           title: "Session Expired",
-          description: "Please login again.",
+          description: "Please log in again to continue.",
           variant: "destructive",
         });
         setTimeout(() => {
@@ -213,40 +220,22 @@ What would you like to work on today?`,
         return;
       }
       
-      // Fallback to non-streaming
-      try {
-        const response = await apiRequest("POST", "/api/content/refine", {
-          idea,
-          message,
-          chatHistory: messages
-        });
-        const data = response;
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        }]);
-        setIsStreaming(false);
-        // Refetch tokens to update real-time display
-        refetchTokens();
-      } catch (fallbackError) {
-        if (isUnauthorizedError(fallbackError)) {
-          toast({
-            title: "Unauthorized",
-            description: "You are logged out. Logging in again...",
-            variant: "destructive",
-          });
-          setTimeout(() => {
-            window.location.href = "/api/login";
-          }, 500);
-          return;
-        }
+      // Handle token limit errors
+      if (error.message.includes('tokens remaining') || error.message.includes('token limit')) {
         toast({
-          title: "Error",
-          description: "Failed to refine idea. Please try again.",
+          title: "Not Enough Tokens",
+          description: "You've used all your tokens for today. Please try again tomorrow.",
           variant: "destructive",
         });
+        return;
       }
+      
+      // Show generic error message for streaming failures
+      toast({
+        title: "Connection Issue",
+        description: "Our AI assistant is having connection issues. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -256,8 +245,8 @@ What would you like to work on today?`,
     // Check if tokens are available
     if (!tokenStatus?.tokens.canUse) {
       toast({
-        title: "Token limit reached",
-        description: "Daily token limit exceeded. Please try again tomorrow.",
+        title: "Not Enough Tokens",
+        description: "You've used all your tokens for today. Please try again tomorrow.",
         variant: "destructive",
       });
       return;
@@ -529,10 +518,14 @@ What would you like to work on today?`,
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={isStreaming ? "Please wait for AI response..." : "Ask me anything about optimizing your Instagram content..."}
+                  placeholder={
+                    isStreaming ? "Please wait for AI response..." : 
+                    !tokenStatus?.tokens.canUse ? "Not enough tokens remaining today. Please try again tomorrow." :
+                    "Ask me anything about optimizing your Instagram content..."
+                  }
                   className="flex-1 resize-none"
                   rows={2}
-                  disabled={isStreaming}
+                  disabled={isStreaming || !tokenStatus?.tokens.canUse}
                 />
                 {isStreaming ? (
                   <Button onClick={handleStopStreaming} variant="outline" className="self-end">

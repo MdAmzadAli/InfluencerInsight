@@ -118,6 +118,17 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Fallback Strategy**: Maintains fallback content generation when all retry attempts fail
 - **✅ Improved Reliability**: Competitor analysis now works consistently even during high API load periods
 
+### July 17, 2025 - User-Friendly Error Messages & Button Disabling Complete
+- **✅ User-Friendly Error Messages**: Replaced technical HTTP status codes (429, 500, 401) with clear, understandable messages
+- **✅ Token Exhaustion Handling**: Changed "Daily token limit reached" to "Not enough tokens remaining today"
+- **✅ Server Error Messages**: Replaced "HTTP error! status: 500" with "Our servers are having issues. Please try again in a few minutes"
+- **✅ Session Error Messages**: Improved "Unauthorized" to "Session Expired. Please log in again to continue"
+- **✅ Button Disabling**: All generation buttons (date-specific, competitor, trending) automatically disable when tokens exhausted
+- **✅ Refine Panel Disabling**: AI chat input and send button disable when no tokens remaining
+- **✅ Visual Feedback**: Cards show reduced opacity and "cursor-not-allowed" when tokens exhausted
+- **✅ Helpful Placeholders**: Refine panel shows "Not enough tokens remaining today" message in input field
+- **✅ Mobile Support**: Token-based button disabling works on both desktop and mobile interfaces
+
 ### July 17, 2025 - Refine Panel HTML Formatting Enhancement Complete
 - **✅ HTML Formatting**: Modified AI responses to use proper HTML tags instead of markdown asterisks
 - **✅ Bold Text**: Converted **text** to <strong>text</strong> for proper bold display
