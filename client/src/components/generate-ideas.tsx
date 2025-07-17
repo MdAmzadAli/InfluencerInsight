@@ -67,6 +67,48 @@ export default function GenerateIdeas() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Cleanup effect to handle navigation away during streaming
+  useEffect(() => {
+    return () => {
+      // Clean up any active streaming when component unmounts
+      if (streamingAbortController) {
+        streamingAbortController.abort();
+      }
+    };
+  }, [streamingAbortController]);
+
+  // Reset streaming state when component mounts if user navigated back during active generation
+  useEffect(() => {
+    // If the global state indicates generation is active but there's no local streaming state,
+    // it means the user navigated away during generation and came back
+    if ((state.isDateGenerating || state.isCompetitorGenerating || state.isTrendingGenerating) && 
+        !streamingStatus.isStreaming && !streamingAbortController) {
+      // Set up auto-recovery timer
+      const autoRecoveryTimer = setTimeout(() => {
+        setGenerating(false);
+        setStreamingStatus({
+          isStreaming: false,
+          currentStep: '',
+          progress: null
+        });
+        toast({
+          title: "Generation Reset",
+          description: "Previous generation was interrupted and auto-reset. Please try again.",
+          variant: "destructive",
+        });
+      }, 10000); // Auto-reset after 10 seconds
+
+      // Show immediate notification
+      toast({
+        title: "Generation Detected",
+        description: "Attempting to reconnect to interrupted generation...",
+      });
+
+      // Clean up timer on unmount
+      return () => clearTimeout(autoRecoveryTimer);
+    }
+  }, []); // Run only on component mount
+
   const updateNicheMutation = useMutation({
     mutationFn: async (data: { niche: string; competitors?: string }) => {
       // If competitors are provided, use the PUT endpoint that handles both
@@ -285,6 +327,12 @@ export default function GenerateIdeas() {
             description: "Please add competitors first in the Niche section to generate competitor analysis content.",
             variant: "destructive",
           });
+        } else if (errorMessage.includes("NetworkError") || errorMessage.includes("fetch")) {
+          toast({
+            title: "Connection Lost",
+            description: "The connection was lost during generation. Please try again.",
+            variant: "destructive",
+          });
         } else {
           toast({
             title: "Error",
@@ -294,6 +342,7 @@ export default function GenerateIdeas() {
         }
       }
     } finally {
+      // Always reset all states when streaming completes or fails
       setGenerating(false, generationType);
       setStreamingAbortController(null);
       setStreamingStatus({
@@ -764,10 +813,34 @@ export default function GenerateIdeas() {
           )}
 
           {(generateContentMutation.isPending || state.isGenerating) && !streamingStatus.isStreaming && (
-            <div className="text-center py-8">
-              <div className="w-8 h-8 instagram-gradient rounded-lg animate-pulse mx-auto mb-4"></div>
-              <p className="text-gray-600">Generating content ideas using real Instagram data...</p>
-            </div>
+            <Card className="mb-6 bg-yellow-50 border-yellow-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm font-medium text-yellow-900">Reconnecting to Generation...</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setGenerating(false);
+                      toast({
+                        title: "Generation Stopped",
+                        description: "Please try generating again.",
+                      });
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <StopCircle className="h-4 w-4 mr-1" />
+                    Stop
+                  </Button>
+                </div>
+                <p className="text-sm text-yellow-700">
+                  Connection to generation was lost. Click Stop to try again or wait for auto-recovery.
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {state.generatedIdeas.length > 0 && (
