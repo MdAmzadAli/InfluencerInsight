@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Send, Lightbulb, Copy, ArrowLeft, Bot, User, Loader2, ChevronDown, Edit3 } from 'lucide-react';
 import ContentEditor from "./content-editor";
+import TokenTracker from "./token-tracker";
 import type { ContentIdea } from "@/hooks/useContentState";
 
 interface RefineIdeaProps {
@@ -36,9 +37,9 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
   
   const { toast } = useToast();
 
-  const { data: tokenStatus } = useQuery({
+  const { data: tokenStatus, refetch: refetchTokens } = useQuery({
     queryKey: ['/api/user/tokens'],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Real-time updates every 5 seconds
   });
 
   // Auto-scroll to latest message
@@ -164,6 +165,8 @@ What would you like to work on today?`,
                 }]);
                 setStreamingMessage("");
                 setIsStreaming(false);
+                // Refetch tokens immediately to update real-time display
+                refetchTokens();
                 return;
               }
               if (data.error) {
@@ -209,6 +212,8 @@ What would you like to work on today?`,
           timestamp: new Date()
         }]);
         setIsStreaming(false);
+        // Refetch tokens to update real-time display
+        refetchTokens();
       } catch (fallbackError) {
         if (isUnauthorizedError(fallbackError)) {
           toast({
@@ -311,6 +316,7 @@ What would you like to work on today?`,
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <TokenTracker />
           {idea && (
             <Button 
               variant="outline" 

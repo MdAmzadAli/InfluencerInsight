@@ -15,7 +15,7 @@ interface TokenStatus {
 export default function TokenTracker() {
   const { data: status, isLoading } = useQuery<TokenStatus>({
     queryKey: ['/api/user/tokens'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
   });
 
   if (isLoading || !status) {
@@ -28,8 +28,16 @@ export default function TokenTracker() {
   }
 
   const tokenPercentage = (status.tokens.tokensUsed / status.tokens.dailyLimit) * 100;
-  const tokensInK = Math.round(status.tokens.tokensRemaining / 1000);
-  const dailyLimitInK = Math.round(status.tokens.dailyLimit / 1000);
+  const tokensRemaining = Math.round(status.tokens.tokensRemaining);
+  const dailyLimit = Math.round(status.tokens.dailyLimit);
+  
+  // Format numbers for display
+  const formatTokens = (tokens: number) => {
+    if (tokens >= 1000) {
+      return Math.round(tokens / 1000) + 'K';
+    }
+    return tokens.toString();
+  };
 
   return (
     <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border">
@@ -38,9 +46,9 @@ export default function TokenTracker() {
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              {tokensInK}K
+              {formatTokens(tokensRemaining)}
             </span>
-            <span className="text-xs text-muted-foreground">/ {dailyLimitInK}K tokens</span>
+            <span className="text-xs text-muted-foreground">/ {formatTokens(dailyLimit)} tokens</span>
           </div>
           <Progress 
             value={tokenPercentage} 

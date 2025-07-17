@@ -1042,6 +1042,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Message is required" });
       }
 
+      // Check token usage for refine (2000 tokens per refine message)
+      const tokensNeeded = 2000;
+      const tokenCheck = await storage.canUseTokens(req.user!.id, tokensNeeded);
+      if (!tokenCheck.canUse) {
+        return res.status(429).json({ 
+          error: "Daily token limit reached", 
+          message: `Need ${Math.round(tokensNeeded/1000)}K tokens, but only ${Math.round(tokenCheck.tokensRemaining/1000)}K remaining today. Limit resets at midnight.`,
+          tokensNeeded,
+          tokensRemaining: tokenCheck.tokensRemaining
+        });
+      }
+
       // Check if user can refine content
       const canRefine = await storage.canRefineContent(req.user!.id);
       if (!canRefine.canRefine) {
@@ -1070,7 +1082,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         
-        // Increment usage counter after successful streaming
+        // Track token usage and increment refine messages after successful streaming
+        await storage.trackTokenUsage(req.user!.id, 2000); // 2K tokens per refine
         await storage.incrementRefineMessages(req.user!.id);
       } catch (streamError) {
         console.error("Streaming error:", streamError);
