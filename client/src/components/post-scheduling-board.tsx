@@ -194,7 +194,7 @@ export default function PostSchedulingBoard() {
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center">
+        <h1 className="text-lg md:text-2xl font-bold text-gray-900 mb-2 flex items-center">
           <Calendar className="h-6 w-6 mr-2" />
           Post Scheduling Board
         </h1>
@@ -482,7 +482,7 @@ export default function PostSchedulingBoard() {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">Headline</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">Headline</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -501,7 +501,7 @@ export default function PostSchedulingBoard() {
               
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">Caption</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900">Caption</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -520,7 +520,7 @@ export default function PostSchedulingBoard() {
               
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-900 flex items-center">
                     <Hash className="h-5 w-5 mr-1" />
                     Hashtags
                   </h3>
@@ -544,7 +544,7 @@ export default function PostSchedulingBoard() {
                   
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <h3 className="text-base md:text-lg font-semibold text-gray-900 flex items-center">
                         <Lightbulb className="h-5 w-5 mr-1" />
                         Strategy & Ideas
                       </h3>

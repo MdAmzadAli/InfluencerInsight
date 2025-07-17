@@ -108,7 +108,7 @@ export default function CreatePost() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Custom Post</h2>
+        <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">Create Custom Post</h2>
         <p className="text-gray-600">Manually create your Instagram content with custom inputs</p>
       </div>
 

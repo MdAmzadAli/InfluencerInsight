@@ -79,7 +79,7 @@ export default function UserSettings() {
       <div className="flex items-center space-x-3">
         <Target className="h-8 w-8 text-purple-600" />
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h2 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             Your Niche
           </h2>
           <p className="text-gray-600">Define your content focus area for personalized AI-generated ideas</p>

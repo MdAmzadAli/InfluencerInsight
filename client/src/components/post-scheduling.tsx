@@ -156,7 +156,7 @@ export default function PostScheduling() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Post Scheduling</h2>
+        <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">Post Scheduling</h2>
         <p className="text-gray-600">Manage your scheduled posts and timing</p>
       </div>
 

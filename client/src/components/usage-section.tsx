@@ -25,7 +25,7 @@ const UsageSection: React.FC = () => {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Usage Overview</h2>
+          <h2 className="text-lg md:text-2xl font-bold">Usage Overview</h2>
           <Badge variant="outline">Loading...</Badge>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -68,7 +68,7 @@ const UsageSection: React.FC = () => {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Usage Overview</h2>
+          <h2 className="text-lg md:text-2xl font-bold">Usage Overview</h2>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
@@ -103,7 +103,7 @@ const UsageSection: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Usage Overview</h2>
+        <h2 className="text-lg md:text-2xl font-bold">Usage Overview</h2>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="flex items-center gap-1">
             <Clock className="h-3 w-3" />

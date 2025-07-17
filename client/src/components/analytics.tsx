@@ -69,7 +69,7 @@ export default function Analytics() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
           <p className="text-gray-600 mt-1">
             Track your Instagram content performance and insights
           </p>
@@ -107,7 +107,7 @@ export default function Analytics() {
             <Sparkles className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{contentIdeas.length}</div>
+            <div className="text-xl md:text-2xl font-bold">{contentIdeas.length}</div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3" />
               <span>+12% from last month</span>
@@ -121,7 +121,7 @@ export default function Analytics() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{scheduledPosts.length}</div>
+            <div className="text-xl md:text-2xl font-bold">{scheduledPosts.length}</div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3" />
               <span>+8% from last month</span>
@@ -135,7 +135,7 @@ export default function Analytics() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.2%</div>
+            <div className="text-xl md:text-2xl font-bold">4.2%</div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3" />
               <span>+0.5% from last month</span>
@@ -149,7 +149,7 @@ export default function Analytics() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{competitors.length}</div>
+            <div className="text-xl md:text-2xl font-bold">{competitors.length}</div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <Target className="h-3 w-3" />
               <span>Active monitoring</span>

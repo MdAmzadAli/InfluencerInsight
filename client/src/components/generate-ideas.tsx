@@ -591,14 +591,14 @@ export default function GenerateIdeas() {
   return (
     <div className="p-4 md:p-8 max-w-full overflow-hidden">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Generate Content Ideas</h2>
+        <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">Generate Content Ideas</h2>
         <p className="text-gray-600">AI-powered content suggestions tailored to your niche and audience</p>
       </div>
 
       {!showOptions ? (
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Tell us about your Instagram</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">Tell us about your Instagram</h3>
             
             <div className="space-y-4">
               <div>
@@ -881,7 +881,7 @@ export default function GenerateIdeas() {
           {state.generatedIdeas.length > 0 && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-900">Generated Ideas ({state.generatedIdeas.length})</h3>
+                <h3 className="text-lg md:text-2xl font-bold text-gray-900">Generated Ideas ({state.generatedIdeas.length})</h3>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"

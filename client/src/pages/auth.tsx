@@ -56,7 +56,7 @@ export default function Auth() {
               <Sparkles className="h-6 w-6 text-yellow-500 absolute -top-1 -right-1" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             InstaGenIdeas
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">

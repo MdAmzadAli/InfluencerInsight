@@ -63,7 +63,7 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
               <Instagram className="h-6 w-6 md:h-8 md:w-8 text-pink-600" />
               <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-yellow-500 absolute -top-1 -right-1" />
             </div>
-            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <span className="hidden sm:block text-lg md:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               InstaGenIdeas
             </span>
             <span className="sm:hidden text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">

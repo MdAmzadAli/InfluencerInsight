@@ -208,7 +208,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Admin Portal</h1>
+          <h1 className="text-xl md:text-3xl font-bold">Admin Portal</h1>
           <Button variant="outline" onClick={logout}>
             Logout
           </Button>
@@ -221,7 +221,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-lg md:text-2xl font-bold">
                     {analyticsData?.totals?.totalUsers || 0}
                   </p>
                 </div>
@@ -235,7 +235,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Active Users (30d)</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-lg md:text-2xl font-bold">
                     {analyticsData?.totals?.activeUsers || 0}
                   </p>
                 </div>
@@ -249,7 +249,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Today's Tokens</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-lg md:text-2xl font-bold">
                     {analyticsData?.today?.tokens ? Math.round(analyticsData.today.tokens / 1000) + 'K' : '0'}
                   </p>
                 </div>
@@ -263,7 +263,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Today's Ideas</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-lg md:text-2xl font-bold">
                     {analyticsData?.today?.ideas || 0}
                   </p>
                 </div>
