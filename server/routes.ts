@@ -189,6 +189,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh competitors cache manually
   app.post('/api/user/competitors/refresh', authenticateToken, async (req, res) => {
     try {
+      // Check 24-hour restriction for competitor changes
+      const eligibility = await storage.canChangeCompetitors(req.user!.id);
+      if (!eligibility.canChange) {
+        return res.status(400).json({ 
+          error: `You can only refresh competitors once per 24 hours. Please wait ${eligibility.hoursRemaining} more hours.` 
+        });
+      }
+
       const user = await storage.getUser(req.user!.id);
       if (!user?.competitors) {
         return res.status(400).json({ error: "No competitors found to refresh" });

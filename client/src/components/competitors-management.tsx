@@ -131,6 +131,15 @@ export default function CompetitorsManagement() {
   };
 
   const refreshCompetitors = () => {
+    if (!eligibility?.canChange) {
+      toast({
+        title: "Cannot Refresh Competitors",
+        description: `You can only refresh competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (savedCompetitors.length === 0) {
       toast({
         title: "No Competitors",
@@ -231,7 +240,7 @@ export default function CompetitorsManagement() {
           <div className="flex gap-2">
             <Button
               onClick={refreshCompetitors}
-              disabled={refreshCompetitorsMutation.isPending}
+              disabled={refreshCompetitorsMutation.isPending || !eligibility?.canChange}
               className="flex-1"
               variant="outline"
             >
