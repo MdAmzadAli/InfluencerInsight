@@ -123,7 +123,12 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
                 
                 {/* Mobile Quick Stats */}
                 <div className="p-6 border-t">
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Token Tracker for Mobile */}
+                    <div className="mb-4">
+                      <TokenTracker />
+                    </div>
+                    
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Competitors</span>
                       <span className="text-sm font-medium">{competitors.length}</span>
@@ -154,8 +159,8 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Token Tracker */}
-          <div className="hidden md:block">
+          {/* Token Tracker - Desktop Only */}
+          <div className="hidden lg:block">
             <TokenTracker />
           </div>
           
