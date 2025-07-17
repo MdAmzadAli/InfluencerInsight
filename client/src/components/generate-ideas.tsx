@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -71,11 +71,11 @@ export default function GenerateIdeas() {
   useEffect(() => {
     return () => {
       // Clean up any active streaming when component unmounts
-      if (streamingAbortController) {
-        streamingAbortController.abort();
+      if (streamingAbortControllerRef.current) {
+        streamingAbortControllerRef.current.abort();
       }
     };
-  }, [streamingAbortController]);
+  }, []);
 
   // Reset streaming state when component mounts if user navigated back during active generation
   useEffect(() => {
@@ -167,6 +167,7 @@ export default function GenerateIdeas() {
   });
   
   const [streamingAbortController, setStreamingAbortController] = useState<AbortController | null>(null);
+  const streamingAbortControllerRef = useRef<AbortController | null>(null);
   
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -181,6 +182,10 @@ export default function GenerateIdeas() {
     if (streamingAbortController) {
       streamingAbortController.abort();
       setStreamingAbortController(null);
+    }
+    if (streamingAbortControllerRef.current) {
+      streamingAbortControllerRef.current.abort();
+      streamingAbortControllerRef.current = null;
     }
     setGenerating(false);
     setStreamingStatus({
@@ -207,6 +212,7 @@ export default function GenerateIdeas() {
     try {
       const abortController = new AbortController();
       setStreamingAbortController(abortController);
+      streamingAbortControllerRef.current = abortController;
       
       const token = localStorage.getItem('token');
       const response = await fetch('/api/content/generate/stream', {
@@ -345,6 +351,7 @@ export default function GenerateIdeas() {
       // Always reset all states when streaming completes or fails
       setGenerating(false, generationType);
       setStreamingAbortController(null);
+      streamingAbortControllerRef.current = null;
       setStreamingStatus({
         isStreaming: false,
         currentStep: '',
