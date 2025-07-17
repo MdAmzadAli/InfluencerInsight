@@ -46,7 +46,7 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
   const isActive = (href: string) => location === href;
 
   return (
-    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-50 w-full">
+    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 fixed top-0 left-0 right-0 z-50 w-screen">
       <div className="w-full md:max-w-7xl md:mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Mobile Menu Button */}

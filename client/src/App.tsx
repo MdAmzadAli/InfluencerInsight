@@ -112,7 +112,7 @@ function Router() {
           posts={posts}
           loadingPosts={loadingPosts}
         />
-        <div className="flex">
+        <div className="flex pt-16">
           <Sidebar 
             competitors={competitors}
             posts={posts}
@@ -146,7 +146,7 @@ function Router() {
         posts={posts}
         loadingPosts={loadingPosts}
       />
-      <div className="flex">
+      <div className="flex pt-16">
         <Sidebar 
           competitors={competitors}
           posts={posts}
