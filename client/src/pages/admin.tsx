@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Star, MessageSquare, Shield, Mail, Calendar, User, TrendingUp } from 'lucide-react';
+import { Star, MessageSquare, Shield, Mail, Calendar, User, TrendingUp, Users, Activity, Coins, BarChart3 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Feedback, Rating } from '@/shared/schema';
 
@@ -117,6 +117,11 @@ export default function AdminPage() {
     enabled: isAuthenticated,
   });
 
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['/api/admin/users'],
+    enabled: isAuthenticated,
+  });
+
   const logout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('admin_authenticated');
@@ -209,18 +214,18 @@ export default function AdminPage() {
           </Button>
         </div>
 
-        {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Token Analytics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Feedback</p>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
                   <p className="text-2xl font-bold">
-                    {feedbackData?.length || 0}
+                    {analyticsData?.totals?.totalUsers || 0}
                   </p>
                 </div>
-                <MessageSquare className="h-8 w-8 text-blue-600" />
+                <Users className="h-8 w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
@@ -229,12 +234,12 @@ export default function AdminPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Ratings</p>
+                  <p className="text-sm text-muted-foreground">Active Users (30d)</p>
                   <p className="text-2xl font-bold">
-                    {ratingsData?.length || 0}
+                    {analyticsData?.totals?.activeUsers || 0}
                   </p>
                 </div>
-                <Star className="h-8 w-8 text-yellow-600" />
+                <Activity className="h-8 w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
@@ -243,25 +248,194 @@ export default function AdminPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Average Rating</p>
+                  <p className="text-sm text-muted-foreground">Today's Tokens</p>
                   <p className="text-2xl font-bold">
-                    {ratingsData?.length > 0 
-                      ? (ratingsData.reduce((acc: number, rating: Rating) => acc + rating.rating, 0) / ratingsData.length).toFixed(1)
-                      : '0.0'
-                    }
+                    {analyticsData?.today?.tokens ? Math.round(analyticsData.today.tokens / 1000) + 'K' : '0'}
                   </p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-600" />
+                <Coins className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Today's Ideas</p>
+                  <p className="text-2xl font-bold">
+                    {analyticsData?.today?.ideas || 0}
+                  </p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-orange-600" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="feedback" className="space-y-4">
+        {/* Usage Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Today's Usage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Tokens Used</span>
+                  <span className="font-medium">{analyticsData?.today?.tokens ? Math.round(analyticsData.today.tokens / 1000) + 'K' : '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Ideas Generated</span>
+                  <span className="font-medium">{analyticsData?.today?.ideas || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Active Users</span>
+                  <span className="font-medium">{analyticsData?.today?.activeUsers || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Yesterday's Usage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Tokens Used</span>
+                  <span className="font-medium">{analyticsData?.yesterday?.tokens ? Math.round(analyticsData.yesterday.tokens / 1000) + 'K' : '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Ideas Generated</span>
+                  <span className="font-medium">{analyticsData?.yesterday?.ideas || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Active Users</span>
+                  <span className="font-medium">{analyticsData?.yesterday?.activeUsers || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Last 7 Days</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Tokens Used</span>
+                  <span className="font-medium">{analyticsData?.last7Days?.tokens ? Math.round(analyticsData.last7Days.tokens / 1000) + 'K' : '0'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Ideas Generated</span>
+                  <span className="font-medium">{analyticsData?.last7Days?.ideas || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Active Users</span>
+                  <span className="font-medium">{analyticsData?.last7Days?.activeUsers || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="users" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="users">User Analytics</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
             <TabsTrigger value="ratings">Ratings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Token Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Niche</TableHead>
+                        <TableHead>Today</TableHead>
+                        <TableHead>Total Tokens</TableHead>
+                        <TableHead>Total Ideas</TableHead>
+                        <TableHead>Daily Avg</TableHead>
+                        <TableHead>Active Days</TableHead>
+                        <TableHead>Last Active</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usersData?.map((user: any) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                <span className="font-medium">
+                                  {user.firstName || user.lastName ? 
+                                    `${user.firstName || ''} ${user.lastName || ''}`.trim() : 
+                                    'Anonymous'
+                                  }
+                                </span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">{user.email}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {user.niche || 'Not set'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.analytics.todayTokensUsed > 0 ? Math.round(user.analytics.todayTokensUsed / 1000) + 'K' : '0'}</span>
+                              <span className="text-xs text-muted-foreground">{user.analytics.todayIdeasGenerated} ideas</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {user.analytics.totalTokensUsed > 0 ? Math.round(user.analytics.totalTokensUsed / 1000) + 'K' : '0'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">{user.analytics.totalIdeasGenerated}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium">
+                              {user.analytics.dailyAverage > 0 ? Math.round(user.analytics.dailyAverage / 1000) + 'K' : '0'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {user.analytics.activeDays}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              {user.analytics.lastActiveDate ? 
+                                new Date(user.analytics.lastActiveDate).toLocaleDateString() : 
+                                'Never'
+                              }
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="feedback">
             <Card>

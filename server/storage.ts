@@ -113,6 +113,11 @@ export interface IStorage {
   canUseTokens(userId: string, tokensNeeded: number): Promise<{ canUse: boolean; tokensRemaining: number; tokensUsed: number; dailyLimit: number }>;
   canGenerateIdeas(userId: string): Promise<{ canGenerate: boolean; ideasRemaining: number; ideasGenerated: number; dailyLimit: number }>;
   trackTokenUsage(userId: string, tokensUsed: number, ideasGenerated?: number): Promise<void>;
+  
+  // Admin analytics operations
+  getAllUsersWithTokenUsage(): Promise<any[]>;
+  getUserTokenAnalytics(userId: string): Promise<any>;
+  getTokenUsageOverview(): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -645,6 +650,180 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       }
     });
+  }
+
+  // Admin analytics operations
+  async getAllUsersWithTokenUsage(): Promise<any[]> {
+    const users = await db.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        niche: true,
+        createdAt: true,
+        planType: true,
+        tokenUsage: {
+          orderBy: {
+            usageDate: 'desc'
+          },
+          take: 30 // Last 30 days
+        }
+      }
+    });
+
+    return users.map(user => {
+      const totalTokensUsed = user.tokenUsage.reduce((sum, usage) => sum + usage.tokensUsed, 0);
+      const totalIdeasGenerated = user.tokenUsage.reduce((sum, usage) => sum + usage.ideasGenerated, 0);
+      const lastActiveDate = user.tokenUsage.length > 0 ? user.tokenUsage[0].usageDate : null;
+      const todayUsage = user.tokenUsage.find(usage => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return usage.usageDate.getTime() === today.getTime();
+      });
+
+      return {
+        ...user,
+        analytics: {
+          totalTokensUsed,
+          totalIdeasGenerated,
+          todayTokensUsed: todayUsage?.tokensUsed || 0,
+          todayIdeasGenerated: todayUsage?.ideasGenerated || 0,
+          lastActiveDate,
+          dailyAverage: user.tokenUsage.length > 0 ? Math.round(totalTokensUsed / user.tokenUsage.length) : 0,
+          activeDays: user.tokenUsage.length
+        }
+      };
+    });
+  }
+
+  async getUserTokenAnalytics(userId: string): Promise<any> {
+    const tokenUsage = await db.tokenUsage.findMany({
+      where: { userId },
+      orderBy: { usageDate: 'desc' },
+      take: 30
+    });
+
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        niche: true,
+        createdAt: true
+      }
+    });
+
+    const totalTokensUsed = tokenUsage.reduce((sum, usage) => sum + usage.tokensUsed, 0);
+    const totalIdeasGenerated = tokenUsage.reduce((sum, usage) => sum + usage.ideasGenerated, 0);
+
+    return {
+      user,
+      analytics: {
+        totalTokensUsed,
+        totalIdeasGenerated,
+        dailyUsage: tokenUsage,
+        averageDaily: tokenUsage.length > 0 ? Math.round(totalTokensUsed / tokenUsage.length) : 0,
+        activeDays: tokenUsage.length,
+        peakUsage: tokenUsage.length > 0 ? Math.max(...tokenUsage.map(u => u.tokensUsed)) : 0
+      }
+    };
+  }
+
+  async getTokenUsageOverview(): Promise<any> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const last7Days = new Date(today);
+    last7Days.setDate(last7Days.getDate() - 7);
+
+    const last30Days = new Date(today);
+    last30Days.setDate(last30Days.getDate() - 30);
+
+    // Today's usage
+    const todayUsage = await db.tokenUsage.aggregate({
+      where: {
+        usageDate: today
+      },
+      _sum: {
+        tokensUsed: true,
+        ideasGenerated: true
+      },
+      _count: {
+        userId: true
+      }
+    });
+
+    // Yesterday's usage
+    const yesterdayUsage = await db.tokenUsage.aggregate({
+      where: {
+        usageDate: yesterday
+      },
+      _sum: {
+        tokensUsed: true,
+        ideasGenerated: true
+      },
+      _count: {
+        userId: true
+      }
+    });
+
+    // Last 7 days
+    const last7DaysUsage = await db.tokenUsage.aggregate({
+      where: {
+        usageDate: {
+          gte: last7Days
+        }
+      },
+      _sum: {
+        tokensUsed: true,
+        ideasGenerated: true
+      },
+      _count: {
+        userId: true
+      }
+    });
+
+    // Total users
+    const totalUsers = await db.user.count();
+
+    // Active users (users with token usage in last 30 days)
+    const activeUsers = await db.tokenUsage.groupBy({
+      by: ['userId'],
+      where: {
+        usageDate: {
+          gte: last30Days
+        }
+      }
+    });
+
+    return {
+      today: {
+        tokens: todayUsage._sum.tokensUsed || 0,
+        ideas: todayUsage._sum.ideasGenerated || 0,
+        activeUsers: todayUsage._count.userId || 0
+      },
+      yesterday: {
+        tokens: yesterdayUsage._sum.tokensUsed || 0,
+        ideas: yesterdayUsage._sum.ideasGenerated || 0,
+        activeUsers: yesterdayUsage._count.userId || 0
+      },
+      last7Days: {
+        tokens: last7DaysUsage._sum.tokensUsed || 0,
+        ideas: last7DaysUsage._sum.ideasGenerated || 0,
+        activeUsers: last7DaysUsage._count.userId || 0
+      },
+      totals: {
+        totalUsers,
+        activeUsers: activeUsers.length,
+        dailyLimit: 66000
+      }
+    };
   }
 }
 

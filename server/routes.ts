@@ -1259,29 +1259,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/admin/analytics', async (req, res) => {
     try {
-      const feedback = await storage.getAllFeedback();
-      const ratings = await storage.getAllRatings();
-      
-      const analytics = {
-        totalFeedback: feedback.length,
-        totalRatings: ratings.length,
-        averageRating: ratings.length > 0 
-          ? ratings.reduce((acc, r) => acc + r.rating, 0) / ratings.length 
-          : 0,
-        feedbackByCategory: feedback.reduce((acc, f) => {
-          acc[f.category || 'general'] = (acc[f.category || 'general'] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        ratingDistribution: ratings.reduce((acc, r) => {
-          acc[r.rating] = (acc[r.rating] || 0) + 1;
-          return acc;
-        }, {} as Record<number, number>)
-      };
-
+      const analytics = await storage.getTokenUsageOverview();
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching analytics:", error);
       res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get('/api/admin/users', async (req, res) => {
+    try {
+      const users = await storage.getAllUsersWithTokenUsage();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.get('/api/admin/users/:userId/analytics', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const analytics = await storage.getUserTokenAnalytics(userId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching user analytics:", error);
+      res.status(500).json({ error: "Failed to fetch user analytics" });
     }
   });
 

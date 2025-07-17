@@ -90,14 +90,17 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
-### July 17, 2025 - Token System Enhancement & Percentage-Based Display Complete
-- **✅ Percentage-Based Display**: Token tracker now shows usage as percentage (e.g., "85% remaining") instead of raw numbers
+### July 17, 2025 - Admin Panel Token Analytics & User Tracking Complete
+- **✅ Admin Token Analytics**: Integrated comprehensive user token usage tracking into admin panel (/admin route)
+- **✅ User Usage Overview**: Added analytics dashboard showing total users, active users, daily token consumption, and idea generation
+- **✅ Individual User Tracking**: Detailed per-user analytics including today's usage, total tokens, daily averages, and activity patterns
+- **✅ Real-Time Token Monitoring**: Admin can track token consumption across all users with live updates
+- **✅ Usage Trend Analysis**: Dashboard shows today/yesterday/7-day usage comparisons for operational insights
+- **✅ User Activity Insights**: Track which users are most active, their niches, and consumption patterns
+- **✅ Percentage-Based Display**: Token tracker shows usage as percentage (e.g., "85% remaining") instead of raw numbers
 - **✅ Real-Time Token Tracking**: Enhanced token tracker with 5-second refresh intervals for immediate updates
 - **✅ Refine Panel Integration**: Added token tracker to refine panel header for visibility during AI chat
-- **✅ Token Usage Enforcement**: Added token validation to streaming refine endpoint preventing overusage
-- **✅ Immediate Token Updates**: Token display refreshes automatically after every refine operation
 - **✅ Budget Maintained**: Kept original 66K tokens/day limit for $0.02 daily budget as requested
-- **✅ Complete Token Tracking**: Both streaming and non-streaming refine operations now track 2K tokens correctly
 
 ### July 17, 2025 - Final Migration to Replit Environment Complete
 - **✅ Complete Migration**: Successfully migrated Instagram Content Generator from Replit Agent to full Replit environment
