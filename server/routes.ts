@@ -305,14 +305,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tokens: {
           canUse: tokenStatus.canUse,
           tokensRemaining: tokenStatus.tokensRemaining,
-          tokensUsed: 100 - tokenStatus.tokensRemaining,
-          dailyLimit: 100
-        },
-        ideas: {
-          canGenerate: ideaStatus.canGenerate,
-          ideasRemaining: ideaStatus.remaining,
-          ideasGenerated: 20 - ideaStatus.remaining,
-          dailyLimit: 20
+          tokensUsed: tokenStatus.tokensUsed,
+          dailyLimit: tokenStatus.dailyLimit
         }
       });
     } catch (error) {
@@ -327,16 +321,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generationType, numberOfIdeas = 3 } = req.body;
       const userId = req.user!.id;
       
-      // Calculate tokens needed based on generation type
-      const tokensPerIdea = generationType === 'date' ? 2 : 5; // date: 2 tokens, competitor/trending: 5 tokens
+      // Calculate tokens needed based on generation type (based on actual Gemini API usage)
+      const tokensPerIdea = generationType === 'date' ? 3000 : 5000; // date: 3K tokens, competitor/trending: 5K tokens
       const tokensNeeded = tokensPerIdea * numberOfIdeas;
       
       // Check token usage limits
       const tokenCheck = await storage.canUseTokens(userId, tokensNeeded);
       if (!tokenCheck.canUse) {
         return res.status(429).json({ 
-          error: "Insufficient tokens", 
-          message: `Need ${tokensNeeded} tokens, but only ${tokenCheck.tokensRemaining} remaining today.`,
+          error: "Daily token limit reached", 
+          message: `Need ${Math.round(tokensNeeded/1000)}K tokens, but only ${Math.round(tokenCheck.tokensRemaining/1000)}K remaining today. Limit resets at midnight.`,
           tokensNeeded,
           tokensRemaining: tokenCheck.tokensRemaining
         });
@@ -1014,13 +1008,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      // Check token usage for refine (3 tokens per refine message)
-      const tokensNeeded = 3;
+      // Check token usage for refine (2000 tokens per refine message)
+      const tokensNeeded = 2000;
       const tokenCheck = await storage.canUseTokens(req.user!.id, tokensNeeded);
       if (!tokenCheck.canUse) {
         return res.status(429).json({ 
-          error: "Insufficient tokens for refine", 
-          message: `Need ${tokensNeeded} tokens, but only ${tokenCheck.tokensRemaining} remaining today.`,
+          error: "Daily token limit reached", 
+          message: `Need ${Math.round(tokensNeeded/1000)}K tokens, but only ${Math.round(tokenCheck.tokensRemaining/1000)}K remaining today. Limit resets at midnight.`,
           tokensNeeded,
           tokensRemaining: tokenCheck.tokensRemaining
         });

@@ -10,12 +10,6 @@ interface TokenStatus {
     tokensUsed: number;
     dailyLimit: number;
   };
-  ideas: {
-    canGenerate: boolean;
-    ideasRemaining: number;
-    ideasGenerated: number;
-    dailyLimit: number;
-  };
 }
 
 export default function TokenTracker() {
@@ -34,59 +28,32 @@ export default function TokenTracker() {
   }
 
   const tokenPercentage = (status.tokens.tokensUsed / status.tokens.dailyLimit) * 100;
-  const ideasPercentage = (status.ideas.ideasGenerated / status.ideas.dailyLimit) * 100;
+  const tokensInK = Math.round(status.tokens.tokensRemaining / 1000);
+  const dailyLimitInK = Math.round(status.tokens.dailyLimit / 1000);
 
   return (
-    <div className="space-y-3">
-      {/* Tokens Tracker */}
-      <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border">
-        <div className="flex items-center gap-2">
-          <Coins className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                {status.tokens.tokensRemaining}
-              </span>
-              <span className="text-xs text-muted-foreground">/ {status.tokens.dailyLimit} tokens</span>
-            </div>
-            <Progress 
-              value={tokenPercentage} 
-              className="h-1.5 w-20"
-            />
+    <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border">
+      <div className="flex items-center gap-2">
+        <Coins className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              {tokensInK}K
+            </span>
+            <span className="text-xs text-muted-foreground">/ {dailyLimitInK}K tokens</span>
           </div>
+          <Progress 
+            value={tokenPercentage} 
+            className="h-1.5 w-20"
+          />
         </div>
-        
-        {status.tokens.tokensRemaining <= 10 && (
-          <Badge variant="destructive" className="text-xs">
-            Low
-          </Badge>
-        )}
       </div>
-
-      {/* Ideas Tracker */}
-      <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border">
-        <div className="flex items-center gap-2">
-          <Lightbulb className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                {status.ideas.ideasRemaining}
-              </span>
-              <span className="text-xs text-muted-foreground">/ {status.ideas.dailyLimit} ideas</span>
-            </div>
-            <Progress 
-              value={ideasPercentage} 
-              className="h-1.5 w-20"
-            />
-          </div>
-        </div>
-        
-        {status.ideas.ideasRemaining <= 3 && (
-          <Badge variant="destructive" className="text-xs">
-            Low
-          </Badge>
-        )}
-      </div>
+      
+      {status.tokens.tokensRemaining <= 3000 && (
+        <Badge variant="destructive" className="text-xs">
+          Low
+        </Badge>
+      )}
     </div>
   );
 }

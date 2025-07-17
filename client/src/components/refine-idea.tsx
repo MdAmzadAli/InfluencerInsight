@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,6 +35,11 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
   
   const { toast } = useToast();
+
+  const { data: tokenStatus } = useQuery({
+    queryKey: ['/api/user/tokens'],
+    refetchInterval: 30000,
+  });
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -227,6 +232,16 @@ What would you like to work on today?`,
 
   const handleSendMessage = async () => {
     if (!input.trim() || isStreaming) return;
+    
+    // Check if tokens are available
+    if (!tokenStatus?.tokens.canUse) {
+      toast({
+        title: "Token limit reached",
+        description: "Daily token limit exceeded. Please try again tomorrow.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const userMessage = input.trim();
     const currentInput = input;
@@ -496,8 +511,8 @@ What would you like to work on today?`,
                 ) : (
                   <Button 
                     onClick={handleSendMessage}
-                    disabled={!input.trim()}
-                    className="self-end bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    disabled={!input.trim() || isStreaming || !tokenStatus?.tokens.canUse}
+                    className="self-end bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

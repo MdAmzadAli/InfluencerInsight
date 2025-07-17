@@ -28,11 +28,11 @@ export default function TipsSection() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Daily Tokens</span>
-                <Badge variant="secondary">100 tokens/day</Badge>
+                <Badge variant="secondary">66K tokens/day</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Daily Ideas</span>
-                <Badge variant="secondary">20 ideas/day</Badge>
+                <span className="text-sm font-medium">Daily Budget</span>
+                <Badge variant="secondary">$0.02/day</Badge>
               </div>
             </div>
             
@@ -41,10 +41,10 @@ export default function TipsSection() {
                 <strong>Token Usage:</strong>
               </div>
               <div className="text-xs space-y-1">
-                <div>• Date-specific content: 2 tokens per idea</div>
-                <div>• Competitor analysis: 5 tokens per idea</div>
-                <div>• Trending posts: 5 tokens per idea</div>
-                <div>• AI refinement: 3 tokens per message</div>
+                <div>• Date-specific content: ~3K tokens per idea</div>
+                <div>• Competitor analysis: ~5K tokens per idea</div>
+                <div>• Trending posts: ~5K tokens per idea</div>
+                <div>• AI refinement: ~2K tokens per message</div>
               </div>
             </div>
           </div>

@@ -52,6 +52,11 @@ export default function GenerateIdeas() {
   const queryClient = useQueryClient();
   const { state, addGeneratedIdeas, setGenerating, saveIdea, updateIdea, clearGeneratedIdeas, separateIdeasAndLinks } = useContentState();
 
+  const { data: tokenStatus } = useQuery({
+    queryKey: ['/api/user/tokens'],
+    refetchInterval: 30000,
+  });
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -443,6 +448,16 @@ export default function GenerateIdeas() {
   };
 
   const handleGenerateIdeas = (type: 'date' | 'competitor' | 'trending') => {
+    // Check if tokens are available
+    if (!tokenStatus?.tokens.canUse) {
+      toast({
+        title: "Token limit reached",
+        description: "Daily token limit exceeded. Please try again tomorrow.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     generateContentMutation.mutate({ type, numberOfIdeas });
   };
 
@@ -627,8 +642,8 @@ export default function GenerateIdeas() {
                   
                   <Button 
                     onClick={() => handleGenerateIdeas(selectedGenerationType)}
-                    disabled={generateContentMutation.isPending || state.isGenerating}
-                    className="w-full h-12 instagram-gradient text-white hover:opacity-90 flex items-center justify-center space-x-2 text-base font-medium"
+                    disabled={generateContentMutation.isPending || state.isGenerating || !tokenStatus?.tokens.canUse}
+                    className="w-full h-12 instagram-gradient text-white hover:opacity-90 flex items-center justify-center space-x-2 text-base font-medium disabled:opacity-50"
                   >
                     <Sparkles className="h-5 w-5" />
                     <span>
@@ -666,8 +681,8 @@ export default function GenerateIdeas() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card 
-                  className="cursor-pointer hover:border-purple-500 transition-colors group"
-                  onClick={() => handleGenerateIdeas('date')}
+                  className={`cursor-pointer hover:border-purple-500 transition-colors group ${!tokenStatus?.tokens.canUse ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => tokenStatus?.tokens.canUse && handleGenerateIdeas('date')}
                 >
                   <CardContent className="p-6 text-left">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
@@ -679,8 +694,8 @@ export default function GenerateIdeas() {
                 </Card>
                 
                 <Card 
-                  className="cursor-pointer hover:border-purple-500 transition-colors group"
-                  onClick={() => handleGenerateIdeas('competitor')}
+                  className={`cursor-pointer hover:border-purple-500 transition-colors group ${!tokenStatus?.tokens.canUse ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => tokenStatus?.tokens.canUse && handleGenerateIdeas('competitor')}
                 >
                   <CardContent className="p-6 text-left">
                     <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
@@ -692,8 +707,8 @@ export default function GenerateIdeas() {
                 </Card>
                 
                 <Card 
-                  className="cursor-pointer hover:border-purple-500 transition-colors group"
-                  onClick={() => handleGenerateIdeas('trending')}
+                  className={`cursor-pointer hover:border-purple-500 transition-colors group ${!tokenStatus?.tokens.canUse ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => tokenStatus?.tokens.canUse && handleGenerateIdeas('trending')}
                 >
                   <CardContent className="p-6 text-left">
                     <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">

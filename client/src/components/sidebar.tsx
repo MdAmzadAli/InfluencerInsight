@@ -62,6 +62,11 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
   const [dashboardExpanded, setDashboardExpanded] = useState(true);
   const [location] = useLocation();
 
+  const { data: tokenStatus } = useQuery({
+    queryKey: ['/api/user/tokens'],
+    refetchInterval: 30000,
+  });
+
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Schedule', href: '/schedule', icon: Calendar },
@@ -215,8 +220,12 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full text-xs"
+                className="w-full text-xs disabled:opacity-50"
+                disabled={!tokenStatus?.canUse}
                 onClick={() => {
+                  if (!tokenStatus?.canUse) {
+                    return;
+                  }
                   // This will be handled by the parent component
                   const event = new CustomEvent('showRefineIdeas');
                   window.dispatchEvent(event);
