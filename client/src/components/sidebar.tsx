@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useQuery } from '@tanstack/react-query';
+import UsageTracker from './usage-tracker';
 
 interface SidebarProps {
   competitors: string[];
@@ -213,6 +214,9 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
               </p>
             </CardContent>
           </Card>
+
+          {/* Usage Tracker */}
+          <UsageTracker />
 
           {/* Recent Posts Section */}
           <Card>

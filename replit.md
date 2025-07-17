@@ -90,6 +90,21 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
+### July 17, 2025 - Complete Beta Launch System with Usage Tracking
+- **✅ Usage Tracking Database**: Added comprehensive UsageTracking model with unique composite keys
+- **✅ Beta Plan Implementation**: 2 content generations per day, 30 refine messages per month
+- **✅ Cost Control System**: Extended cache durations (24h competitors, 12h trending) for optimal API usage
+- **✅ Usage Validation**: Integrated rate limiting into all content generation and refine endpoints
+- **✅ Smart Post Distribution**: Apify fetches max 10 posts evenly across all competitors
+- **✅ Competitor Change Restrictions**: Users can only change competitors once per 24 hours
+- **✅ Usage Tracking API**: Added /api/usage endpoint for real-time usage monitoring
+- **✅ Storage Layer Methods**: Complete CRUD operations for usage tracking with proper validation
+- **✅ Usage Tracker UI**: Created responsive usage tracker component with progress bars and limits
+- **✅ Sidebar Integration**: Added usage tracker to sidebar for constant visibility
+- **✅ Error Handling**: Proper 429 responses with clear limit messages for users
+- **✅ Database Schema**: Pushed usage tracking schema to production database
+- **✅ Ready for Beta Launch**: Complete system ready for controlled beta with 5 users at $9/month cost
+
 ### July 14, 2025 - Universal Content Editing System Complete
 - **✅ Content Editor Component**: Created reusable ContentEditor modal with real-time streaming editing
 - **✅ API Integration**: Added PUT /api/content-ideas/:id endpoint for content updates

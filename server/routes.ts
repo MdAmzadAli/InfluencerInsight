@@ -230,6 +230,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { generationType, numberOfIdeas = 3 } = req.body;
       
+      // Check if user can generate content
+      const canGenerate = await storage.canGenerateContent(req.user!.id);
+      if (!canGenerate.canGenerate) {
+        return res.status(429).json({ 
+          error: "Daily generation limit reached", 
+          message: `You've reached your daily limit of 2 content generations. Please try again tomorrow.`,
+          remaining: canGenerate.remaining
+        });
+      }
+      
       // Get user details and use their niche
       const user = await storage.getUser(req.user!.id);
       if (!user) {
@@ -616,6 +626,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Content ideas are already saved to database during streaming above
 
+      // Increment usage counter after successful generation
+      await storage.incrementGenerations(req.user!.id);
+
       res.write(`data: ${JSON.stringify({ type: 'complete', message: 'Content generation completed!', progress: 100 })}\n\n`);
       res.end();
 
@@ -630,6 +643,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/content/generate', authenticateToken, async (req, res) => {
     try {
       const { niche, generationType, context, competitors } = req.body;
+      
+      // Check if user can generate content
+      const canGenerate = await storage.canGenerateContent(req.user!.id);
+      if (!canGenerate.canGenerate) {
+        return res.status(429).json({ 
+          error: "Daily generation limit reached", 
+          message: `You've reached your daily limit of 2 content generations. Please try again tomorrow.`,
+          remaining: canGenerate.remaining
+        });
+      }
       
       if (!niche || !generationType) {
         return res.status(400).json({ error: "Niche and generation type are required" });
@@ -672,6 +695,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isSaved: false
         });
       }
+
+      // Increment usage counter after successful generation
+      await storage.incrementGenerations(req.user!.id);
 
       res.json({ 
         success: true, 
@@ -866,8 +892,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Message is required" });
       }
 
+      // Check if user can refine content
+      const canRefine = await storage.canRefineContent(req.user!.id);
+      if (!canRefine.canRefine) {
+        return res.status(429).json({ 
+          error: "Monthly refine limit reached", 
+          message: `You've reached your monthly limit of 30 refine messages. Please upgrade your plan.`,
+          remaining: canRefine.remaining
+        });
+      }
+
       // Use only Gemini - idea is optional for standalone AI expert mode
       const refinedContent = await refineContentWithGemini(idea || null, message, chatHistory || []);
+      
+      // Increment usage counter after successful refine
+      await storage.incrementRefineMessages(req.user!.id);
+      
       res.json({ response: refinedContent });
     } catch (error) {
       console.error("Error refining content:", error);
@@ -882,6 +922,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Check if user can refine content
+      const canRefine = await storage.canRefineContent(req.user!.id);
+      if (!canRefine.canRefine) {
+        return res.status(429).json({ 
+          error: "Monthly refine limit reached", 
+          message: `You've reached your monthly limit of 30 refine messages. Please upgrade your plan.`,
+          remaining: canRefine.remaining
+        });
       }
 
       // Set up SSE headers
@@ -901,6 +951,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        
+        // Increment usage counter after successful streaming
+        await storage.incrementRefineMessages(req.user!.id);
       } catch (streamError) {
         console.error("Streaming error:", streamError);
         res.write(`data: ${JSON.stringify({ error: "Streaming failed" })}\n\n`);
@@ -910,6 +963,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in streaming refine:", error);
       res.status(500).json({ error: "Failed to start streaming refinement" });
+    }
+  });
+
+  // Get user usage statistics
+  app.get('/api/usage', authenticateToken, async (req, res) => {
+    try {
+      const usage = await storage.getTodayUsage(req.user!.id);
+      res.json(usage || {
+        generationsUsed: 0,
+        refineMessagesUsed: 0,
+        generationLimit: 2,
+        refineMessageLimit: 30,
+        date: new Date().toISOString().split('T')[0]
+      });
+    } catch (error) {
+      console.error("Error fetching usage:", error);
+      res.status(500).json({ error: "Failed to fetch usage" });
     }
   });
 
