@@ -157,6 +157,8 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Dashboard Width Fix**: Modified Dashboard component to use full width on mobile (removed max-w-7xl constraint for mobile)
 - **✅ Token Tracker Mobile Position**: Moved token tracker from main navbar to mobile menu sidebar for better UX
 - **✅ Refine Panel Mobile Header**: Fixed header overflow by implementing responsive two-row layout on mobile
+- **✅ Mobile Sidebar Naming**: Changed "Settings" to "Niche" in mobile navigation for clearer functionality
+- **✅ Tips Section Implementation**: Added helpful usage tips to both mobile and desktop sidebars without revealing token costs
 - **✅ Consistent UI**: Navbar now maintains full browser width and content stays within viewport boundaries
 - **✅ Complete Solution**: Eliminated horizontal scrolling and fixed the complete layout hierarchy for proper mobile responsiveness
 

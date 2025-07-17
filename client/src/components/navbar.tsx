@@ -139,6 +139,32 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
                     </div>
                   </div>
                 </div>
+
+                {/* Mobile Tips Section */}
+                <div className="p-6 border-t bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                    <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                    Quick Tips
+                  </h3>
+                  <div className="space-y-3 text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                      <p>Add 3-5 competitors for better content ideas</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                      <p>Use date-specific generation for holiday content</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                      <p>Save your best ideas for future reference</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                      <p>Refine content with AI for better engagement</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

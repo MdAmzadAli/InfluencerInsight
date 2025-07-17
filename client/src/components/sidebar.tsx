@@ -281,6 +281,40 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
             </CardContent>
           </Card>
 
+          {/* Tips Section */}
+          <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-purple-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center">
+                <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                Quick Tips
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-xs text-gray-600 dark:text-gray-300">
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                  <p>Add 3-5 competitors for better content ideas</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                  <p>Use date-specific generation for holiday content</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                  <p>Save your best ideas for future reference</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                  <p>Refine content with AI for better engagement</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
+                  <p>Schedule posts to maintain consistent presence</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Quick Stats */}
           <Card>
             <CardHeader className="pb-3">
