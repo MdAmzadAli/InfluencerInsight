@@ -68,7 +68,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full md:max-w-7xl md:mx-auto">
       {renderContent()}
     </div>
   );
