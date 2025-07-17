@@ -74,8 +74,10 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
   ];
 
   const isActive = (href: string) => {
-    if (href === '/generate' && location === '/') {
-      // Default to generate ideas when on root dashboard
+    if (href === '/' && (location === '/' || location === '/generate')) {
+      return true;
+    }
+    if (href === '/generate' && (location === '/' || location === '/generate')) {
       return true;
     }
     return location === href;

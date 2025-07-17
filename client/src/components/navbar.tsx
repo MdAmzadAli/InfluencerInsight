@@ -65,7 +65,7 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
                       <Sparkles className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1" />
                     </div>
                     <span className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      Content AI
+                      InstaGenIdeas
                     </span>
                   </div>
                 </div>

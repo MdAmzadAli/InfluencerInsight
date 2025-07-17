@@ -1,8 +1,8 @@
-# Instagram Content Generator
+# InstaGenIdeas
 
 ## Overview
 
-A full-stack web application that generates viral Instagram content using AI. The platform allows users to create engaging captions, headlines, hashtags, and content ideas tailored to their specific niche, with features for content scheduling and management.
+InstaGenIdeas is a modern AI-powered Instagram content generation platform that helps creators produce viral content using advanced AI technology. The platform generates engaging captions, headlines, hashtags, and content ideas tailored to specific niches, with comprehensive competitor analysis and scheduling capabilities.
 
 ## System Architecture
 
@@ -160,6 +160,16 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Mobile Sidebar Naming**: Changed "Settings" to "Niche" in mobile navigation for clearer functionality
 - **✅ Tips Section Implementation**: Added helpful usage tips to both mobile and desktop sidebars without revealing token costs
 - **✅ Competitor Guidance Update**: Updated all competitor tooltips and tips to emphasize "max 3 competitors with public profiles only" in bold
+
+### July 17, 2025 - Mobile-First Landing Page & App Rebranding Complete
+- **✅ Landing Page Mobile Fix**: Fixed navbar container overflow and horizontal scrollbar issues with proper responsive design
+- **✅ App Name Rebrand**: Changed application name from "Instagram Content AI" to "InstaGenIdeas" throughout all components
+- **✅ Enhanced Features Section**: Expanded features section with 6 comprehensive feature cards including detailed bullet points
+- **✅ Modern Landing Page**: Added How It Works section, stats section, CTA section, and footer for complete modern experience
+- **✅ Dashboard Default View**: Fixed dashboard to default to "Generate Ideas" when users sign up or visit root path
+- **✅ Sidebar Highlighting**: Enhanced sidebar navigation to properly highlight active sections including dashboard sub-options
+- **✅ Mobile Navigation**: Improved mobile navbar with proper button sizing and responsive layout
+- **✅ Content Rich Design**: Added gradient backgrounds, hover effects, and modern card-based layouts throughout landing page
 - **✅ Consistent UI**: Navbar now maintains full browser width and content stays within viewport boundaries
 - **✅ Complete Solution**: Eliminated horizontal scrolling and fixed the complete layout hierarchy for proper mobile responsiveness
 

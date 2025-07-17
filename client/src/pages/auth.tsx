@@ -57,7 +57,7 @@ export default function Auth() {
             </div>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Instagram Content AI
+            InstaGenIdeas
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">
             Generate viral Instagram content with AI-powered insights
