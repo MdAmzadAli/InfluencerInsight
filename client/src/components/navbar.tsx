@@ -55,12 +55,42 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
   return (
     <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 fixed top-0 left-0 right-0 z-50 w-screen">
       <div className="w-full md:max-w-7xl md:mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        {/* Mobile Layout: Logo, InstaGenIdeas, Feedback, Menu, Avatar */}
+        <div className="flex items-center space-x-2 md:space-x-4 flex-1">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-1 md:space-x-2">
+            <div className="relative">
+              <Instagram className="h-6 w-6 md:h-8 md:w-8 text-pink-600" />
+              <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-yellow-500 absolute -top-1 -right-1" />
+            </div>
+            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              InstaGenIdeas
+            </span>
+            <span className="sm:hidden text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              InstaGenIdeas
+            </span>
+          </Link>
+        </div>
+
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {/* Token Tracker - Desktop Only */}
+          <div className="hidden lg:block">
+            <TokenTracker />
+          </div>
+          
+          <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+            <span>Welcome back,</span>
+            <span className="font-medium">{user?.firstName || user?.email}</span>
+          </div>
+          
+          {/* Feedback Form */}
+          <FeedbackForm />
+
           {/* Mobile Menu Button */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="md:hidden">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="sm" className="md:hidden p-1">
+                <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
@@ -176,40 +206,13 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
             </SheetContent>
           </Sheet>
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="relative">
-              <Instagram className="h-8 w-8 text-pink-600" />
-              <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
-            </div>
-            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              InstaGenIdeas
-            </span>
-            <span className="sm:hidden text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              InstaGenIdeas
-            </span>
-          </Link>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {/* Token Tracker - Desktop Only */}
-          <div className="hidden lg:block">
-            <TokenTracker />
-          </div>
-          
-          <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-            <span>Welcome back,</span>
-            <span className="font-medium">{user?.firstName || user?.email}</span>
-          </div>
-          
-          <FeedbackForm />
-
+          {/* Avatar */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="relative h-7 w-7 md:h-8 md:w-8 rounded-full p-0">
+                <Avatar className="h-7 w-7 md:h-8 md:w-8">
                   <AvatarImage src="#" alt={user?.firstName || 'User'} />
-                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                  <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs md:text-sm">
                     {getInitials(user?.firstName, user?.lastName)}
                   </AvatarFallback>
                 </Avatar>
