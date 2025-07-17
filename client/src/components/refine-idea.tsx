@@ -42,6 +42,21 @@ export default function RefineIdea({ idea, onBack }: RefineIdeaProps) {
     refetchInterval: 5000, // Real-time updates every 5 seconds
   });
 
+  // Format message content with HTML tags
+  const formatMessage = (content: string) => {
+    return content
+      // Convert **bold** to <strong>
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      // Convert *italic* to <em>
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      // Convert bullet points
+      .replace(/^• /gm, '• ')
+      // Convert numbered lists
+      .replace(/^(\d+)\. /gm, '$1. ')
+      // Preserve line breaks
+      .replace(/\n/g, '<br>');
+  };
+
   // Auto-scroll to latest message
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -83,7 +98,7 @@ You can ask me anything about Instagram content strategy, and I'll help you craf
         role: 'assistant',
         content: `${welcomeMessage}
 
-💡 **I can help you with:**
+💡 <strong>I can help you with:</strong>
 • Hook optimization for better engagement
 • Caption structure and storytelling
 • Hashtag strategy refinement
@@ -439,7 +454,14 @@ What would you like to work on today?`,
                           ? 'bg-purple-600 text-white' 
                           : 'bg-white text-gray-900 border border-gray-200'
                       }`}>
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        {message.role === 'user' ? (
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        ) : (
+                          <div 
+                            className="text-sm leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                          />
+                        )}
                         <p className={`text-xs mt-2 ${
                           message.role === 'user' ? 'text-purple-200' : 'text-gray-500'
                         }`}>
@@ -458,7 +480,10 @@ What would you like to work on today?`,
                         <Bot className="h-4 w-4 text-white" />
                       </div>
                       <div className="bg-white text-gray-900 border border-gray-200 rounded-lg p-3">
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{streamingMessage}</p>
+                        <div 
+                          className="text-sm leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: formatMessage(streamingMessage) }}
+                        />
                         <div className="flex items-center gap-1 mt-2">
                           <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
                           <span className="text-xs text-gray-500">AI is thinking...</span>

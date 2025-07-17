@@ -734,5 +734,13 @@ Provide expert, actionable advice that:
 ✓ Suggests creative angles and hooks
 ✓ Optimizes for maximum viral potential
 
+FORMATTING REQUIREMENTS:
+- Use HTML formatting ONLY (no markdown asterisks)
+- Use <strong>text</strong> for bold emphasis (not **text**)
+- Use <em>text</em> for italic emphasis (not *text*)
+- Use bullet points with regular text (• item)
+- Use numbered lists with regular text (1. item)
+- Use line breaks naturally for paragraphs
+
 Be conversational, encouraging, and highly knowledgeable. Give 2-3 specific, actionable recommendations with reasoning.`;
 }
