@@ -28,16 +28,8 @@ export default function TokenTracker() {
   }
 
   const tokenPercentage = (status.tokens.tokensUsed / status.tokens.dailyLimit) * 100;
-  const tokensRemaining = Math.round(status.tokens.tokensRemaining);
-  const dailyLimit = Math.round(status.tokens.dailyLimit);
-  
-  // Format numbers for display
-  const formatTokens = (tokens: number) => {
-    if (tokens >= 1000) {
-      return Math.round(tokens / 1000) + 'K';
-    }
-    return tokens.toString();
-  };
+  const usagePercentage = Math.round(tokenPercentage);
+  const remainingPercentage = Math.round(100 - tokenPercentage);
 
   return (
     <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border">
@@ -46,9 +38,9 @@ export default function TokenTracker() {
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              {formatTokens(tokensRemaining)}
+              {remainingPercentage}%
             </span>
-            <span className="text-xs text-muted-foreground">/ {formatTokens(dailyLimit)} tokens</span>
+            <span className="text-xs text-muted-foreground">remaining</span>
           </div>
           <Progress 
             value={tokenPercentage} 

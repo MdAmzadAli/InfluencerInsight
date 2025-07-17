@@ -28,11 +28,11 @@ export default function TipsSection() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Daily Tokens</span>
-                <Badge variant="secondary">100K tokens/day</Badge>
+                <Badge variant="secondary">66K tokens/day</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Daily Budget</span>
-                <Badge variant="secondary">$0.03/day</Badge>
+                <Badge variant="secondary">$0.02/day</Badge>
               </div>
             </div>
             

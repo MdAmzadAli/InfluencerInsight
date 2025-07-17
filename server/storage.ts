@@ -589,7 +589,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async canUseTokens(userId: string, tokensNeeded: number): Promise<{ canUse: boolean; tokensRemaining: number; tokensUsed: number; dailyLimit: number }> {
-    const dailyLimit = 100000; // 100,000 tokens per day (~$0.03 with Gemini 2.5 Flash pricing)
+    const dailyLimit = 66000; // 66,000 tokens per day (~$0.02 with Gemini 2.5 Flash pricing)
     const usage = await this.getUserTokenUsage(userId);
     
     const tokensUsed = usage?.tokensUsed || 0;

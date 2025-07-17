@@ -90,13 +90,13 @@ A full-stack web application that generates viral Instagram content using AI. Th
 
 ## Recent Changes
 
-### July 17, 2025 - Token System Enhancement & Real-Time Tracking Complete
-- **✅ Token Limit Upgraded**: Increased daily token limit from 66K to 100K tokens ($0.03/day budget)
+### July 17, 2025 - Token System Enhancement & Percentage-Based Display Complete
+- **✅ Percentage-Based Display**: Token tracker now shows usage as percentage (e.g., "85% remaining") instead of raw numbers
 - **✅ Real-Time Token Tracking**: Enhanced token tracker with 5-second refresh intervals for immediate updates
 - **✅ Refine Panel Integration**: Added token tracker to refine panel header for visibility during AI chat
 - **✅ Token Usage Enforcement**: Added token validation to streaming refine endpoint preventing overusage
 - **✅ Immediate Token Updates**: Token display refreshes automatically after every refine operation
-- **✅ Improved Display Format**: Smart formatting shows "100K" for thousands, raw numbers for smaller amounts
+- **✅ Budget Maintained**: Kept original 66K tokens/day limit for $0.02 daily budget as requested
 - **✅ Complete Token Tracking**: Both streaming and non-streaming refine operations now track 2K tokens correctly
 
 ### July 17, 2025 - Final Migration to Replit Environment Complete
