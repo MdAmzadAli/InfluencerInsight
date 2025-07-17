@@ -34,11 +34,40 @@ export interface SinglePostRequest {
   numberOfIdeas?: number;
 }
 
+// Retry logic for Gemini API calls
+async function retryGeminiCall<T>(operation: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      const isRetryableError = error.status === 503 || 
+                              error.message?.includes('overloaded') ||
+                              error.message?.includes('UNAVAILABLE');
+      
+      if (isRetryableError && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+        console.log(`Gemini API attempt ${attempt} failed (${error.status || 'unknown'}), retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 export async function generateInstagramContentWithGemini(request: ContentGenerationRequest): Promise<GeneratedContent[]> {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY environment variable is required');
   }
 
+  return await retryGeminiCall(async () => {
+    return await generateContentInternal(request);
+  });
+}
+
+async function generateContentInternal(request: ContentGenerationRequest): Promise<GeneratedContent[]> {
   try {
     // Use provided scraped data or fetch fresh data if needed
     let apifyData: ApifyTrendingPost[] = [];
@@ -255,7 +284,6 @@ Make each post unique, viral-worthy, and perfectly formatted according to the re
     );
 
     return processedContent;
-
   } catch (error) {
     console.error('Gemini content generation error:', error);
     throw new Error(`Failed to generate content with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -267,8 +295,13 @@ export async function optimizeHashtagsWithGemini(niche: string, caption: string)
     throw new Error('GEMINI_API_KEY environment variable is required');
   }
 
-  try {
-    const prompt = `As an Instagram hashtag expert, analyze this caption and generate exactly 8-10 optimized hashtags for the ${niche} niche.
+  return await retryGeminiCall(async () => {
+    return await optimizeHashtagsInternal(niche, caption);
+  });
+}
+
+async function optimizeHashtagsInternal(niche: string, caption: string): Promise<string> {
+  const prompt = `As an Instagram hashtag expert, analyze this caption and generate exactly 8-10 optimized hashtags for the ${niche} niche.
 
 Caption: "${caption}"
 
@@ -282,22 +315,17 @@ Rules:
 
 Return only the hashtags string, nothing else.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
 
-    const hashtags = response.text?.trim();
-    if (!hashtags) {
-      throw new Error('Empty hashtag response from Gemini');
-    }
-
-    return hashtags;
-
-  } catch (error) {
-    console.error('Gemini hashtag optimization error:', error);
-    throw new Error(`Failed to optimize hashtags with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  const hashtags = response.text?.trim();
+  if (!hashtags) {
+    throw new Error('Empty hashtag response from Gemini');
   }
+
+  return hashtags;
 }
 
 // Helper function to separate strategy and source URL from ideas field
@@ -338,7 +366,8 @@ function separateStrategyAndSource(ideas: string): { strategy: string; sourceUrl
 // Helper function to generate enhanced strategy from content
 async function generateStrategyFromContent(caption: string, hashtags: string, niche: string): Promise<string> {
   try {
-    const prompt = `Based on this Instagram content for ${niche}, create a detailed 40-50 word strategy explaining what to do, how to execute, and why this approach works:
+    return await retryGeminiCall(async () => {
+      const prompt = `Based on this Instagram content for ${niche}, create a detailed 40-50 word strategy explaining what to do, how to execute, and why this approach works:
 
 Caption: "${caption}"
 Hashtags: "${hashtags}"
@@ -351,17 +380,18 @@ Generate a comprehensive strategy that includes:
 
 Keep it exactly 40-50 words and actionable.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+      });
+
+      const strategy = response.text?.trim();
+      if (!strategy) {
+        throw new Error('Empty strategy response from Gemini');
+      }
+
+      return strategy;
     });
-
-    const strategy = response.text?.trim();
-    if (!strategy) {
-      throw new Error('Empty strategy response from Gemini');
-    }
-
-    return strategy;
   } catch (error) {
     console.error('Strategy generation error:', error);
     // Fallback strategy based on content
