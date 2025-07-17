@@ -190,7 +190,7 @@ export default function CompetitorsManagement() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  Add up to 3 competitors for better content analysis and variety. 
+                  <strong>Add max 3 competitors with public profiles only.</strong> 
                   Add all competitors first, then click "Refresh Competitors" to analyze their posts.
                 </p>
               </TooltipContent>

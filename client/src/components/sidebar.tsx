@@ -293,7 +293,7 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
               <div className="space-y-3 text-xs text-gray-600 dark:text-gray-300">
                 <div className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>
-                  <p>Add 3-5 competitors for better content ideas</p>
+                  <p><strong>Add max 3 competitors with public profiles</strong></p>
                 </div>
                 <div className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 bg-purple-600 rounded-full mt-1.5 shrink-0"></div>

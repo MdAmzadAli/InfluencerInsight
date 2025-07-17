@@ -159,6 +159,7 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Refine Panel Mobile Header**: Fixed header overflow by implementing responsive two-row layout on mobile
 - **✅ Mobile Sidebar Naming**: Changed "Settings" to "Niche" in mobile navigation for clearer functionality
 - **✅ Tips Section Implementation**: Added helpful usage tips to both mobile and desktop sidebars without revealing token costs
+- **✅ Competitor Guidance Update**: Updated all competitor tooltips and tips to emphasize "max 3 competitors with public profiles only" in bold
 - **✅ Consistent UI**: Navbar now maintains full browser width and content stays within viewport boundaries
 - **✅ Complete Solution**: Eliminated horizontal scrolling and fixed the complete layout hierarchy for proper mobile responsiveness
 

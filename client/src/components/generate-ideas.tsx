@@ -623,7 +623,7 @@ export default function GenerateIdeas() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
-                          Add up to 3 competitor Instagram usernames for better content analysis and variety. 
+                          <strong>Add max 3 competitors with public profiles only.</strong> 
                           More competitors = more diverse content ideas!
                         </p>
                       </TooltipContent>
@@ -638,7 +638,7 @@ export default function GenerateIdeas() {
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Recommended: Add all 3 competitors for optimal content analysis
+                  <strong>Recommended: Add max 3 competitors with public profiles only</strong>
                 </p>
               </div>
               
