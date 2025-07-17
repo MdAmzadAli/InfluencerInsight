@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Lightbulb,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,12 +20,13 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useQuery } from '@tanstack/react-query';
-import UsageTracker from './usage-tracker';
+
 
 interface SidebarProps {
   competitors: string[];
   posts: any[];
   loadingPosts: boolean;
+  onUsageClick?: () => void;
 }
 
 function QuickStatsContent({ competitors }: { competitors: string[] }) {
@@ -54,7 +56,7 @@ function QuickStatsContent({ competitors }: { competitors: string[] }) {
   );
 }
 
-export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
+export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [dashboardExpanded, setDashboardExpanded] = useState(true);
   const [location] = useLocation();
@@ -152,6 +154,19 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
             </Link>
           );
         })}
+        
+        {/* Usage Button */}
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start",
+            collapsed && "justify-center px-0"
+          )}
+          onClick={onUsageClick}
+        >
+          <BarChart3 className="h-4 w-4" />
+          {!collapsed && <span className="ml-2">Usage</span>}
+        </Button>
       </nav>
 
       {!collapsed && (
@@ -214,9 +229,6 @@ export function Sidebar({ competitors, posts, loadingPosts }: SidebarProps) {
               </p>
             </CardContent>
           </Card>
-
-          {/* Usage Tracker */}
-          <UsageTracker />
 
           {/* Recent Posts Section */}
           <Card>

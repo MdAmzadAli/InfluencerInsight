@@ -13,6 +13,7 @@ import { Sidebar } from "@/components/sidebar";
 import PostSchedulingBoard from "@/components/post-scheduling-board";
 import CompetitorPostsView from "@/components/competitor-posts-view";
 import RefineIdea from "@/components/refine-idea";
+import UsageDashboard from "@/components/usage-dashboard";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useContentState, ContentIdea } from "@/hooks/useContentState";
@@ -24,6 +25,7 @@ function Router() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [showRefinePanel, setShowRefinePanel] = useState(false);
   const [refineIdea, setRefineIdea] = useState<ContentIdea | null>(null);
+  const [showUsage, setShowUsage] = useState(false);
   const { state } = useContentState();
   
   // Parse competitors when user data changes
@@ -99,6 +101,30 @@ function Router() {
     );
   }
 
+  // Show usage dashboard if active
+  if (showUsage) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Navbar 
+          competitors={competitors}
+          posts={posts}
+          loadingPosts={loadingPosts}
+        />
+        <div className="flex">
+          <Sidebar 
+            competitors={competitors}
+            posts={posts}
+            loadingPosts={loadingPosts}
+            onUsageClick={() => setShowUsage(true)}
+          />
+          <main className="flex-1 p-4 md:p-6">
+            <UsageDashboard onBack={() => setShowUsage(false)} />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navbar 
@@ -111,6 +137,7 @@ function Router() {
           competitors={competitors}
           posts={posts}
           loadingPosts={loadingPosts}
+          onUsageClick={() => setShowUsage(true)}
         />
         <main className="flex-1 p-4 md:p-6">
           <Switch>
