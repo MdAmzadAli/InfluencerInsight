@@ -897,7 +897,6 @@ export default function GenerateIdeas() {
                     className="flex items-center space-x-2"
                   >
                     <i className="fas fa-sync-alt"></i>
-                    <span>Generate More</span>
                   </Button>
                 </div>
               </div>

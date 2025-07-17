@@ -83,6 +83,13 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
     return location === href;
   };
 
+  const isActiveOption = (href: string) => {
+    if (href === '/generate' && (location === '/' || location === '/generate')) {
+      return true;
+    }
+    return location === href;
+  };
+
   const dashboardOptions = [
     { name: 'Generate Ideas', href: '/generate' },
     { name: 'Saved Ideas', href: '/saved' },
@@ -132,7 +139,7 @@ export function Sidebar({ competitors, posts, loadingPosts, onUsageClick }: Side
                       {dashboardOptions.map((option) => (
                         <Link key={option.name} href={option.href}>
                           <Button
-                            variant={isActive(option.href) ? "default" : "ghost"}
+                            variant={isActiveOption(option.href) ? "default" : "ghost"}
                             size="sm"
                             className="w-full justify-start text-sm"
                           >

@@ -45,6 +45,13 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
 
   const isActive = (href: string) => location === href;
 
+  const isActiveOption = (href: string) => {
+    if (href === '/generate' && (location === '/' || location === '/generate')) {
+      return true;
+    }
+    return location === href;
+  };
+
   return (
     <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 fixed top-0 left-0 right-0 z-50 w-screen">
       <div className="w-full md:max-w-7xl md:mx-auto flex items-center justify-between">
@@ -92,7 +99,7 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
                             {dashboardOptions.map((option) => (
                               <Link key={option.name} href={option.href}>
                                 <Button
-                                  variant="ghost"
+                                  variant={isActiveOption(option.href) ? "default" : "ghost"}
                                   size="sm"
                                   className="w-full justify-start text-sm"
                                   onClick={() => setMobileMenuOpen(false)}
@@ -176,10 +183,10 @@ export function Navbar({ competitors = [], posts = [], loadingPosts = false }: N
               <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
             </div>
             <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Instagram Content AI
+              InstaGenIdeas
             </span>
             <span className="sm:hidden text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Content AI
+              InstaGenIdeas
             </span>
           </Link>
         </div>
