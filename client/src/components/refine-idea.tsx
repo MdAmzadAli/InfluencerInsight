@@ -306,37 +306,79 @@ What would you like to work on today?`,
   return (
     <div className="max-w-6xl mx-auto md:p-6 space-y-0 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 md:p-0">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Instagram Content Expert 🚀
-            </h1>
-            <p className="text-gray-600 text-sm md:text-base">AI-powered content refinement and optimization</p>
+      <div className="p-4 md:p-0 max-w-full overflow-hidden">
+        {/* Mobile Layout - Stack elements vertically */}
+        <div className="block md:hidden space-y-3">
+          {/* First row: Back button and title */}
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent truncate">
+                Content Expert 🚀
+              </h1>
+            </div>
+          </div>
+          
+          {/* Second row: Controls */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <TokenTracker />
+              {idea && (
+                <Badge variant="outline" className="text-xs bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200 shrink-0">
+                  {idea.generationType}
+                </Badge>
+              )}
+            </div>
+            {idea && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleEditIdea}
+                className="shrink-0"
+              >
+                <Edit3 className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">Edit</span>
+              </Button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <TokenTracker />
-          {idea && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleEditIdea}
-              className="flex items-center gap-2"
-            >
-              <Edit3 className="h-4 w-4" />
-              Edit Content
+
+        {/* Desktop Layout - Single row */}
+        <div className="hidden md:flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
             </Button>
-          )}
-          {idea && (
-            <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
-              {idea.generationType}
-            </Badge>
-          )}
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Instagram Content Expert 🚀
+              </h1>
+              <p className="text-gray-600 text-sm md:text-base">AI-powered content refinement and optimization</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <TokenTracker />
+            {idea && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleEditIdea}
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="h-4 w-4" />
+                Edit Content
+              </Button>
+            )}
+            {idea && (
+              <Badge variant="outline" className="text-sm bg-gradient-to-r from-purple-100 to-pink-100 border-purple-200">
+                {idea.generationType}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 

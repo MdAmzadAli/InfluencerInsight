@@ -155,6 +155,8 @@ A full-stack web application that generates viral Instagram content using AI. Th
 - **✅ Grid Layout Fix**: Reduced content grid from 4 columns to 3 columns max to prevent horizontal overflow
 - **✅ Component Boundaries**: Added overflow protection to generate-ideas component and all main content areas
 - **✅ Dashboard Width Fix**: Modified Dashboard component to use full width on mobile (removed max-w-7xl constraint for mobile)
+- **✅ Token Tracker Mobile Position**: Moved token tracker from main navbar to mobile menu sidebar for better UX
+- **✅ Refine Panel Mobile Header**: Fixed header overflow by implementing responsive two-row layout on mobile
 - **✅ Consistent UI**: Navbar now maintains full browser width and content stays within viewport boundaries
 - **✅ Complete Solution**: Eliminated horizontal scrolling and fixed the complete layout hierarchy for proper mobile responsiveness
 
