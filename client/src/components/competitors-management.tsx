@@ -47,6 +47,7 @@ export default function CompetitorsManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/competitors/eligibility"] });
       setPendingCompetitors([]);
       toast({
         title: "Success",
@@ -67,6 +68,7 @@ export default function CompetitorsManagement() {
       return apiRequest('POST', '/api/user/competitors/refresh', {});
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/competitors/eligibility"] });
       toast({
         title: "Success",
         description: "Competitor data refreshed successfully",
@@ -254,12 +256,12 @@ export default function CompetitorsManagement() {
               {refreshCompetitorsMutation.isPending ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
+                  Refreshing...
                 </>
               ) : (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Save Competitors
+                  Refresh Competitors
                 </>
               )}
             </Button>
