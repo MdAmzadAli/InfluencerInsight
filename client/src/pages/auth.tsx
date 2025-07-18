@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Instagram, Sparkles, ArrowLeft } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { OTPSignup } from '@/components/otp-signup';
 
 export default function Auth() {
   const { login, register, loginError, registerError, isLoggingIn, isRegistering } = useAuth();
@@ -123,76 +124,7 @@ export default function Auth() {
           </TabsContent>
 
           <TabsContent value="register" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create Account</CardTitle>
-                <CardDescription>
-                  Join thousands of creators generating viral content
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="John"
-                        value={registerData.firstName}
-                        onChange={(e) => setRegisterData(prev => ({ ...prev, firstName: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Doe"
-                        value={registerData.lastName}
-                        onChange={(e) => setRegisterData(prev => ({ ...prev, lastName: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registerEmail">Email</Label>
-                    <Input
-                      id="registerEmail"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={registerData.email}
-                      onChange={(e) => setRegisterData(prev => ({ ...prev, email: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registerPassword">Password</Label>
-                    <Input
-                      id="registerPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={registerData.password}
-                      onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
-                      required
-                    />
-                  </div>
-
-                  {registerError && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{registerError.message}</AlertDescription>
-                    </Alert>
-                  )}
-                  <Button type="submit" className="w-full" disabled={isRegistering}>
-                    {isRegistering ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      'Create Account'
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+            <OTPSignup />
           </TabsContent>
         </Tabs>
 

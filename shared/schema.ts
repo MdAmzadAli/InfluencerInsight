@@ -52,6 +52,27 @@ export type InsertIndianHoliday = {
   category?: string | null;
 };
 
+export type RegisterUser = {
+  email: string;
+  password: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  niche?: string | null;
+};
+
+export type LoginUser = {
+  email: string;
+  password: string;
+};
+
+export type UpsertUser = {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+};
+
 export type InsertCompetitorPostCache = {
   userId: string;
   postId: string;

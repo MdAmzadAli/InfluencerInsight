@@ -152,6 +152,99 @@ export class EmailService {
     });
   }
 
+  async sendOTPEmail(email: string, otp: string): Promise<boolean> {
+    const subject = 'Your InstaGenIdeas Verification Code';
+    
+    const htmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #e91e63; text-align: center;">Verify Your Email</h1>
+            <p>Welcome to InstaGenIdeas! Please use the verification code below to complete your signup:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px; display: inline-block;">
+                <h2 style="color: #e91e63; font-size: 32px; letter-spacing: 5px; margin: 0;">${otp}</h2>
+              </div>
+            </div>
+            <p>This code will expire in 10 minutes for security reasons.</p>
+            <p>If you didn't request this code, please ignore this email.</p>
+            <p>The InstaGenIdeas Team</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const textContent = `
+      Welcome to InstaGenIdeas!
+      
+      Your verification code is: ${otp}
+      
+      This code will expire in 10 minutes for security reasons.
+      
+      If you didn't request this code, please ignore this email.
+      
+      The InstaGenIdeas Team
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject,
+      htmlContent,
+      textContent
+    });
+  }
+
+  async sendRegistrationSuccessEmail(email: string, firstName: string): Promise<boolean> {
+    const subject = 'Welcome to InstaGenIdeas - Registration Complete!';
+    
+    const htmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #e91e63; text-align: center;">🎉 Registration Complete!</h1>
+            <p>Hi ${firstName},</p>
+            <p>Congratulations! Your InstaGenIdeas account has been successfully created. You're now ready to start creating amazing Instagram content with AI-powered tools.</p>
+            <h2 style="color: #e91e63;">What you can do:</h2>
+            <ul>
+              <li>🎯 Generate content ideas based on trending topics</li>
+              <li>📊 Analyze your competitors' content</li>
+              <li>📅 Schedule your posts</li>
+              <li>💡 Get AI-powered content suggestions</li>
+            </ul>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard" style="background-color: #e91e63; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Start Creating Content</a>
+            </div>
+            <p>Happy creating!<br>The InstaGenIdeas Team</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const textContent = `
+      Hi ${firstName},
+      
+      Congratulations! Your InstaGenIdeas account has been successfully created. You're now ready to start creating amazing Instagram content with AI-powered tools.
+      
+      What you can do:
+      - Generate content ideas based on trending topics
+      - Analyze your competitors' content  
+      - Schedule your posts
+      - Get AI-powered content suggestions
+      
+      Visit your dashboard to begin creating viral content: ${process.env.FRONTEND_URL || 'http://localhost:5000'}/dashboard
+      
+      Happy creating!
+      The InstaGenIdeas Team
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject,
+      htmlContent,
+      textContent
+    });
+  }
+
   async sendScheduledPostReminder(email: string, postContent: string, scheduledTime: string): Promise<boolean> {
     const subject = 'Your Scheduled Post is Ready!';
     

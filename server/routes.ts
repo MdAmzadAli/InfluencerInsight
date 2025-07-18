@@ -99,8 +99,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Authentication routes
-  app.post('/api/auth/register', async (req, res) => {
+  // Authentication routes - Step 1: Send OTP
+  app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists with this email' });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Store OTP in database
+      await storage.createOTP(email, otp);
+
+      // Send OTP email
+      const emailService = EmailService.getInstance();
+      const emailSent = await emailService.sendOTPEmail(email, otp);
+
+      if (!emailSent) {
+        return res.status(500).json({ error: 'Failed to send verification email' });
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Verification code sent to your email' 
+      });
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({ error: 'Failed to send verification code' });
+    }
+  });
+
+  // Authentication routes - Step 2: Verify OTP
+  app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      
+      if (!email || !otp) {
+        return res.status(400).json({ error: 'Email and OTP are required' });
+      }
+
+      const isValid = await storage.verifyOTP(email, otp);
+      
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid or expired verification code' });
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Email verified successfully' 
+      });
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({ error: 'Failed to verify code' });
+    }
+  });
+
+  // Authentication routes - Step 3: Complete Registration
+  app.post('/api/auth/complete-registration', async (req, res) => {
     try {
       const { email, password, firstName, lastName, niche } = req.body;
       
@@ -122,10 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         niche
       });
 
-      // Send welcome email (non-blocking)
+      // Send registration success email (non-blocking)
       const emailService = EmailService.getInstance();
-      emailService.sendWelcomeEmail(user.email, user.firstName || 'User').catch(error => {
-        console.error('Failed to send welcome email:', error);
+      emailService.sendRegistrationSuccessEmail(user.email, user.firstName || 'User').catch(error => {
+        console.error('Failed to send registration success email:', error);
       });
 
       const token = generateToken(user.id);

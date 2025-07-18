@@ -134,6 +134,48 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // OTP Management
+  async createOTP(email: string, otp: string): Promise<void> {
+    // Delete any existing OTPs for this email
+    await db.adminOTP.deleteMany({
+      where: { email }
+    });
+
+    // Create new OTP with 10 minute expiry
+    await db.adminOTP.create({
+      data: {
+        email,
+        otp,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        isUsed: false
+      }
+    });
+  }
+
+  async verifyOTP(email: string, otp: string): Promise<boolean> {
+    const otpRecord = await db.adminOTP.findFirst({
+      where: {
+        email,
+        otp,
+        isUsed: false,
+        expiresAt: {
+          gte: new Date()
+        }
+      }
+    });
+
+    if (otpRecord) {
+      // Mark as used
+      await db.adminOTP.update({
+        where: { id: otpRecord.id },
+        data: { isUsed: true }
+      });
+      return true;
+    }
+
+    return false;
+  }
+
   async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {
     const user = await db.user.findUnique({
       where: { id: userId }
