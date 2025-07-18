@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update only competitors without triggering cache warming
+  // Update competitors and trigger cache warming (Save & Refresh)
   app.put('/api/user/competitors-only', authenticateToken, async (req, res) => {
     try {
       const { niche, competitors } = req.body;
@@ -177,7 +177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.updateUserNiche(req.user!.id, niche, JSON.stringify(competitors));
       
-      // Do not trigger cache warming - user will manually refresh
+      // Trigger cache warming for competitors after saving
+      cacheWarmer.rewarmCacheAfterChange(req.user!.id, 'competitors');
       
       res.json(user);
     } catch (error) {

@@ -130,10 +130,7 @@ export default function CompetitorsManagement() {
   const saveCompetitors = () => {
     if (hasChanges) {
       updateCompetitorsMutation.mutate(allCompetitors);
-      // After saving, refresh the cache
-      setTimeout(() => {
-        refreshCompetitorsMutation.mutate();
-      }, 1000);
+      // Cache warming is now handled automatically by the backend
     }
   };
 
