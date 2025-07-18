@@ -180,14 +180,14 @@ InstaGenIdeas is a modern AI-powered Instagram content generation platform that 
 - **✅ Privacy Protection**: Ensured no internal cost structure is exposed to end users
 - **✅ Real-Time Updates**: Maintained real-time token tracking while protecting cost details
 
-### July 18, 2025 - Competitor Management Fix & 24-Hour Restriction Complete
-- **✅ Fixed First-Time Competitor Addition**: Resolved issue where new users couldn't add competitors due to incorrect 24-hour restriction logic
-- **✅ Backend Logic Update**: Modified storage.ts to distinguish between "first-time competitor addition" vs "changing existing competitors"
-- **✅ Frontend Logic Update**: Updated competitors-management.tsx to allow first-time users to add competitors without eligibility restrictions
+### July 18, 2025 - Complete Competitor Management & User Experience Fix
+- **✅ Fixed Save & Refresh Flow**: Modified backend to automatically trigger cache warming when saving competitors, eliminating separate API calls
+- **✅ Instagram Data Fetching**: "Save & Refresh" now properly saves competitors AND fetches Instagram posts in single operation
 - **✅ Button Label Fix**: Changed misleading "Save Competitors" to "Refresh Competitors" for clarity
-- **✅ Immediate 24-Hour Restriction**: After successful "Save & Refresh", refresh button immediately disabled for 24 hours
+- **✅ Immediate 24-Hour Restriction**: After successful "Save & Refresh", refresh button immediately disabled for 24 hours with no grace periods
+- **✅ User-Friendly Error Messages**: Replaced technical HTTP errors with clear, helpful messages like "You can change competitors again in X hours"
+- **✅ Database Connection Fix**: Resolved registration failures and connection instability issues
 - **✅ UI State Management**: Enhanced eligibility cache invalidation to properly update frontend button states after competitor operations
-- **✅ Strict Restriction Enforcement**: Removed all grace periods - 24-hour restriction applies immediately after first save operation
 - **✅ Complete Migration**: Successfully migrated Instagram Content Generator from Replit Agent to full Replit environment with all fixes applied
 
 ### July 17, 2025 - Final Migration to Replit Environment Complete

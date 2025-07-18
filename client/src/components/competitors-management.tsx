@@ -55,9 +55,18 @@ export default function CompetitorsManagement() {
       });
     },
     onError: (error) => {
+      let errorMessage = "Unable to save competitors right now. Please try again in a few minutes.";
+      
+      // Handle specific error types with user-friendly messages
+      if (error.message?.includes("24 hours")) {
+        errorMessage = `You can only change competitors once per 24 hours. Please wait and try again later.`;
+      } else if (error.message?.includes("competitor")) {
+        errorMessage = "Unable to update competitors. Please check your entries and try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to save competitors",
+        title: "Cannot Save Competitors",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -75,9 +84,18 @@ export default function CompetitorsManagement() {
       });
     },
     onError: (error) => {
+      let errorMessage = "Unable to refresh competitor data right now. Please try again later.";
+      
+      // Handle specific error types with user-friendly messages  
+      if (error.message?.includes("24 hours")) {
+        const match = error.message.match(/wait (\d+) more hours/);
+        const hours = match ? match[1] : "24";
+        errorMessage = `You can refresh competitors again in ${hours} hours. Please wait and try again later.`;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to refresh competitor data",
+        title: "Cannot Refresh Competitors", 
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -95,9 +113,10 @@ export default function CompetitorsManagement() {
 
     // Only apply eligibility restriction if user already has saved competitors
     if (!eligibility?.canChange && savedCompetitors.length > 0) {
+      const hours = eligibility?.hoursRemaining || 24;
       toast({
         title: "Cannot Change Competitors",
-        description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+        description: `You can change competitors again in ${hours} hours. Please wait and try again later.`,
         variant: "destructive",
       });
       return;
@@ -136,9 +155,10 @@ export default function CompetitorsManagement() {
 
   const refreshCompetitors = () => {
     if (!eligibility?.canChange) {
+      const hours = eligibility?.hoursRemaining || 24;
       toast({
         title: "Cannot Refresh Competitors",
-        description: `You can only refresh competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+        description: `You can refresh competitors again in ${hours} hours. Please wait and try again later.`,
         variant: "destructive",
       });
       return;
@@ -146,7 +166,7 @@ export default function CompetitorsManagement() {
     
     if (savedCompetitors.length === 0) {
       toast({
-        title: "No Competitors",
+        title: "No Competitors Added",
         description: "Please add and save competitors first before refreshing",
         variant: "destructive",
       });
@@ -163,9 +183,10 @@ export default function CompetitorsManagement() {
     } else {
       // For saved competitors, check eligibility restriction
       if (!eligibility?.canChange) {
+        const hours = eligibility?.hoursRemaining || 24;
         toast({
           title: "Cannot Change Competitors",
-          description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+          description: `You can change competitors again in ${hours} hours. Please wait and try again later.`,
           variant: "destructive",
         });
         return;
