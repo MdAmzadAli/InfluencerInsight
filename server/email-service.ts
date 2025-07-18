@@ -1,9 +1,15 @@
-import * as SibApiV3Sdk from '@sendinblue/client';
+import { TransactionalEmailsApi, SendSmtpEmail } from '@getbrevo/brevo';
 
-// Initialize Brevo (formerly SendinBlue) client
-const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-const apiKey = apiInstance.authentications['apiKey'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
+// Initialize Brevo client
+let apiInstance: TransactionalEmailsApi;
+
+function initializeBrevoClient() {
+  if (!apiInstance) {
+    apiInstance = new TransactionalEmailsApi();
+    apiInstance.setApiKey(TransactionalEmailsApi.ApiKeyAuth, process.env.BREVO_API_KEY || '');
+  }
+  return apiInstance;
+}
 
 export interface EmailOptions {
   to: string;
@@ -36,23 +42,24 @@ export class EmailService {
         return false;
       }
 
-      const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-      sendSmtpEmail.sender = {
-        email: this.fromEmail,
-        name: this.fromName
+      const api = initializeBrevoClient();
+
+      const sendSmtpEmail = new SendSmtpEmail();
+      sendSmtpEmail.sender = { 
+        email: this.fromEmail, 
+        name: this.fromName 
       };
-      sendSmtpEmail.to = [{
-        email: options.to
+      sendSmtpEmail.to = [{ 
+        email: options.to 
       }];
       sendSmtpEmail.subject = options.subject;
       sendSmtpEmail.htmlContent = options.htmlContent;
-      
       if (options.textContent) {
         sendSmtpEmail.textContent = options.textContent;
       }
 
-      const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
-      console.log('Email sent successfully:', response.messageId);
+      const response = await api.sendTransacEmail(sendSmtpEmail);
+      console.log('Email sent successfully:', JSON.stringify(response));
       return true;
     } catch (error) {
       console.error('Failed to send email:', error);
