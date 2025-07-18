@@ -60,6 +60,13 @@ export class EmailService {
       if (options.textContent) {
         sendSmtpEmail.textContent = options.textContent;
       }
+      
+      // Add headers to improve deliverability
+      sendSmtpEmail.headers = {
+        'X-Mailer': 'InstaGenIdeas-App',
+        'X-Priority': '3',
+        'List-Unsubscribe': '<mailto:unsubscribe@instageideas.com>'
+      };
 
       const response = await api.sendTransacEmail(sendSmtpEmail);
       console.log('Email sent successfully:', JSON.stringify(response));
@@ -165,36 +172,36 @@ export class EmailService {
   async sendOTPEmail(email: string, otp: string): Promise<boolean> {
     const subject = 'Your InstaGenIdeas Verification Code';
     
+    // Simplified HTML to reduce spam filtering
     const htmlContent = `
       <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <body style="font-family: Arial, sans-serif; color: #333;">
           <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #e91e63; text-align: center;">Verify Your Email</h1>
-            <p>Welcome to InstaGenIdeas! Please use the verification code below to complete your signup:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px; display: inline-block;">
-                <h2 style="color: #e91e63; font-size: 32px; letter-spacing: 5px; margin: 0;">${otp}</h2>
+            <h2>Verify Your Email</h2>
+            <p>Welcome to InstaGenIdeas! Please use this verification code to complete your signup:</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; display: inline-block;">
+                <h3 style="margin: 0; font-size: 24px; letter-spacing: 3px;">${otp}</h3>
               </div>
             </div>
-            <p>This code will expire in 10 minutes for security reasons.</p>
+            <p>This code will expire in 10 minutes.</p>
             <p>If you didn't request this code, please ignore this email.</p>
-            <p>The InstaGenIdeas Team</p>
+            <p>Best regards,<br>The InstaGenIdeas Team</p>
           </div>
         </body>
       </html>
     `;
     
-    const textContent = `
-      Welcome to InstaGenIdeas!
-      
-      Your verification code is: ${otp}
-      
-      This code will expire in 10 minutes for security reasons.
-      
-      If you didn't request this code, please ignore this email.
-      
-      The InstaGenIdeas Team
-    `;
+    const textContent = `Welcome to InstaGenIdeas!
+
+Your verification code is: ${otp}
+
+This code will expire in 10 minutes for security reasons.
+
+If you didn't request this code, please ignore this email.
+
+Best regards,
+The InstaGenIdeas Team`;
 
     return this.sendEmail({
       to: email,
