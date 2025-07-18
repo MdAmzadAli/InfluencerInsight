@@ -6,34 +6,33 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 model Session {
-  sid    String   @id @db.VarChar
-  sess   Json
+  sid    String   @id
+  sess   String   // JSON stored as string in SQLite
   expire DateTime
 
-  @@index([expire], name: "IDX_session_expire")
   @@map("sessions")
 }
 
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 model User {
-  id              String    @id @db.VarChar
-  email           String?   @unique @db.VarChar
-  firstName       String?   @map("first_name") @db.VarChar
-  lastName        String?   @map("last_name") @db.VarChar
-  profileImageUrl String?   @map("profile_image_url") @db.VarChar
+  id              String    @id
+  email           String?   @unique
+  firstName       String?   @map("first_name")
+  lastName        String?   @map("last_name")
+  profileImageUrl String?   @map("profile_image_url")
   niche           String?
   nicheLastChanged DateTime? @map("niche_last_changed")
   competitors     String?
   competitorsLastChanged DateTime? @map("competitors_last_changed")
-  planType        String    @default("free") @map("plan_type") @db.VarChar(20)
+  planType        String    @default("free") @map("plan_type")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
@@ -51,12 +50,12 @@ model User {
 
 model ContentIdea {
   id             Int      @id @default(autoincrement())
-  userId         String   @map("user_id") @db.VarChar
+  userId         String   @map("user_id")
   headline       String
   caption        String
   hashtags       String
   ideas          String
-  generationType String   @map("generation_type") @db.VarChar(20)
+  generationType String   @map("generation_type")
   isSaved        Boolean  @default(false) @map("is_saved")
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -69,7 +68,7 @@ model ContentIdea {
 
 model ScheduledPost {
   id            Int       @id @default(autoincrement())
-  userId        String    @map("user_id") @db.VarChar
+  userId        String    @map("user_id")
   contentIdeaId Int?      @map("content_idea_id")
   headline      String
   caption       String
@@ -77,7 +76,7 @@ model ScheduledPost {
   ideas         String?
   scheduledDate DateTime  @map("scheduled_date")
   isCustom      Boolean   @default(false) @map("is_custom")
-  status        String    @default("scheduled") @db.VarChar(20)
+  status        String    @default("scheduled") @map("status")
   createdAt     DateTime  @default(now()) @map("created_at")
 
   // Relations
@@ -92,7 +91,7 @@ model IndianHoliday {
   name        String
   date        DateTime
   description String?
-  category    String?  @db.VarChar(50)
+  category    String?
 
   @@map("indian_holidays")
 }

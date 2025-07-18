@@ -1,13 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL must be set');
-}
+// Use SQLite as fallback when PostgreSQL is not available
+const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
 
 export const db = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
+      url: databaseUrl
     }
   },
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
