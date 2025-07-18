@@ -6,7 +6,10 @@ let apiInstance: TransactionalEmailsApi;
 function initializeBrevoClient() {
   if (!apiInstance) {
     apiInstance = new TransactionalEmailsApi();
-    apiInstance.setApiKey(TransactionalEmailsApi.ApiKeyAuth, process.env.BREVO_API_KEY || '');
+    // Set API key using the correct authentication method
+    if (process.env.BREVO_API_KEY && apiInstance.authentications.apiKey) {
+      apiInstance.authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
+    }
   }
   return apiInstance;
 }
