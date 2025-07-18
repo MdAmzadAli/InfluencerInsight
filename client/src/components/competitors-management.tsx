@@ -91,7 +91,8 @@ export default function CompetitorsManagement() {
       return;
     }
 
-    if (!eligibility?.canChange) {
+    // Only apply eligibility restriction if user already has saved competitors
+    if (!eligibility?.canChange && savedCompetitors.length > 0) {
       toast({
         title: "Cannot Change Competitors",
         description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
@@ -156,19 +157,21 @@ export default function CompetitorsManagement() {
   };
 
   const removeCompetitor = (username: string) => {
-    if (!eligibility?.canChange) {
-      toast({
-        title: "Cannot Change Competitors",
-        description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
     // Check if it's a pending competitor or saved competitor
     if (pendingCompetitors.includes(username)) {
+      // Pending competitors can always be removed
       setPendingCompetitors(pendingCompetitors.filter(comp => comp !== username));
     } else {
+      // For saved competitors, check eligibility restriction
+      if (!eligibility?.canChange) {
+        toast({
+          title: "Cannot Change Competitors",
+          description: `You can only change competitors once per 24 hours. Please wait ${eligibility?.hoursRemaining} more hours.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // For saved competitors, we need to update immediately
       const updatedCompetitors = savedCompetitors.filter(comp => comp !== username);
       updateCompetitorsMutation.mutate(updatedCompetitors);
@@ -202,7 +205,7 @@ export default function CompetitorsManagement() {
           </CardTitle>
         </CardHeader>
       <CardContent className="space-y-4">
-        {!eligibility?.canChange && (
+        {!eligibility?.canChange && savedCompetitors.length > 0 && (
           <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
             <strong>24-hour restriction:</strong> You can only change competitors once per 24 hours. 
             Please wait {eligibility?.hoursRemaining} more hours.
@@ -215,12 +218,12 @@ export default function CompetitorsManagement() {
             value={newCompetitor}
             onChange={(e) => setNewCompetitor(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={updateCompetitorsMutation.isPending || !eligibility?.canChange}
+            disabled={updateCompetitorsMutation.isPending || (!eligibility?.canChange && savedCompetitors.length > 0)}
             className="flex-1"
           />
           <Button
             onClick={addCompetitor}
-            disabled={updateCompetitorsMutation.isPending || allCompetitors.length >= 3 || !eligibility?.canChange}
+            disabled={updateCompetitorsMutation.isPending || allCompetitors.length >= 3 || (!eligibility?.canChange && savedCompetitors.length > 0)}
             size="sm"
           >
             <Plus className="h-4 w-4" />

@@ -106,7 +106,7 @@ export default function TipsSection() {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-red-500" />
-              <span className="text-sm font-medium">Niche changes: Once every 6 hours</span>
+              <span className="text-sm font-medium">Niche changes: Once every 12 hours</span>
             </div>
             
             <div className="flex items-center gap-2">

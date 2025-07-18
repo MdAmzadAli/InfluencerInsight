@@ -167,8 +167,11 @@ export class DatabaseStorage implements IStorage {
     if (competitors !== undefined && competitors !== user?.competitors) {
       const now = new Date();
       const lastChanged = user?.competitorsLastChanged;
+      const hasExistingCompetitors = user?.competitors && user.competitors.trim() !== '' && user.competitors !== '[]';
       
-      if (lastChanged) {
+      // Only apply 24-hour restriction if user already has competitors AND they're being changed
+      // Allow first-time competitor addition without restriction
+      if (lastChanged && hasExistingCompetitors) {
         const hoursSinceLastChange = (now.getTime() - lastChanged.getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastChange < 24) {
           const hoursRemaining = Math.ceil(24 - hoursSinceLastChange);

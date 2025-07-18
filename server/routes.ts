@@ -189,17 +189,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh competitors cache manually
   app.post('/api/user/competitors/refresh', authenticateToken, async (req, res) => {
     try {
-      // Check 24-hour restriction for competitor changes
-      const eligibility = await storage.canChangeCompetitors(req.user!.id);
-      if (!eligibility.canChange) {
-        return res.status(400).json({ 
-          error: `You can only refresh competitors once per 24 hours. Please wait ${eligibility.hoursRemaining} more hours.` 
-        });
-      }
-
       const user = await storage.getUser(req.user!.id);
       if (!user?.competitors) {
         return res.status(400).json({ error: "No competitors found to refresh" });
+      }
+
+      // Check if this is a refresh after first-time competitor addition or a regular refresh
+      const eligibility = await storage.canChangeCompetitors(req.user!.id);
+      const now = new Date();
+      const competitorChangeTime = user.competitorsLastChanged;
+      
+      // Allow refresh if:
+      // 1. No previous competitor changes (first time) OR
+      // 2. Competitors were just added (within last 5 minutes) OR  
+      // 3. 24 hours have passed since last change
+      const isRecentChange = competitorChangeTime && 
+        (now.getTime() - competitorChangeTime.getTime()) / (1000 * 60) <= 5; // Within 5 minutes
+      
+      if (!eligibility.canChange && !isRecentChange) {
+        return res.status(400).json({ 
+          error: `You can only refresh competitors once per 24 hours. Please wait ${eligibility.hoursRemaining} more hours.` 
+        });
       }
 
       // Trigger cache rewarming for competitors only
