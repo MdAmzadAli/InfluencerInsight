@@ -10,7 +10,7 @@ export const db = new PrismaClient({
       url: process.env.DATABASE_URL
     }
   },
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 
 export async function checkDatabaseHealth() {
