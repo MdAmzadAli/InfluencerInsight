@@ -247,14 +247,7 @@ export class DatabaseStorage implements IStorage {
     
     const now = new Date();
     const hoursSinceLastChange = (now.getTime() - user.competitorsLastChanged.getTime()) / (1000 * 60 * 60);
-    const minutesSinceLastChange = (now.getTime() - user.competitorsLastChanged.getTime()) / (1000 * 60);
     
-    // Allow changes within 10 minutes of last change (for immediate refresh after first-time addition)
-    if (minutesSinceLastChange <= 10) {
-      return { canChange: true };
-    }
-    
-    // After 10 minutes, enforce 24-hour restriction
     if (hoursSinceLastChange >= 24) {
       return { canChange: true };
     }
