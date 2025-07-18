@@ -19,13 +19,20 @@ import EmailService from "./email-service";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize database and check health
-  await checkDatabaseHealth();
+  // Initialize database and check health (gracefully handle failures)
+  const dbHealthy = await checkDatabaseHealth();
   
-
-  
-  // Seed holidays
-  await storage.seedHolidays();
+  if (dbHealthy) {
+    try {
+      // Seed holidays only if database is healthy
+      await storage.seedHolidays();
+      console.log('Database initialized and holidays seeded successfully');
+    } catch (error) {
+      console.error('Warning: Could not seed holidays:', error);
+    }
+  } else {
+    console.warn('Database is not available - some features may not work');
+  }
   
   // Start notification scheduler
   notificationService.startNotificationScheduler();
