@@ -1,10 +1,11 @@
 import { storage } from './storage';
 import cron from 'node-cron';
 import type { ScheduledPost } from '@shared/schema';
+import EmailService from './email-service';
 
 export interface NotificationService {
   schedulePostNotification(postId: number, scheduledDate: Date, userId?: string): void;
-  sendImmediateScheduleNotification(userId: string, post: ScheduledPost): void;
+  sendImmediateScheduleNotification(userId: string, post: ScheduledPost): Promise<void>;
   startNotificationScheduler(): void;
   stopNotificationScheduler(): void;
 }
@@ -13,7 +14,7 @@ class BasicNotificationService implements NotificationService {
   private scheduledTasks: Map<number, any> = new Map();
 
   // Send immediate notification when a post is scheduled
-  sendImmediateScheduleNotification(userId: string, post: ScheduledPost): void {
+  async sendImmediateScheduleNotification(userId: string, post: ScheduledPost): Promise<void> {
     const scheduledTime = new Date(post.scheduledDate).toLocaleString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -35,11 +36,18 @@ class BasicNotificationService implements NotificationService {
     }
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    // TODO: In a real application, you would:
-    // - Send push notification to user's device
-    // - Send email notification
-    // - Store notification in database for in-app display
-    // - Send webhook to external services
+    // Send email notification for scheduled post
+    try {
+      const user = await storage.getUser(userId);
+      if (user && user.email) {
+        const emailService = EmailService.getInstance();
+        const postContent = `${post.headline}\n\n${post.caption}\n\n${post.hashtags}`;
+        await emailService.sendScheduledPostReminder(user.email, postContent, scheduledTime);
+        console.log(`📧 Email notification sent to ${user.email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send email notification:', error);
+    }
   }
 
   schedulePostNotification(postId: number, scheduledDate: Date, userId?: string): void {

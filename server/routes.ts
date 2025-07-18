@@ -15,6 +15,7 @@ import { checkDatabaseHealth } from "./db";
 import { notificationService } from "./notification-service";
 import { competitorPostCache } from "./cache-manager";
 import { cacheWarmer } from "./cache-warmer";
+import EmailService from "./email-service";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -52,6 +53,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Test email endpoint (for development)
+  app.post('/api/test-email', async (req, res) => {
+    try {
+      const { email, type } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const emailService = EmailService.getInstance();
+      let success = false;
+      
+      switch (type) {
+        case 'welcome':
+          success = await emailService.sendWelcomeEmail(email, 'Test User');
+          break;
+        case 'reminder':
+          success = await emailService.sendScheduledPostReminder(
+            email, 
+            'Test caption with #hashtags', 
+            new Date().toLocaleString()
+          );
+          break;
+        default:
+          success = await emailService.sendEmail({
+            to: email,
+            subject: 'Test Email from InstaGenIdeas',
+            htmlContent: '<h1>Test Email</h1><p>This is a test email from InstaGenIdeas!</p>',
+            textContent: 'Test Email\n\nThis is a test email from InstaGenIdeas!'
+          });
+      }
+
+      res.json({ success, message: success ? 'Email sent successfully' : 'Failed to send email' });
+    } catch (error) {
+      console.error('Email test error:', error);
+      res.status(500).json({ error: 'Email test failed' });
+    }
+  });
+
   // Authentication routes
   app.post('/api/auth/register', async (req, res) => {
     try {
@@ -73,6 +113,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName,
         lastName,
         niche
+      });
+
+      // Send welcome email (non-blocking)
+      const emailService = EmailService.getInstance();
+      emailService.sendWelcomeEmail(user.email, user.firstName || 'User').catch(error => {
+        console.error('Failed to send welcome email:', error);
       });
 
       const token = generateToken(user.id);
@@ -947,7 +993,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Send immediate notification about the scheduled post
-      notificationService.sendImmediateScheduleNotification(req.user!.id, scheduledPost);
+      notificationService.sendImmediateScheduleNotification(req.user!.id, scheduledPost).catch(error => {
+        console.error('Failed to send immediate notification:', error);
+      });
       
       // Schedule a reminder notification for when the post should be published
       notificationService.schedulePostNotification(scheduledPost.id, new Date(scheduledDate), req.user!.id);
