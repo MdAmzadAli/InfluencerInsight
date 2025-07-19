@@ -50,22 +50,26 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
     return timeZoneName?.value || 'UTC';
   };
 
+  // Convert user's selected local time to UTC for database storage
   const convertToUTC = (localDateTime: Date, userTimezone: string): Date => {
-    // Create a date string that represents the local time
-    const localISOString = localDateTime.getFullYear() + '-' +
-      String(localDateTime.getMonth() + 1).padStart(2, '0') + '-' +
-      String(localDateTime.getDate()).padStart(2, '0') + 'T' +
-      String(localDateTime.getHours()).padStart(2, '0') + ':' +
-      String(localDateTime.getMinutes()).padStart(2, '0') + ':00';
+    // The simplest approach: Use Intl API to handle timezone conversion
+    const year = localDateTime.getFullYear();
+    const month = String(localDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(localDateTime.getDate()).padStart(2, '0');
+    const hour = String(localDateTime.getHours()).padStart(2, '0');
+    const minute = String(localDateTime.getMinutes()).padStart(2, '0');
     
-    // Parse this as if it's in the user's timezone
-    const tempDate = new Date(localISOString);
-    const utcTime = new Date(tempDate.toLocaleString("en-US", { timeZone: "UTC" }));
-    const userTime = new Date(tempDate.toLocaleString("en-US", { timeZone: userTimezone }));
+    // Create the date string as selected by user
+    const dateTimeStr = `${year}-${month}-${day} ${hour}:${minute}:00`;
     
-    // Calculate the offset and apply it
-    const offset = userTime.getTime() - utcTime.getTime();
-    return new Date(tempDate.getTime() - offset);
+    // Use a reference date to calculate timezone offset
+    const referenceUTC = new Date('2024-01-15T12:00:00Z'); // Fixed reference
+    const referenceLocal = new Date(referenceUTC.toLocaleString('sv-SE', { timeZone: userTimezone }));
+    const timezoneOffsetMs = referenceUTC.getTime() - referenceLocal.getTime();
+    
+    // Apply this offset to convert user's local time to UTC
+    const selectedDate = new Date(dateTimeStr);
+    return new Date(selectedDate.getTime() - timezoneOffsetMs);
   };
 
   const timezoneAbbreviation = getTimezoneAbbreviation(userTimezone);
