@@ -579,10 +579,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           competitors = JSON.parse(user.competitors);
           console.log('📋 Parsed competitors:', competitors);
+          console.log('📋 Competitors length:', competitors.length);
+          console.log('📋 Is array:', Array.isArray(competitors));
         } catch (e) {
-          console.error('Error parsing competitors:', e);
-          console.log('Raw competitors data:', user.competitors);
+          console.error('❌ Error parsing competitors:', e);
+          console.log('❌ Raw competitors data:', user.competitors);
+          // Try to handle as comma-separated string as fallback
+          if (typeof user.competitors === 'string' && user.competitors.trim()) {
+            competitors = user.competitors.split(',').map(c => c.trim()).filter(Boolean);
+            console.log('📋 Fallback competitors:', competitors);
+          }
         }
+      } else {
+        console.log('❌ No competitors found for user:', user.id);
       }
       
       if (!generationType) {
@@ -600,7 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if competitor generation is requested but no competitors are set
       if (generationType === 'competitor' && (!competitors || competitors.length === 0)) {
-        res.write(`data: ${JSON.stringify({ type: 'error', message: 'No competitors added. Please add competitors first in the Niche section.' })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'error', message: 'No competitors added. Please add competitors first in the Manage Competitors section.' })}\n\n`);
         res.end();
         return;
       }
