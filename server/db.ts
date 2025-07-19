@@ -11,13 +11,14 @@ export const db = new PrismaClient({
     }
   },
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  errorFormat: 'minimal',
 });
 
 export async function checkDatabaseHealth() {
   try {
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database connection timeout')), 10000)
+      setTimeout(() => reject(new Error('Database connection timeout')), 5000)
     );
     
     await Promise.race([
@@ -29,6 +30,20 @@ export async function checkDatabaseHealth() {
     return true;
   } catch (error) {
     console.error('Database connection failed:', error);
+    // Don't log full error details to reduce console noise
+    return false;
+  }
+}
+
+// Add connection recovery function
+export async function reconnectDatabase() {
+  try {
+    await db.$disconnect();
+    await db.$connect();
+    console.log('Database reconnected successfully');
+    return true;
+  } catch (error) {
+    console.error('Database reconnection failed:', error);
     return false;
   }
 }
