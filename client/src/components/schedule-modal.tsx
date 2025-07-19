@@ -52,24 +52,28 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
 
   // Convert user's selected local time to UTC for database storage
   const convertToUTC = (localDateTime: Date, userTimezone: string): Date => {
-    // The simplest approach: Use Intl API to handle timezone conversion
+    // Extract the date/time components that user selected
     const year = localDateTime.getFullYear();
     const month = String(localDateTime.getMonth() + 1).padStart(2, '0');
     const day = String(localDateTime.getDate()).padStart(2, '0');
     const hour = String(localDateTime.getHours()).padStart(2, '0');
     const minute = String(localDateTime.getMinutes()).padStart(2, '0');
     
-    // Create the date string as selected by user
-    const dateTimeStr = `${year}-${month}-${day} ${hour}:${minute}:00`;
+    // Create an ISO string WITHOUT timezone info (this represents local time)
+    const localTimeString = `${year}-${month}-${day}T${hour}:${minute}:00`;
     
-    // Use a reference date to calculate timezone offset
-    const referenceUTC = new Date('2024-01-15T12:00:00Z'); // Fixed reference
-    const referenceLocal = new Date(referenceUTC.toLocaleString('sv-SE', { timeZone: userTimezone }));
-    const timezoneOffsetMs = referenceUTC.getTime() - referenceLocal.getTime();
+    // Now we need to treat this as if it's in the user's timezone
+    // Use a much simpler approach: calculate the offset for this specific date
+    const tempDate = new Date(localTimeString);
     
-    // Apply this offset to convert user's local time to UTC
-    const selectedDate = new Date(dateTimeStr);
-    return new Date(selectedDate.getTime() - timezoneOffsetMs);
+    // Get the current timezone offset for the user's timezone
+    const now = new Date();
+    const utcNow = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const userNow = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
+    const currentOffset = utcNow.getTime() - userNow.getTime();
+    
+    // Apply the offset to get UTC time
+    return new Date(tempDate.getTime() + currentOffset);
   };
 
   const timezoneAbbreviation = getTimezoneAbbreviation(userTimezone);
@@ -101,7 +105,7 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
         return response;
       }
     },
-    onSuccess: () => {
+    onSuccess: (response, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts/scheduled"] });
       // Also invalidate content ideas if we created a new one
       if (customPost && !idea) {
@@ -109,7 +113,7 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       }
       toast({
         title: "Success",
-        description: "Post scheduled successfully!",
+        description: `Post scheduled successfully for ${variables.timeDifference} later!`,
       });
       onClose();
       
@@ -142,6 +146,24 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
     },
   });
 
+  // Helper function to calculate time difference
+  const getTimeDifference = (futureDate: Date): string => {
+    const now = new Date();
+    const diffMs = futureDate.getTime() - now.getTime();
+    
+    const minutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    } else {
+      return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    }
+  };
+
   const handleSchedule = () => {
     if (!date || !time) {
       toast({
@@ -152,11 +174,12 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       return;
     }
 
-    // Create local date and convert to UTC for database storage
+    // Create the selected datetime in user's local timezone
     const localDateTime = new Date(`${date}T${time}`);
-    const scheduledDateUTC = convertToUTC(localDateTime, userTimezone);
     
-    if (scheduledDateUTC <= new Date()) {
+    // Check against current local time (not UTC converted time)
+    const now = new Date();
+    if (localDateTime <= now) {
       toast({
         title: "Error",
         description: "Please select a future date and time.",
@@ -164,6 +187,12 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       });
       return;
     }
+
+    // Calculate time difference for success message
+    const timeDiff = getTimeDifference(localDateTime);
+    
+    // Convert to UTC for database storage
+    const scheduledDateUTC = convertToUTC(localDateTime, userTimezone);
 
     const postData = {
       headline: idea?.headline || customPost?.headline || "",
@@ -173,7 +202,8 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       scheduledDate: scheduledDateUTC.toISOString(),
       isCustom: !idea,
       contentIdeaId: idea?.id || null,
-      status: "scheduled"
+      status: "scheduled",
+      timeDifference: timeDiff // Pass this for success message
     };
 
     schedulePostMutation.mutate(postData);
