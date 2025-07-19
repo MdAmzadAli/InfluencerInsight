@@ -104,6 +104,9 @@ class BasicNotificationService implements NotificationService {
                 const currentPost = await storage.getScheduledPost(parseInt(postId));
                 if (currentPost) {
                   postStatus = currentPost.status || 'scheduled';
+                  console.log(`📊 Real-time post status fetched: ${postStatus} for post ${postId}`);
+                } else {
+                  console.log(`⚠️  Post ${postId} not found in database, using fallback status: ${postStatus}`);
                 }
               } catch (dbError) {
                 console.error('Failed to fetch post status, using fallback:', dbError);
@@ -185,6 +188,9 @@ class BasicNotificationService implements NotificationService {
                     const currentPost = await storage.getScheduledPost(parseInt(postId));
                     if (currentPost) {
                       postStatus = currentPost.status || 'scheduled';
+                      console.log(`📊 Real-time post status fetched: ${postStatus} for overdue post ${postId}`);
+                    } else {
+                      console.log(`⚠️  Overdue post ${postId} not found in database, using fallback status: ${postStatus}`);
                     }
                   } catch (dbError) {
                     console.error('Failed to fetch post status for overdue notification, using fallback:', dbError);

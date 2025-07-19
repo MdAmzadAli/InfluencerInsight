@@ -413,12 +413,19 @@ The InstaGenIdeas Team`;
   }
 
   async sendPostDueReminder(email: string, headline: string, caption: string, hashtags: string, ideas: string, scheduledTime: string, postStatus: string): Promise<boolean> {
+    // Log the status being used for debugging
+    console.log(`📧 Email service received post status: "${postStatus}" for reminder`);
+    
     // Determine subject and message based on post status
     let subject = '';
     let statusMessage = '';
     let statusColor = '#e91e63';
 
-    switch (postStatus) {
+    // Convert status to lowercase for consistent comparison
+    const normalizedStatus = postStatus.toLowerCase();
+    console.log(`📧 Normalized status for comparison: "${normalizedStatus}"`);
+    
+    switch (normalizedStatus) {
       case 'completed':
       case 'done':
         subject = '🎉 Congratulations! Your scheduled post was published on time!';
@@ -426,11 +433,13 @@ The InstaGenIdeas Team`;
         statusColor = '#4caf50';
         break;
       case 'in_progress':
+      case 'in progress':
         subject = '⏰ Your scheduled post time has arrived - In Progress';
         statusMessage = '⏰ Your scheduled time has arrived and your post is currently <strong>in progress</strong>.';
         statusColor = '#ff9800';
         break;
       case 'under_review':
+      case 'under review':
         subject = '👀 Your scheduled post time has arrived - Under Review';  
         statusMessage = '👀 Your scheduled time has arrived and your post is currently <strong>under review</strong>.';
         statusColor = '#2196f3';
