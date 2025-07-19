@@ -106,9 +106,18 @@ export function OTPSignup() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store the token and redirect to dashboard
-      localStorage.setItem('authToken', data.token);
-      setLocation('/dashboard');
+      // Store the token with the correct key and navigate to dashboard
+      localStorage.setItem('token', data.token);
+      
+      // Show success message and navigate
+      setSuccess('Registration completed successfully! Redirecting to dashboard...');
+      
+      // Navigate to dashboard after brief delay to show success message
+      setTimeout(() => {
+        setLocation('/dashboard');
+        // Force page reload to ensure proper authentication state
+        window.location.reload();
+      }, 1500);
     } catch (error: any) {
       setError(error.message);
     } finally {
