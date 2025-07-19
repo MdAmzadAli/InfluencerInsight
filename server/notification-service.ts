@@ -33,11 +33,12 @@ class BasicNotificationService implements NotificationService {
     }
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    // Send email notification for scheduled post
+    // Send email notification for scheduled post with user's local timezone
     try {
       if (user && user.email) {
         const emailService = EmailService.getInstance();
         const postContent = `${post.headline}\n\n${post.caption}\n\n${post.hashtags}`;
+        // Use the properly formatted local time for email display
         await emailService.sendScheduledPostReminder(user.email, postContent, scheduledTime);
         console.log(`📧 Email notification sent to ${user.email}`);
       }
@@ -80,6 +81,22 @@ class BasicNotificationService implements NotificationService {
               console.log(`💡 Strategy: ${post.ideas}`);
             }
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            
+            // Send email notification for the reminder
+            try {
+              const user = await storage.getUser(userId);
+              if (user && user.email) {
+                const emailService = EmailService.getInstance();
+                const userTimezone = user.timezone || 'UTC';
+                const localScheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate), userTimezone);
+                const postContent = `${post.headline}\n\n${post.caption}\n\n${post.hashtags}`;
+                
+                await emailService.sendScheduledPostReminder(user.email, postContent, localScheduledTime);
+                console.log(`📧 Post reminder email sent to ${user.email}`);
+              }
+            } catch (emailError) {
+              console.error('Failed to send post reminder email:', emailError);
+            }
             
             // Update post status to 'reminded'
             await storage.updateScheduledPost(postId, { status: 'reminded' });
@@ -129,6 +146,39 @@ class BasicNotificationService implements NotificationService {
               console.log(`⏰ Was scheduled for: ${task.scheduledDate.toLocaleString()}`);
               console.log(`📝 Post ID: ${postId}`);
               console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+              
+              // Send email notification for post publishing reminder
+              try {
+                const user = await storage.getUser(task.userId);
+                if (user && user.email) {
+                  const emailService = EmailService.getInstance();
+                  const userTimezone = user.timezone || 'UTC';
+                  const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate, userTimezone);
+                  
+                  // Get the actual post content - try to fetch from storage
+                  try {
+                    const scheduledPosts = await storage.getUserScheduledPosts(task.userId);
+                    const post = scheduledPosts.find(p => p.id === postId);
+                    
+                    if (post) {
+                      const postContent = `${post.headline}\n\n${post.caption}\n\n${post.hashtags}`;
+                      await emailService.sendScheduledPostReminder(user.email, postContent, localScheduledTime);
+                      console.log(`📧 Post reminder email sent to ${user.email}`);
+                    } else {
+                      // Fallback if post not found
+                      await emailService.sendScheduledPostReminder(user.email, 'Your scheduled post is ready to publish!', localScheduledTime);
+                      console.log(`📧 Fallback reminder email sent to ${user.email}`);
+                    }
+                  } catch (dbError) {
+                    // If database fails, send a basic reminder
+                    console.error('Database error, sending fallback email:', dbError);
+                    await emailService.sendScheduledPostReminder(user.email, 'Your scheduled post is ready to publish!', localScheduledTime);
+                    console.log(`📧 Fallback reminder email sent to ${user.email}`);
+                  }
+                }
+              } catch (emailError) {
+                console.error('Failed to send post reminder email:', emailError);
+              }
               
             } catch (error) {
               console.error('Error handling overdue notification:', error);
