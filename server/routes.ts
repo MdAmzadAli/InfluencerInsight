@@ -191,9 +191,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send reset email
       const emailService = EmailService.getInstance();
+      console.log('🔄 Attempting to send password reset email to:', email);
       const emailSent = await emailService.sendPasswordResetEmail(email, resetCode);
+      console.log('📨 Email send result:', emailSent);
 
       if (!emailSent) {
+        console.error('❌ Failed to send email - service returned false');
         return res.status(500).json({ error: 'Failed to send reset email' });
       }
 

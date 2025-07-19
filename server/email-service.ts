@@ -69,7 +69,8 @@ export class EmailService {
       };
 
       const response = await api.sendTransacEmail(sendSmtpEmail);
-      console.log('Email sent successfully:', JSON.stringify(response));
+      console.log('✅ Email sent successfully to:', options.to);
+      console.log('📧 Response:', response.messageId || 'Success');
       return true;
     } catch (error) {
       console.error('Failed to send email:', error);
