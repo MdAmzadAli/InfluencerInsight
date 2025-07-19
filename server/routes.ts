@@ -163,6 +163,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Forgot Password - Step 1: Send Reset Email
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // For security, don't reveal if email exists or not
+        return res.json({ 
+          success: true, 
+          message: 'If an account with that email exists, a password reset link has been sent' 
+        });
+      }
+
+      // Generate reset token (6-digit code for simplicity)
+      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Store reset code in database (reusing OTP table)
+      await storage.createOTP(email, resetCode);
+
+      // Send reset email
+      const emailService = EmailService.getInstance();
+      const emailSent = await emailService.sendPasswordResetEmail(email, resetCode);
+
+      if (!emailSent) {
+        return res.status(500).json({ error: 'Failed to send reset email' });
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Password reset code sent to your email' 
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to process password reset request' });
+    }
+  });
+
+  // Forgot Password - Step 2: Reset Password
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { email, code, newPassword } = req.body;
+      
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ error: 'Email, code, and new password are required' });
+      }
+
+      // Verify reset code
+      const isValid = await storage.verifyOTP(email, code);
+      
+      if (!isValid) {
+        return res.status(400).json({ error: 'Invalid or expired reset code' });
+      }
+
+      // Update user password
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Hash new password and update
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      res.json({ 
+        success: true, 
+        message: 'Password reset successfully' 
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
   // Authentication routes - Step 3: Complete Registration
   app.post('/api/auth/complete-registration', async (req, res) => {
     try {

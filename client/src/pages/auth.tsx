@@ -118,6 +118,30 @@ export default function Auth() {
                       'Sign In'
                     )}
                   </Button>
+                  
+                  <div className="text-center">
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                      onClick={() => {
+                        const email = prompt('Enter your email address to reset your password:');
+                        if (email) {
+                          fetch('/api/auth/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                          }).then(res => res.json()).then(data => {
+                            alert(data.message || 'Password reset instructions sent to your email!');
+                          }).catch(err => {
+                            alert('Failed to send reset email. Please try again.');
+                          });
+                        }
+                      }}
+                    >
+                      Forgot your password?
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>

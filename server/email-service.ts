@@ -125,23 +125,22 @@ export class EmailService {
     });
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+  async sendPasswordResetEmail(email: string, resetCode: string): Promise<boolean> {
     const subject = 'Reset Your InstaGenIdeas Password';
     
     const htmlContent = `
       <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
           <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #e91e63; text-align: center;">Reset Your Password</h1>
+            <h2>Password Reset Request</h2>
             <p>You requested a password reset for your InstaGenIdeas account.</p>
-            <p>Click the button below to reset your password:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" style="background-color: #e91e63; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+            <p>Please use this verification code to reset your password:</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; display: inline-block;">
+                <h3 style="margin: 0; font-size: 24px; letter-spacing: 3px;">${resetCode}</h3>
+              </div>
             </div>
-            <p>If the button doesn't work, copy and paste this link into your browser:</p>
-            <p><a href="${resetUrl}" style="color: #e91e63;">${resetUrl}</a></p>
-            <p>This link will expire in 1 hour for security reasons.</p>
+            <p>This code will expire in 10 minutes.</p>
             <p>If you didn't request this password reset, please ignore this email.</p>
             <p>The InstaGenIdeas Team</p>
           </div>
@@ -149,17 +148,18 @@ export class EmailService {
       </html>
     `;
     
-    const textContent = `
-      You requested a password reset for your InstaGenIdeas account.
-      
-      Click this link to reset your password: ${resetUrl}
-      
-      This link will expire in 1 hour for security reasons.
-      
-      If you didn't request this password reset, please ignore this email.
-      
-      The InstaGenIdeas Team
-    `;
+    const textContent = `Password Reset Request
+
+You requested a password reset for your InstaGenIdeas account.
+
+Your reset code is: ${resetCode}
+
+This code will expire in 10 minutes for security reasons.
+
+If you didn't request this password reset, please ignore this email.
+
+Best regards,
+The InstaGenIdeas Team`;
 
     return this.sendEmail({
       to: email,

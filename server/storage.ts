@@ -60,6 +60,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
   canChangeCompetitors(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
   canChangeNiche(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
   registerUser(user: RegisterUser): Promise<User>;
@@ -174,6 +175,13 @@ export class DatabaseStorage implements IStorage {
     }
 
     return false;
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    await db.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
   }
 
   async updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User> {

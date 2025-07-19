@@ -104,57 +104,39 @@ class BasicNotificationService implements NotificationService {
   }
 
   startNotificationScheduler(): void {
-    // Check for posts to notify every minute - with reduced frequency to prevent spam
-    cron.schedule('0 * * * * *', async () => {
+    // Check for posts to notify every 5 minutes to reduce database load
+    cron.schedule('0 */5 * * * *', async () => {
       try {
         const now = new Date();
         console.log(`🔍 Notification scheduler checking at ${now.toLocaleTimeString()}`);
         
-        // Only process scheduled tasks, avoid database queries in scheduler
+        // Only process scheduled tasks, completely avoid database queries in scheduler
         // to prevent Prisma connection errors
         if (this.scheduledTasks.size === 0) {
-          // No scheduled tasks to check
+          // No scheduled tasks to check, skip completely
           return;
         }
         
-        // Check existing scheduled tasks for ones that are ready
+        // Process only in-memory scheduled tasks without database queries
         for (const [postId, task] of this.scheduledTasks.entries()) {
           if (task.userId && task.scheduledDate <= now) {
-            try {
-              // This task should have already fired, but let's double check
-              const scheduledPosts = await storage.getUserScheduledPosts(task.userId);
-              const post = scheduledPosts.find(p => p.id === postId);
             
-              if (post && post.status === 'scheduled') {
-                console.log(`⚠️ Found overdue post ${postId} for user ${task.userId}, firing notification now`);
-                
-                // Fire the notification immediately
-                try {
-                  task.destroy(); // Clear the timeout
-                  this.scheduledTasks.delete(postId);
-                  
-                  // Send the notification
-                  console.log('\n🚨 POST PUBLISHING REMINDER (OVERDUE)');
-                  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                  console.log(`👤 User: ${task.userId}`);
-                  console.log(`⏰ Was scheduled for: ${task.scheduledDate.toLocaleString()}`);
-                  console.log(`📝 Headline: "${post.headline}"`);
-                  console.log(`📄 Caption: ${post.caption}`);
-                  console.log(`🏷️  Hashtags: ${post.hashtags}`);
-                  if (post.ideas) {
-                    console.log(`💡 Strategy: ${post.ideas}`);
-                  }
-                  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-                  
-                  // Update post status
-                  await storage.updateScheduledPost(postId, { status: 'reminded' });
-                } catch (error) {
-                  console.error('Error handling overdue notification:', error);
-                }
-              }
-            } catch (dbError) {
-              console.error(`Database error checking overdue post ${postId}:`, dbError);
-              // Remove problematic task to prevent recurring errors
+            // Fire notification without database verification to prevent Prisma errors
+            try {
+              task.destroy(); // Clear the timeout
+              this.scheduledTasks.delete(postId);
+              
+              // Send the notification
+              console.log('\n🚨 POST PUBLISHING REMINDER (OVERDUE)');
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log(`👤 User: ${task.userId}`);
+              console.log(`⏰ Was scheduled for: ${task.scheduledDate.toLocaleString()}`);
+              console.log(`📝 Post ID: ${postId}`);
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+              
+            } catch (error) {
+              console.error('Error handling overdue notification:', error);
+              // Remove problematic task
               this.scheduledTasks.delete(postId);
             }
           }

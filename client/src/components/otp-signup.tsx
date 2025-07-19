@@ -83,6 +83,32 @@ export function OTPSignup() {
     }
   };
 
+  const handleResendOTP = async () => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend verification code');
+      }
+
+      setSuccess('Verification code resent to your email!');
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCompleteRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -245,14 +271,12 @@ export function OTPSignup() {
             
             <Button 
               type="button" 
-              variant="ghost" 
-              className="w-full"
-              onClick={() => {
-                setStep('email');
-                setFormData(prev => ({ ...prev, otp: '' }));
-              }}
+              variant="link" 
+              className="w-full text-sm"
+              onClick={handleResendOTP}
+              disabled={isLoading}
             >
-              Send New Code
+              Didn't receive the code? Resend OTP
             </Button>
           </form>
         )}
