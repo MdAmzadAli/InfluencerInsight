@@ -1182,7 +1182,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Schedule a reminder notification for when the post should be published
-      notificationService.schedulePostNotification(scheduledPost.id, new Date(scheduledDate), req.user!.id);
+      // Pass post data to avoid database dependency during notification
+      notificationService.schedulePostNotification(scheduledPost.id, new Date(scheduledDate), req.user!.id, {
+        headline,
+        caption,
+        hashtags,
+        ideas,
+        status: 'scheduled'
+      });
 
       res.json(scheduledPost);
     } catch (error) {

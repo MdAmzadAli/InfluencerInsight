@@ -315,6 +315,130 @@ The InstaGenIdeas Team`;
       textContent
     });
   }
+
+  async sendPostDueReminder(email: string, headline: string, caption: string, hashtags: string, ideas: string, scheduledTime: string, postStatus: string): Promise<boolean> {
+    // Determine subject and message based on post status
+    let subject = '';
+    let statusMessage = '';
+    let statusColor = '#e91e63';
+
+    switch (postStatus) {
+      case 'completed':
+      case 'done':
+        subject = '🎉 Congratulations! Your scheduled post was published on time!';
+        statusMessage = '🎉 <strong>Congratulations!</strong> Your post has been successfully published within the scheduled time!';
+        statusColor = '#4caf50';
+        break;
+      case 'in_progress':
+        subject = '⏰ Your scheduled post time has arrived - In Progress';
+        statusMessage = '⏰ Your scheduled time has arrived and your post is currently <strong>in progress</strong>.';
+        statusColor = '#ff9800';
+        break;
+      case 'under_review':
+        subject = '👀 Your scheduled post time has arrived - Under Review';  
+        statusMessage = '👀 Your scheduled time has arrived and your post is currently <strong>under review</strong>.';
+        statusColor = '#2196f3';
+        break;
+      default:
+        subject = '🚨 Your scheduled post time has arrived!';
+        statusMessage = '🚨 Your scheduled time has arrived but your post is still <strong>not done</strong>. It\'s time to publish!';
+        statusColor = '#f44336';
+    }
+    
+    const htmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: ${statusColor}; text-align: center;">Post Publishing Reminder</h1>
+            <div style="background-color: #f0f8ff; padding: 15px; border-left: 4px solid ${statusColor}; margin: 20px 0;">
+              <p style="margin: 0; color: ${statusColor};">${statusMessage}</p>
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #e91e63; margin-top: 0;">📅 Scheduled for: ${scheduledTime}</h3>
+              
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">📝 Headline:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0;">${headline}</p>
+              </div>
+              
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">📄 Caption:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0; white-space: pre-wrap;">${caption}</p>
+              </div>
+              
+              ${hashtags ? `
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">🏷️ Hashtags:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0; color: #1976d2;">${hashtags}</p>
+              </div>
+              ` : ''}
+              
+              ${ideas ? `
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">💡 Strategy:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0; font-style: italic;">${ideas}</p>
+              </div>
+              ` : ''}
+            </div>
+            
+            ${postStatus === 'completed' || postStatus === 'done' ? `
+              <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #4caf50; font-size: 18px; font-weight: bold;">🎊 Well done on maintaining your posting schedule! 🎊</p>
+              </div>
+            ` : `
+              <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                <h4 style="color: #856404; margin-top: 0;">📋 Next Steps:</h4>
+                <ul style="color: #856404;">
+                  <li>📱 Open Instagram</li>
+                  <li>📸 Upload your image/video</li>
+                  <li>📝 Copy and paste your caption</li>
+                  <li>🏷️ Add your hashtags</li>
+                  <li>🚀 Publish your post</li>
+                </ul>
+              </div>
+            `}
+            
+            <p>Best regards,<br>The InstaGenIdeas Team</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const textContent = `
+      ${statusMessage.replace(/<[^>]*>/g, '')}
+      
+      Scheduled for: ${scheduledTime}
+      
+      Headline: ${headline}
+      
+      Caption: ${caption}
+      
+      ${hashtags ? `Hashtags: ${hashtags}` : ''}
+      
+      ${ideas ? `Strategy: ${ideas}` : ''}
+      
+      ${postStatus === 'completed' || postStatus === 'done' ? 
+        'Well done on maintaining your posting schedule!' :
+        `Next Steps:
+        - Open Instagram
+        - Upload your image/video  
+        - Copy and paste your caption
+        - Add your hashtags
+        - Publish your post`
+      }
+      
+      Best regards,
+      The InstaGenIdeas Team
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject,
+      htmlContent,
+      textContent
+    });
+  }
 }
 
 export default EmailService;

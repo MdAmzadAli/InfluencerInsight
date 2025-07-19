@@ -138,9 +138,9 @@ export function OTPSignup() {
       // Show success message and navigate
       setSuccess('Registration completed successfully! Redirecting to dashboard...');
       
-      // Navigate to dashboard after brief delay to show success message
+      // Navigate to generate ideas after brief delay to show success message
       setTimeout(() => {
-        setLocation('/dashboard');
+        setLocation('/dashboard?tab=generate');
         // Force page reload to ensure proper authentication state
         window.location.reload();
       }, 1500);

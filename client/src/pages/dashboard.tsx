@@ -48,6 +48,15 @@ export default function Dashboard() {
   // Determine which component to render based on the current route
   // Default to Generate Ideas when on root dashboard
   const renderContent = () => {
+    // Check URL parameters for specific tabs
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    
+    // Handle specific tab parameter
+    if (tab === 'generate') {
+      return <GenerateIdeas />;
+    }
+    
     switch (location) {
       case '/':
       case '/generate':
