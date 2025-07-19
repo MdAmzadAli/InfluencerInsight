@@ -16,10 +16,9 @@ class BasicNotificationService implements NotificationService {
 
   // Send immediate notification when a post is scheduled
   async sendImmediateScheduleNotification(userId: string, post: ScheduledPost): Promise<void> {
-    // Get user's timezone for proper time display
+    // Get user for email
     const user = await storage.getUser(userId);
-    const userTimezone = user?.timezone || 'UTC';
-    const scheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate), userTimezone);
+    const scheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate));
 
     console.log('\n🔔 POST SCHEDULED NOTIFICATION');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -94,11 +93,10 @@ class BasicNotificationService implements NotificationService {
             }
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
             
-            // Send email notification with proper timezone and status
+            // Send email notification with simple time format (matches scheduling board)
             try {
               const emailService = EmailService.getInstance();
-              const userTimezone = user.timezone || 'UTC';
-              const localScheduledTime = getNotificationTimeDisplay(scheduledDate, userTimezone);
+              const localScheduledTime = getNotificationTimeDisplay(scheduledDate);
               
               // Check current status for appropriate message
               const postStatus = 'scheduled'; // Use cached status to avoid database
@@ -169,8 +167,7 @@ class BasicNotificationService implements NotificationService {
                 // Skip user lookup to avoid database connection - use cached data only
                 if (task.postData && task.postData.userEmail) {
                   const emailService = EmailService.getInstance();
-                  const userTimezone = task.postData.userTimezone || 'UTC';
-                  const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate, userTimezone);
+                  const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate);
                   
                   const post = task.postData;
                   await emailService.sendPostDueReminder(

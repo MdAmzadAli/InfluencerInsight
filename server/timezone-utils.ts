@@ -86,19 +86,19 @@ export function isTimeToNotify(scheduledUTC: Date, currentUTC: Date = new Date()
 }
 
 /**
- * Get user-friendly time display for notifications
- * @param scheduledUTC - Scheduled time in UTC
- * @param userTimezone - User's timezone
- * @returns Formatted time string for email notifications
+ * Get user-friendly time display for notifications (matches scheduling board format)
+ * @param scheduledDate - Scheduled date (already in user's timezone from input)
+ * @returns Formatted time string for email notifications (e.g., "Jan 15, 2:30 PM")
  */
-export function getNotificationTimeDisplay(scheduledUTC: Date, userTimezone: string): string {
-  return formatDateTimeForUser(scheduledUTC, userTimezone, {
-    weekday: 'long',
-    year: 'numeric', 
+export function getNotificationTimeDisplay(scheduledDate: Date): string {
+  // Use the same format as the scheduling board: MMM d, h:mm a
+  const options: Intl.DateTimeFormatOptions = {
     month: 'short',
-    day: 'numeric',
+    day: 'numeric', 
     hour: 'numeric',
     minute: '2-digit',
-    timeZoneName: 'short'
-  });
+    hour12: true
+  };
+  
+  return scheduledDate.toLocaleDateString('en-US', options);
 }
