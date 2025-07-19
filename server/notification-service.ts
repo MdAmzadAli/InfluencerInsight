@@ -98,8 +98,16 @@ class BasicNotificationService implements NotificationService {
             try {
               const emailService = EmailService.getInstance();
               
-              // Check current status for appropriate message
-              const postStatus = 'scheduled'; // Use cached status to avoid database
+              // Get real-time post status from database
+              let postStatus = 'scheduled'; // Default fallback
+              try {
+                const currentPost = await storage.getScheduledPost(parseInt(postId));
+                if (currentPost) {
+                  postStatus = currentPost.status || 'scheduled';
+                }
+              } catch (dbError) {
+                console.error('Failed to fetch post status, using fallback:', dbError);
+              }
               
               await emailService.sendPostDueReminder(
                 user.email, 
@@ -170,6 +178,18 @@ class BasicNotificationService implements NotificationService {
                   // For reminder emails, don't show time - just message and details
                   
                   const post = task.postData;
+                  
+                  // Get real-time post status from database
+                  let postStatus = 'scheduled'; // Default fallback
+                  try {
+                    const currentPost = await storage.getScheduledPost(parseInt(postId));
+                    if (currentPost) {
+                      postStatus = currentPost.status || 'scheduled';
+                    }
+                  } catch (dbError) {
+                    console.error('Failed to fetch post status for overdue notification, using fallback:', dbError);
+                  }
+                  
                   await emailService.sendPostDueReminder(
                     task.postData.userEmail,
                     post.headline || 'Your scheduled post',
@@ -177,7 +197,7 @@ class BasicNotificationService implements NotificationService {
                     post.hashtags || '',
                     post.ideas || '',
                     '', // Don't show time for reminder emails
-                    'scheduled' // Assume still scheduled since it's overdue
+                    postStatus
                   );
                   console.log(`📧 Post reminder email sent to ${task.postData.userEmail}`);
                 } else {

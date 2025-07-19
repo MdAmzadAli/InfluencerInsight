@@ -427,6 +427,12 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async getScheduledPost(postId: number): Promise<ScheduledPost | null> {
+    return await db.scheduledPost.findUnique({
+      where: { id: postId }
+    });
+  }
+
   // Indian Holidays operations
   async getUpcomingHolidays(limit = 10): Promise<IndianHoliday[]> {
     const today = new Date();
