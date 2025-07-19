@@ -297,6 +297,7 @@ export default function Auth() {
               {forgotPasswordStep === 'code' && (
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  setForgotPasswordSuccess(null); // Clear the success message when moving to next step
                   setForgotPasswordStep('reset');
                 }} className="space-y-4">
                   <div className="space-y-2">
@@ -316,6 +317,12 @@ export default function Auth() {
                   {forgotPasswordError && (
                     <Alert variant="destructive">
                       <AlertDescription>{forgotPasswordError}</AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {forgotPasswordSuccess && (
+                    <Alert>
+                      <AlertDescription>{forgotPasswordSuccess}</AlertDescription>
                     </Alert>
                   )}
                   

@@ -246,10 +246,10 @@ export class DatabaseStorage implements IStorage {
       data: {
         id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         email: userData.email,
+        password: hashedPassword,
         firstName: userData.firstName,
         lastName: userData.lastName,
         niche: userData.niche,
-        // Note: We don't store passwords in Replit Auth, but keeping for compatibility
       }
     });
   }
@@ -259,10 +259,12 @@ export class DatabaseStorage implements IStorage {
       where: { email: credentials.email }
     });
     
-    if (!user) return null;
+    if (!user || !user.password) return null;
     
-    // For compatibility, we'll just return the user if found
-    // In a real app, you'd verify the password here
+    // Verify the password using bcrypt
+    const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+    if (!isPasswordValid) return null;
+    
     return user;
   }
 
