@@ -16,6 +16,7 @@ import { notificationService } from "./notification-service";
 import { competitorPostCache } from "./cache-manager";
 import { cacheWarmer } from "./cache-warmer";
 import EmailService from "./email-service";
+import bcryptjs from "bcryptjs";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -229,8 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Hash new password and update
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await bcryptjs.hash(newPassword, 10);
       await storage.updateUserPassword(user.id, hashedPassword);
 
       res.json({ 
