@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
@@ -30,6 +30,45 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isOpen: ratingOpen, setIsOpen: setRatingOpen, showRating, context, title, description } = useRatingPopup();
+
+  // Get user data for timezone
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const userTimezone = user?.timezone || 'UTC';
+  
+  // Helper functions for timezone conversion
+  const getTimezoneAbbreviation = (timezone: string): string => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en', {
+      timeZone: timezone,
+      timeZoneName: 'short'
+    });
+    const parts = formatter.formatToParts(now);
+    const timeZoneName = parts.find(part => part.type === 'timeZoneName');
+    return timeZoneName?.value || 'UTC';
+  };
+
+  const convertToUTC = (localDateTime: Date, userTimezone: string): Date => {
+    // Create a date string that represents the local time
+    const localISOString = localDateTime.getFullYear() + '-' +
+      String(localDateTime.getMonth() + 1).padStart(2, '0') + '-' +
+      String(localDateTime.getDate()).padStart(2, '0') + 'T' +
+      String(localDateTime.getHours()).padStart(2, '0') + ':' +
+      String(localDateTime.getMinutes()).padStart(2, '0') + ':00';
+    
+    // Parse this as if it's in the user's timezone
+    const tempDate = new Date(localISOString);
+    const utcTime = new Date(tempDate.toLocaleString("en-US", { timeZone: "UTC" }));
+    const userTime = new Date(tempDate.toLocaleString("en-US", { timeZone: userTimezone }));
+    
+    // Calculate the offset and apply it
+    const offset = userTime.getTime() - utcTime.getTime();
+    return new Date(tempDate.getTime() - offset);
+  };
+
+  const timezoneAbbreviation = getTimezoneAbbreviation(userTimezone);
 
   const schedulePostMutation = useMutation({
     mutationFn: async (scheduleData: any) => {
@@ -109,10 +148,11 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       return;
     }
 
-    // Combine date and time
-    const scheduledDate = new Date(`${date}T${time}`);
+    // Create local date and convert to UTC for database storage
+    const localDateTime = new Date(`${date}T${time}`);
+    const scheduledDateUTC = convertToUTC(localDateTime, userTimezone);
     
-    if (scheduledDate <= new Date()) {
+    if (scheduledDateUTC <= new Date()) {
       toast({
         title: "Error",
         description: "Please select a future date and time.",
@@ -126,7 +166,7 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       caption: idea?.caption || customPost?.caption || "",
       hashtags: idea?.hashtags || customPost?.hashtags || "",
       ideas: idea?.ideas || customPost?.ideas || "",
-      scheduledDate: scheduledDate.toISOString(),
+      scheduledDate: scheduledDateUTC.toISOString(),
       isCustom: !idea,
       contentIdeaId: idea?.id || null,
       status: "scheduled"
@@ -164,7 +204,7 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
           </div>
           
           <div>
-            <Label htmlFor="schedule-time">Time</Label>
+            <Label htmlFor="schedule-time">Time ({timezoneAbbreviation})</Label>
             <Input
               id="schedule-time"
               type="time"
@@ -172,6 +212,9 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
               onChange={(e) => setTime(e.target.value)}
               className="mt-2"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Times are shown in your local timezone: {userTimezone}
+            </p>
           </div>
           
 

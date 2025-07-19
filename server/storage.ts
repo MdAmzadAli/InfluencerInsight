@@ -60,6 +60,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   updateUserNiche(userId: string, niche: string, competitors?: string): Promise<User>;
+  updateUserTimezone(userId: string, timezone: string): Promise<User>;
   updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
   canChangeCompetitors(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
   canChangeNiche(userId: string): Promise<{ canChange: boolean; hoursRemaining?: number }>;
@@ -177,6 +178,16 @@ export class DatabaseStorage implements IStorage {
     return false;
   }
 
+  async updateUserTimezone(userId: string, timezone: string): Promise<User> {
+    return await db.user.update({
+      where: { id: userId },
+      data: { 
+        timezone: timezone,
+        updatedAt: new Date()
+      }
+    });
+  }
+
   async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
     await db.user.update({
       where: { id: userId },
@@ -250,6 +261,7 @@ export class DatabaseStorage implements IStorage {
         firstName: userData.firstName,
         lastName: userData.lastName,
         niche: userData.niche,
+        timezone: userData.timezone || 'UTC',
       }
     });
   }

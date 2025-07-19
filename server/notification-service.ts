@@ -2,6 +2,7 @@ import { storage } from './storage';
 import cron from 'node-cron';
 import type { ScheduledPost } from '@shared/schema';
 import EmailService from './email-service';
+import { getNotificationTimeDisplay, isTimeToNotify } from './timezone-utils';
 
 export interface NotificationService {
   schedulePostNotification(postId: number, scheduledDate: Date, userId?: string): void;
@@ -15,14 +16,10 @@ class BasicNotificationService implements NotificationService {
 
   // Send immediate notification when a post is scheduled
   async sendImmediateScheduleNotification(userId: string, post: ScheduledPost): Promise<void> {
-    const scheduledTime = new Date(post.scheduledDate).toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    // Get user's timezone for proper time display
+    const user = await storage.getUser(userId);
+    const userTimezone = user?.timezone || 'UTC';
+    const scheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate), userTimezone);
 
     console.log('\n🔔 POST SCHEDULED NOTIFICATION');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -38,7 +35,6 @@ class BasicNotificationService implements NotificationService {
 
     // Send email notification for scheduled post
     try {
-      const user = await storage.getUser(userId);
       if (user && user.email) {
         const emailService = EmailService.getInstance();
         const postContent = `${post.headline}\n\n${post.caption}\n\n${post.hashtags}`;

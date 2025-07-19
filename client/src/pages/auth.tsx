@@ -47,7 +47,13 @@ export default function Auth() {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    register(registerData);
+    // Auto-detect user's timezone
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    register({
+      ...registerData,
+      timezone: userTimezone
+    });
   };
 
   // Forgot password handlers

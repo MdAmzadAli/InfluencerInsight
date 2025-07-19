@@ -249,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes - Step 3: Complete Registration
   app.post('/api/auth/complete-registration', async (req, res) => {
     try {
-      const { email, password, firstName, lastName, niche } = req.body;
+      const { email, password, firstName, lastName, niche, timezone } = req.body;
       
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
@@ -266,7 +266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         firstName,
         lastName,
-        niche
+        niche,
+        timezone
       });
 
       // Send registration success email (non-blocking)
@@ -283,7 +284,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email, 
           firstName: user.firstName, 
           lastName: user.lastName,
-          niche: user.niche 
+          niche: user.niche,
+          timezone: user.timezone
         } 
       });
     } catch (error) {
@@ -314,7 +316,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName, 
           lastName: user.lastName,
           niche: user.niche,
-          competitors: user.competitors 
+          competitors: user.competitors,
+          timezone: user.timezone
         } 
       });
     } catch (error) {
@@ -337,11 +340,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName, 
         lastName: user.lastName,
         niche: user.niche,
-        competitors: user.competitors 
+        competitors: user.competitors,
+        timezone: user.timezone
       });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
+  // Update user's timezone
+  app.put('/api/user/timezone', authenticateToken, async (req, res) => {
+    try {
+      const { timezone } = req.body;
+      
+      if (!timezone) {
+        return res.status(400).json({ error: "Timezone is required" });
+      }
+
+      const user = await storage.updateUserTimezone(req.user!.id, timezone);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user timezone:", error);
+      res.status(500).json({ error: "Failed to update user timezone" });
     }
   });
 

@@ -14,6 +14,7 @@ export type InsertUser = {
   nicheLastChanged?: Date | null;
   competitors?: string | null;
   competitorsLastChanged?: Date | null;
+  timezone?: string | null;
 };
 
 export type InsertTokenUsage = {
@@ -58,6 +59,7 @@ export type RegisterUser = {
   firstName?: string | null;
   lastName?: string | null;
   niche?: string | null;
+  timezone?: string | null;
 };
 
 export type LoginUser = {
