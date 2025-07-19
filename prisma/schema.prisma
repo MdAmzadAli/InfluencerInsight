@@ -26,6 +26,7 @@ model Session {
 model User {
   id              String    @id @db.VarChar
   email           String?   @unique @db.VarChar
+  password        String?   @db.VarChar
   firstName       String?   @map("first_name") @db.VarChar
   lastName        String?   @map("last_name") @db.VarChar
   profileImageUrl String?   @map("profile_image_url") @db.VarChar
