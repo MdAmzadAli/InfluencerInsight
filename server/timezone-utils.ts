@@ -94,10 +94,10 @@ export function isTimeToNotify(scheduledUTC: Date, currentUTC: Date = new Date()
 export function getNotificationTimeDisplay(scheduledUTC: Date, userTimezone: string): string {
   return formatDateTimeForUser(scheduledUTC, userTimezone, {
     weekday: 'long',
-    year: 'numeric',
-    month: 'long',
+    year: 'numeric', 
+    month: 'short',
     day: 'numeric',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
     timeZoneName: 'short'
   });

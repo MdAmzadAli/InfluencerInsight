@@ -1181,14 +1181,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Failed to send immediate notification:', error);
       });
       
+      // Get user data for caching
+      const user = await storage.getUser(req.user!.id);
+      
       // Schedule a reminder notification for when the post should be published
-      // Pass post data to avoid database dependency during notification
+      // Pass post data and user data to avoid database dependency during notification
       notificationService.schedulePostNotification(scheduledPost.id, new Date(scheduledDate), req.user!.id, {
         headline,
         caption,
         hashtags,
         ideas,
-        status: 'scheduled'
+        status: 'scheduled',
+        userEmail: user?.email,
+        userTimezone: user?.timezone || 'UTC'
       });
 
       res.json(scheduledPost);

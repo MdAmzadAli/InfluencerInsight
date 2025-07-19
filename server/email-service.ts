@@ -263,6 +263,102 @@ The InstaGenIdeas Team`;
     });
   }
 
+  async sendPostScheduledConfirmation(email: string, headline: string, caption: string, hashtags: string, ideas: string, scheduledTime: string): Promise<boolean> {
+    const subject = '✅ Your Post Has Been Scheduled Successfully!';
+    
+    const htmlContent = `
+      <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #4caf50; text-align: center;">🎉 Post Scheduled Successfully!</h1>
+            <div style="background-color: #e8f5e8; padding: 15px; border-left: 4px solid #4caf50; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #2e7d32;"><strong>Great news!</strong> Your Instagram post has been scheduled successfully!</p>
+            </div>
+            
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #e91e63; margin-top: 0;">📅 Scheduled for: ${scheduledTime}</h3>
+              
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">📝 Headline:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0;">${headline}</p>
+              </div>
+              
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">📄 Caption:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0; white-space: pre-wrap;">${caption}</p>
+              </div>
+              
+              ${hashtags ? `
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">🏷️ Hashtags:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0; color: #1976d2;">${hashtags}</p>
+              </div>
+              ` : ''}
+              
+              ${ideas ? `
+              <div style="margin: 15px 0;">
+                <h4 style="color: #333; margin-bottom: 5px;">💡 Strategy:</h4>
+                <p style="background-color: white; padding: 10px; border-radius: 4px; margin: 5px 0; font-style: italic;">${ideas}</p>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 20px 0;">
+              <h4 style="color: #856404; margin-top: 0;">⏰ What's Next?</h4>
+              <p style="color: #856404; margin-bottom: 10px;">We'll send you a reminder when it's time to publish your post!</p>
+              <ul style="color: #856404; margin: 5px 0;">
+                <li>You'll receive an email reminder at your scheduled time</li>
+                <li>The reminder will include all your post details</li>
+                <li>Simply copy and paste to Instagram when ready</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <p style="color: #4caf50; font-size: 16px;">📱 Happy posting!</p>
+            </div>
+            
+            <p>Best regards,<br>The InstaGenIdeas Team</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const textContent = `
+      🎉 Post Scheduled Successfully!
+      
+      Great news! Your Instagram post has been scheduled successfully!
+      
+      Scheduled for: ${scheduledTime}
+      
+      Headline: ${headline}
+      
+      Caption: ${caption}
+      
+      ${hashtags ? `Hashtags: ${hashtags}` : ''}
+      
+      ${ideas ? `Strategy: ${ideas}` : ''}
+      
+      ⏰ What's Next?
+      We'll send you a reminder when it's time to publish your post!
+      
+      - You'll receive an email reminder at your scheduled time
+      - The reminder will include all your post details  
+      - Simply copy and paste to Instagram when ready
+      
+      📱 Happy posting!
+      
+      Best regards,
+      The InstaGenIdeas Team
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject,
+      htmlContent,
+      textContent
+    });
+  }
+
   async sendScheduledPostReminder(email: string, postContent: string, scheduledTime: string): Promise<boolean> {
     const subject = 'Your Scheduled Post is Ready!';
     

@@ -33,19 +33,18 @@ class BasicNotificationService implements NotificationService {
     }
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    // Send email notification for scheduled post with user's dynamic timezone
+    // Send email notification for successful scheduling
     try {
       if (user && user.email) {
         const emailService = EmailService.getInstance();
-        // Use the new separate email function with proper formatting
-        await emailService.sendPostDueReminder(
+        // Use the scheduling confirmation email
+        await emailService.sendPostScheduledConfirmation(
           user.email,
           post.headline,
           post.caption,
           post.hashtags,
           post.ideas || '',
-          scheduledTime,
-          'scheduled' // Status when initially scheduling
+          scheduledTime
         );
         console.log(`📧 Email notification sent to ${user.email}`);
       }
@@ -80,17 +79,8 @@ class BasicNotificationService implements NotificationService {
             return;
           }
           
-          // Get current post status to check completion
-          let currentPost = null;
-          try {
-            const scheduledPosts = await storage.getUserScheduledPosts(userId);
-            currentPost = scheduledPosts.find(p => p.id === postId);
-          } catch (dbError) {
-            console.log('Database connection issue, using cached post data');
-          }
-          
-          // Use cached post data if database fails
-          const post = currentPost || postData;
+          // Use cached post data to avoid database dependency completely
+          const post = postData;
           
           if (post) {
             console.log('\n🚨 POST PUBLISHING REMINDER');
@@ -111,7 +101,7 @@ class BasicNotificationService implements NotificationService {
               const localScheduledTime = getNotificationTimeDisplay(scheduledDate, userTimezone);
               
               // Check current status for appropriate message
-              const postStatus = currentPost?.status || 'scheduled';
+              const postStatus = 'scheduled'; // Use cached status to avoid database
               
               await emailService.sendPostDueReminder(
                 user.email, 
@@ -123,11 +113,6 @@ class BasicNotificationService implements NotificationService {
                 postStatus
               );
               console.log(`📧 Post reminder email sent to ${user.email}`);
-              
-              // Update status if post exists in database
-              if (currentPost) {
-                await storage.updateScheduledPost(postId, { status: 'reminded' });
-              }
             } catch (emailError) {
               console.error('Failed to send post reminder email:', emailError);
             }
@@ -158,7 +143,7 @@ class BasicNotificationService implements NotificationService {
         // Only process scheduled tasks, completely avoid database queries in scheduler
         // to prevent Prisma connection errors
         if (this.scheduledTasks.size === 0) {
-          // No scheduled tasks to check, skip completely
+          // No scheduled tasks to check, skip completely and don't make any database calls
           return;
         }
         
@@ -181,38 +166,25 @@ class BasicNotificationService implements NotificationService {
               
               // Send email notification with cached data to avoid database errors
               try {
-                const user = await storage.getUser(task.userId);
-                if (user && user.email) {
+                // Skip user lookup to avoid database connection - use cached data only
+                if (task.postData && task.postData.userEmail) {
                   const emailService = EmailService.getInstance();
-                  const userTimezone = user.timezone || 'UTC'; // Use user's dynamic timezone
+                  const userTimezone = task.postData.userTimezone || 'UTC';
                   const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate, userTimezone);
                   
-                  // Use cached post data if available
                   const post = task.postData;
-                  if (post) {
-                    await emailService.sendPostDueReminder(
-                      user.email,
-                      post.headline,
-                      post.caption,
-                      post.hashtags,
-                      post.ideas || '',
-                      localScheduledTime,
-                      'scheduled' // Assume still scheduled since it's overdue
-                    );
-                    console.log(`📧 Post reminder email sent to ${user.email}`);
-                  } else {
-                    // Last resort fallback
-                    await emailService.sendPostDueReminder(
-                      user.email,
-                      'Your scheduled post',
-                      'Your scheduled Instagram post is ready to publish!',
-                      '',
-                      '',
-                      localScheduledTime,
-                      'scheduled'
-                    );
-                    console.log(`📧 Fallback reminder email sent to ${user.email}`);
-                  }
+                  await emailService.sendPostDueReminder(
+                    task.postData.userEmail,
+                    post.headline || 'Your scheduled post',
+                    post.caption || 'Your scheduled Instagram post is ready to publish!',
+                    post.hashtags || '',
+                    post.ideas || '',
+                    localScheduledTime,
+                    'scheduled' // Assume still scheduled since it's overdue
+                  );
+                  console.log(`📧 Post reminder email sent to ${task.postData.userEmail}`);
+                } else {
+                  console.log('No cached user data available for email notification');
                 }
               } catch (emailError) {
                 console.error('Failed to send post reminder email:', emailError);
