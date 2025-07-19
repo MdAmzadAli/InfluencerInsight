@@ -1151,7 +1151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Schedule a post
   app.post('/api/posts/schedule', authenticateToken, async (req, res) => {
     try {
-      const { contentIdeaId, headline, caption, hashtags, ideas, scheduledDate, isCustom } = req.body;
+      const { contentIdeaId, headline, caption, hashtags, ideas, scheduledDate, isCustom, userInputTime } = req.body;
       
       if (!headline || !caption || !scheduledDate) {
         return res.status(400).json({ error: "Headline, caption, and scheduled date are required" });
@@ -1176,8 +1176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'scheduled'
       });
 
-      // Send immediate notification about the scheduled post
-      notificationService.sendImmediateScheduleNotification(req.user!.id, scheduledPost).catch(error => {
+      // Send immediate notification about the scheduled post with user's original input time
+      notificationService.sendImmediateScheduleNotification(req.user!.id, scheduledPost, userInputTime).catch(error => {
         console.error('Failed to send immediate notification:', error);
       });
       

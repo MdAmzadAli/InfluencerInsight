@@ -203,7 +203,14 @@ export default function ScheduleModal({ isOpen, onClose, idea, customPost }: Sch
       isCustom: !idea,
       contentIdeaId: idea?.id || null,
       status: "scheduled",
-      timeDifference: timeDiff // Pass this for success message
+      timeDifference: timeDiff, // Pass this for success message
+      userInputTime: localDateTime.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }) // Send user's exact input time for first email
     };
 
     schedulePostMutation.mutate(postData);

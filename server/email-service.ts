@@ -451,7 +451,7 @@ The InstaGenIdeas Team`;
             </div>
             
             <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #e91e63; margin-top: 0;">📅 Scheduled for: ${scheduledTime}</h3>
+              ${scheduledTime ? `<h3 style="color: #e91e63; margin-top: 0;">📅 Scheduled for: ${scheduledTime}</h3>` : ''}
               
               <div style="margin: 15px 0;">
                 <h4 style="color: #333; margin-bottom: 5px;">📝 Headline:</h4>
@@ -504,7 +504,7 @@ The InstaGenIdeas Team`;
     const textContent = `
       ${statusMessage.replace(/<[^>]*>/g, '')}
       
-      Scheduled for: ${scheduledTime}
+      ${scheduledTime ? `Scheduled for: ${scheduledTime}` : ''}
       
       Headline: ${headline}
       

@@ -15,11 +15,11 @@ class BasicNotificationService implements NotificationService {
   private scheduledTasks: Map<number, any> = new Map();
 
   // Send immediate notification when a post is scheduled
-  async sendImmediateScheduleNotification(userId: string, post: ScheduledPost): Promise<void> {
-    // Get user for email and timezone
+  async sendImmediateScheduleNotification(userId: string, post: ScheduledPost, userInputTime?: string): Promise<void> {
+    // Get user for email
     const user = await storage.getUser(userId);
-    const userTimezone = user?.timezone || 'UTC';
-    const scheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate), userTimezone);
+    // Use the exact time user entered, or fall back to converted time
+    const scheduledTime = userInputTime || getNotificationTimeDisplay(new Date(post.scheduledDate), user?.timezone || 'UTC');
 
     console.log('\n🔔 POST SCHEDULED NOTIFICATION');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -94,11 +94,9 @@ class BasicNotificationService implements NotificationService {
             }
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
             
-            // Send email notification with simple time format (matches scheduling board)
+            // Send reminder email notification (don't show time, just message and details)
             try {
               const emailService = EmailService.getInstance();
-              const userTimezone = user.timezone || 'UTC';
-              const localScheduledTime = getNotificationTimeDisplay(scheduledDate, userTimezone);
               
               // Check current status for appropriate message
               const postStatus = 'scheduled'; // Use cached status to avoid database
@@ -109,7 +107,7 @@ class BasicNotificationService implements NotificationService {
                 post.caption, 
                 post.hashtags,
                 post.ideas || '',
-                localScheduledTime,
+                '', // Don't show time for reminder emails
                 postStatus
               );
               console.log(`📧 Post reminder email sent to ${user.email}`);
@@ -169,8 +167,7 @@ class BasicNotificationService implements NotificationService {
                 // Skip user lookup to avoid database connection - use cached data only
                 if (task.postData && task.postData.userEmail) {
                   const emailService = EmailService.getInstance();
-                  const userTimezone = task.postData.userTimezone || 'UTC';
-                  const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate, userTimezone);
+                  // For reminder emails, don't show time - just message and details
                   
                   const post = task.postData;
                   await emailService.sendPostDueReminder(
@@ -179,7 +176,7 @@ class BasicNotificationService implements NotificationService {
                     post.caption || 'Your scheduled Instagram post is ready to publish!',
                     post.hashtags || '',
                     post.ideas || '',
-                    localScheduledTime,
+                    '', // Don't show time for reminder emails
                     'scheduled' // Assume still scheduled since it's overdue
                   );
                   console.log(`📧 Post reminder email sent to ${task.postData.userEmail}`);
