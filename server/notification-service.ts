@@ -16,9 +16,10 @@ class BasicNotificationService implements NotificationService {
 
   // Send immediate notification when a post is scheduled
   async sendImmediateScheduleNotification(userId: string, post: ScheduledPost): Promise<void> {
-    // Get user for email
+    // Get user for email and timezone
     const user = await storage.getUser(userId);
-    const scheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate));
+    const userTimezone = user?.timezone || 'UTC';
+    const scheduledTime = getNotificationTimeDisplay(new Date(post.scheduledDate), userTimezone);
 
     console.log('\n🔔 POST SCHEDULED NOTIFICATION');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -96,7 +97,8 @@ class BasicNotificationService implements NotificationService {
             // Send email notification with simple time format (matches scheduling board)
             try {
               const emailService = EmailService.getInstance();
-              const localScheduledTime = getNotificationTimeDisplay(scheduledDate);
+              const userTimezone = user.timezone || 'UTC';
+              const localScheduledTime = getNotificationTimeDisplay(scheduledDate, userTimezone);
               
               // Check current status for appropriate message
               const postStatus = 'scheduled'; // Use cached status to avoid database
@@ -167,7 +169,8 @@ class BasicNotificationService implements NotificationService {
                 // Skip user lookup to avoid database connection - use cached data only
                 if (task.postData && task.postData.userEmail) {
                   const emailService = EmailService.getInstance();
-                  const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate);
+                  const userTimezone = task.postData.userTimezone || 'UTC';
+                  const localScheduledTime = getNotificationTimeDisplay(task.scheduledDate, userTimezone);
                   
                   const post = task.postData;
                   await emailService.sendPostDueReminder(
