@@ -56,9 +56,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Health check endpoint
+  // Health check endpoints
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+  
+  app.get('/api/health', async (req, res) => {
+    try {
+      const dbHealthy = await checkDatabaseHealth();
+      res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        database: dbHealthy ? 'connected' : 'disconnected'
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        status: 'error', 
+        timestamp: new Date().toISOString(),
+        database: 'error'
+      });
+    }
   });
 
   // Test email endpoint (for development)

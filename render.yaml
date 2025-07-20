@@ -1,0 +1,29 @@
+# Render deployment configuration for InstaGenIdeas
+services:
+  - type: web
+    name: instagendideas
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free  # Change to 'starter' for production
+    region: oregon  # Choose closest region
+    branch: main
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false  # You'll set this manually with your own database URL
+      - key: GEMINI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: APIFY_API_TOKEN
+        sync: false  # Set manually in Render dashboard
+      - key: SESSION_SECRET
+        sync: false  # Set manually in Render dashboard
+      - key: BREVO_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: BREVO_FROM_EMAIL
+        sync: false  # Set manually in Render dashboard
+      - key: BREVO_FROM_NAME
+        sync: false  # Set manually in Render dashboard
