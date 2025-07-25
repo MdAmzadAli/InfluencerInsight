@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping the app
         run: |
-          curl -f https://instagen-ideas.onrender.com/api/health || echo "App might be sleeping, but ping sent"
+          curl -f https://influencerinsight-2.onrender.com/api/health || echo "App might be sleeping, but ping sent"
