@@ -3,7 +3,7 @@ name: Keep Render App Alive
 on:
   schedule:
     # Runs every 14 minutes to prevent 15-minute auto-sleep
-    - cron: '*/14 * * * *'
+    - cron: '*/5 * * * *'
 
 jobs:
   ping:
